@@ -210,7 +210,7 @@ function FormBuilderContent() {
                 response_count: 0,
               }
             }
-          } else {
+          } else if (!state.current_form || state.current_form.id === 'default-form') {
             // Create an empty draft form on the server first so it appears on dashboard
             try {
               const resp = await fetch('/api/user/forms', {

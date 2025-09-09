@@ -188,12 +188,11 @@ class UserTrackingManager {
     }
 
     try {
-      // Fallback method: ip-api.com
-      const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
-      const response = await fetch(`${protocol}//ip-api.com/json`)
+      // Fallback method: ipapi.co (HTTPS)
+      const response = await fetch('https://ipapi.co/json/')
       if (response.ok) {
         const data = await response.json()
-        return data.query
+        return data.ip
       }
     } catch (error) {
       console.warn('Fallback IP detection failed')
@@ -208,16 +207,15 @@ class UserTrackingManager {
    */
   private async getGeoData(ip: string): Promise<UserTrackingData['geoData']> {
     try {
-      const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
-      const response = await fetch(`${protocol}//ip-api.com/json/${ip}`)
+      const response = await fetch(`https://ipapi.co/${ip}/json/`)
       if (response.ok) {
         const data = await response.json()
         return {
-          country: data.countryCode || 'Unknown',
+          country: data.country || data.country_code || 'Unknown',
           city: data.city || 'Unknown',
-          region: data.regionName || 'Unknown',
+          region: data.region || 'Unknown',
           timezone: data.timezone || 'Unknown',
-          isp: data.isp || 'Unknown'
+          isp: data.org || 'Unknown'
         }
       }
     } catch (error) {
