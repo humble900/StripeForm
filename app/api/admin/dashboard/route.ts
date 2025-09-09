@@ -2,36 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { dbService } from '@/lib/db/service'
 import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
 import { withErrorHandling, AuthenticationError, AuthorizationError } from '@/lib/error-handler'
+import { authService } from '@/lib/auth/auth-service'
 
 // Helper function to get admin user from request
 async function getAdminUser(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
-  let userId: string | undefined
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    userId = authHeader.replace('Bearer ', '')
-    // In production, verify the Firebase JWT token and extract user ID
-    // For now, we trust the token to contain the Firebase UID directly
-  } else if (process.env.ADMIN_TEST_USER_ID) {
-    // Fallback for local testing if ADMIN_TEST_USER_ID is set
-    userId = process.env.ADMIN_TEST_USER_ID
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new AuthenticationError('Authentication required: No Bearer token found.')
   }
 
-  if (!userId) {
-    throw new AuthenticationError('Authentication required: No user ID found in token or ADMIN_TEST_USER_ID.')
+  const token = authHeader.replace('Bearer ', '')
+  
+  try {
+    // Verify the JWT token using auth service
+    const user = await authService.verifyToken(token)
+    
+    if (user.role !== 'admin' && user.role !== 'super_admin') {
+      throw new AuthorizationError('Admin access required')
+    }
+
+    return { id: user.id, role: user.role }
+  } catch (error) {
+    throw new AuthenticationError('Invalid or expired token')
   }
-
-  const user = await dbService.getUser(userId)
-
-  if (!user) {
-    throw new AuthenticationError(`User not found with ID: ${userId}`)
-  }
-
-  if (user.role !== 'admin' && user.role !== 'super_admin') {
-    throw new AuthorizationError('Admin access required')
-  }
-
-  return { id: user.id, role: user.role }
 }
 
 export async function GET(request: NextRequest) {

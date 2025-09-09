@@ -134,7 +134,10 @@ export default function AdminClient() {
     setError(null)
 
     try {
-      const token = 'admin-token'
+      const token = localStorage.getItem('admin_token')
+      if (!token) {
+        throw new Error('No admin token found')
+      }
       
       const response = await fetch(`/api/admin/dashboard?period=${period}`, {
         headers: {
@@ -164,7 +167,10 @@ export default function AdminClient() {
   const fetchSupportTickets = async () => {
     setLoading(true)
     try {
-      const token = 'admin-token'
+      const token = localStorage.getItem('admin_token')
+      if (!token) {
+        throw new Error('No admin token found')
+      }
       const queryParams = new URLSearchParams()
       
       if (ticketFilters.status) queryParams.append('status', ticketFilters.status)
@@ -199,7 +205,10 @@ export default function AdminClient() {
   const fetchNotifications = async () => {
     setLoading(true)
     try {
-      const token = 'admin-token'
+      const token = localStorage.getItem('admin_token')
+      if (!token) {
+        throw new Error('No admin token found')
+      }
       
       const response = await fetch('/api/admin/notifications?limit=50', {
         headers: {
@@ -228,7 +237,10 @@ export default function AdminClient() {
 
   const markNotificationAsRead = async (notificationId: string) => {
     try {
-      const token = 'admin-token'
+      const token = localStorage.getItem('admin_token')
+      if (!token) {
+        throw new Error('No admin token found')
+      }
       
       const response = await fetch(`/api/admin/notifications/${notificationId}`, {
         method: 'PUT',
