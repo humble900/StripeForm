@@ -1,0 +1,1314 @@
+'use client'
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useNotifications } from '@/components/providers/NotificationProvider';
+import { supabase } from '@/lib/supabase';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { 
+  PlusIcon, 
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  ArchiveBoxIcon,
+  DocumentDuplicateIcon,
+  ShareIcon,
+  ClipboardDocumentListIcon,
+  ArrowTrendingUpIcon,
+  DocumentIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ViewColumnsIcon,
+  ListBulletIcon,
+  EyeSlashIcon,
+  ClipboardIcon,
+  CalendarIcon,
+  UsersIcon,
+  CloudArrowUpIcon,
+  MagnifyingGlassIcon
+} from '@heroicons/react/24/outline';
+import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDate } from '@/lib/utils';
+import LoadingSpinner from '@/components/ui/loading-spinner';
+
+const Dashboard = () => {
+  const router = useRouter();
+  const { user, isAuthenticated, isAnonymous, isLoading, ensureUserState, debugAuthState, getUserTrackingData } = useAuth();
+  const { addNotification } = useNotifications();
+
+  // Helper function to make authenticated API calls
+  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    // Include cookies; also send Bearer fingerprint/uid as a fallback for older endpoints
+    const userTrackingData = await getUserTrackingData()
+    const userId = userTrackingData?.fingerprint || user?.id
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> | undefined),
+    }
+    if (userId) headers['Authorization'] = `Bearer ${userId}`
+    return fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include'
+    })
+  }
+  const [deleteFormId, setDeleteFormId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [forms, setForms] = useState<any[]>([]);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
+  const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(false);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('recent');
+  const [expandedForms, setExpandedForms] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalForms: 0,
+    publishedForms: 0,
+    totalResponses: 0,
+    conversionRate: 0
+  });
+
+  // Debug authentication state
+  useEffect(() => {
+    console.log('🔍 Dashboard: Authentication state changed:', { 
+      isAuthenticated, 
+      isAnonymous, 
+      user: !!user, 
+      userEmail: user?.email,
+      isLoading 
+    })
+    
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
+    
+    if (storedToken && storedUser && !user) {
+      console.log('🔍 Dashboard: Found stored auth data from standalone registration')
+    } else if (isAuthenticated && !user) {
+      console.log('⚠️ Dashboard: Authenticated user but no user object, ensuring user state...')
+      debugAuthState()
+    }
+  }, [isAuthenticated, isAnonymous, user, isLoading, debugAuthState])
+
+  // Fetch forms and dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setIsFetching(true)
+        // Get user tracking data for API calls
+        const userTrackingData = await getUserTrackingData()
+        const userId = userTrackingData?.fingerprint || user?.id
+        
+        if (!userId) {
+          console.log('⚠️ Dashboard: No user ID available')
+          return
+        }
+
+        console.log('🔄 Dashboard: Fetching data for user:', userId)
+
+        // Fetch forms using authenticated endpoint (summary for speed)
+        const formsResponse = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
+        if (!formsResponse.ok) {
+          throw new Error(`Forms API error! status: ${formsResponse.status}`)
+        }
+        const formsData = await formsResponse.json()
+        console.log('📊 Dashboard: Fetched forms:', formsData)
+        setForms(formsData.data || formsData.forms || [])
+
+        // Fetch analytics/stats
+        const analyticsResponse = await fetch(`/api/analytics?userId=${userId}&period=30d`)
+        
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json()
+          if (analyticsData.success) {
+            setDashboardStats({
+              totalForms: analyticsData.analytics.totalForms || 0,
+              publishedForms: analyticsData.analytics.publishedForms || 0,
+              totalResponses: analyticsData.analytics.totalSubmissions || 0,
+              conversionRate: parseFloat(analyticsData.analytics.averageSubmissionsPerForm) || 0
+            })
+          }
+        }
+
+        console.log('✅ Dashboard: Data fetched successfully')
+        setHasFetchedOnce(true)
+      } catch (error: any) {
+        console.error('❌ Dashboard: Error fetching data:', error)
+        addNotification({
+          type: 'error',
+          title: 'Load Failed',
+          message: error?.message?.includes('Forms API error!') ? 'Failed to load forms data. Please check your network connection and try again.' : 'Failed to load dashboard data. Please try again later.',
+          duration: 5000
+        })
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    if (isAuthenticated || isAnonymous) {
+      fetchDashboardData()
+    }
+  }, [isAuthenticated, isAnonymous, user, addNotification, getUserTrackingData])
+
+  // Listen for form updates
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('🔄 Dashboard: Storage change detected, refreshing forms...')
+      const fetchForms = async () => {
+        try {
+          const userTrackingData = await getUserTrackingData()
+          const userId = userTrackingData?.fingerprint || user?.id
+          
+          if (!userId) return
+
+          const response = await makeAuthenticatedRequest(`/api/user/forms?limit=100`)
+          if (response.ok) {
+            const data = await response.json()
+            setForms(data.data || data.forms || [])
+          }
+        } catch (error) {
+          console.error('❌ Dashboard: Error refreshing forms:', error)
+        }
+      }
+      fetchForms()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('formUpdated', handleStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('formUpdated', handleStorageChange)
+    }
+  }, [])
+  
+  // Update dashboard stats when forms change
+  useEffect(() => {
+    setDashboardStats({
+      totalForms: forms.length,
+      publishedForms: forms.filter(f => f.status === 'published').length,
+      totalResponses: forms.reduce((sum, f) => sum + (f.submissionCount || 0), 0),
+      conversionRate: forms.length > 0 ? Math.round((forms.filter(f => f.submissionCount > 0).length / forms.length) * 100) : 0
+    })
+  }, [forms])
+
+  // Real-time updates for form submissions and changes
+  useEffect(() => {
+    let subscription: any
+
+    const setupRealtimeSubscription = async () => {
+      try {
+        const userTrackingData = await getUserTrackingData()
+        const userId = userTrackingData?.fingerprint || user?.id
+        
+        if (!userId) return
+
+        // Subscribe to form changes
+        subscription = supabase
+          .channel('dashboard-updates')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'forms',
+            filter: `user_id=eq.${userId}`
+          }, (payload) => {
+            console.log('🔄 Real-time form update:', payload)
+            
+            // Refresh forms data
+            const refreshForms = async () => {
+              try {
+                const response = await makeAuthenticatedRequest(`/api/user/forms?limit=100`)
+                if (response.ok) {
+                  const data = await response.json()
+                  setForms(data.data || data.forms || [])
+                }
+              } catch (error) {
+                console.error('Error refreshing forms after real-time update:', error)
+              }
+            }
+            
+            refreshForms()
+          })
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'form_submissions',
+            filter: `form_id=in.(${forms.map(f => f.id).join(',')})`
+          }, (payload) => {
+            console.log('🔄 Real-time submission update:', payload)
+            
+            // Update specific form submission count
+            if (payload.eventType === 'INSERT' && payload.new) {
+              setForms(prev => prev.map(form => 
+                form.id === payload.new.form_id 
+                  ? { ...form, submissionCount: (form.submissionCount || 0) + 1 }
+                  : form
+              ))
+            }
+          })
+          .subscribe()
+
+        console.log('✅ Real-time subscription established')
+      } catch (error) {
+        console.error('❌ Error setting up real-time subscription:', error)
+      }
+    }
+
+    if (isAuthenticated || isAnonymous) {
+      setupRealtimeSubscription()
+    }
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription)
+        console.log('🔌 Real-time subscription cleaned up')
+      }
+    }
+  }, [isAuthenticated, isAnonymous, user, getUserTrackingData, forms])
+
+  // Filter and sort forms
+  const filteredAndSortedForms = forms
+    .filter(form => {
+      const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus = filterStatus === 'all' || form.status === filterStatus
+      return matchesSearch && matchesStatus
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.title.localeCompare(b.title)
+        case 'responses':
+          return (b.submission_count || 0) - (a.submission_count || 0)
+        case 'views':
+          return (b.view_count || 0) - (a.view_count || 0)
+        case 'recent':
+        default:
+          return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
+      }
+    })
+
+  // Form action handlers
+  const handleEditForm = (formId: string) => {
+    router.push(`/builder?form=${formId}`)
+    addNotification({
+      type: 'info',
+      title: 'Edit Form',
+      message: 'Opening form builder...',
+      duration: 2000
+    })
+  }
+
+  const handleViewForm = (formId: string) => {
+    const form = forms.find(f => f.id === formId)
+    if (form && form.status === 'published') {
+      window.open(`/forms/${formId}`, '_blank')
+    } else {
+    addNotification({
+        type: 'warning',
+        title: 'Form Not Published',
+        message: 'Please publish the form first to view it.',
+        duration: 3000
+      })
+    }
+  }
+
+  const handleCloneForm = async (formId: string) => {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/user/forms/${formId}/clone`, {
+        method: 'POST'
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to clone form: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      addNotification({
+        type: 'success',
+        title: 'Form Cloned',
+        message: 'Form has been cloned successfully! You can now edit it.',
+        duration: 3000
+      })
+
+      // Refresh forms list
+      const userTrackingData = await getUserTrackingData()
+      const userId = userTrackingData?.fingerprint || user?.id
+      
+      if (userId) {
+        const formsResponse = await fetch(`/api/forms?userId=${userId}&limit=100`)
+        if (formsResponse.ok) {
+          const data = await formsResponse.json()
+          setForms(data.forms || [])
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Clone error:', error)
+      addNotification({
+        type: 'error',
+        title: 'Clone Failed',
+        message: error?.message?.includes('limit reached') ? 'You have reached your form limit. Please upgrade to create more forms.' : 'Failed to clone form. Please try again.',
+        duration: 5000
+      })
+    }
+  }
+
+  const handleArchiveForm = async (formId: string) => {
+    try {
+      const response = await makeAuthenticatedRequest(`/api/user/forms/${formId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'archived' })
+      })
+        
+        if (!response.ok) {
+        throw new Error(`Failed to archive form: ${response.statusText}`)
+      }
+
+      addNotification({
+        type: 'success',
+        title: 'Form Archived',
+        message: 'Form has been archived successfully! You can find it in your archived forms.',
+        duration: 3000
+      })
+
+      // Update local state
+      setForms(prev => prev.map(form => 
+        form.id === formId ? { ...form, status: 'archived' } : form
+      ))
+    } catch (error: any) {
+      console.error('❌ Archive error:', error)
+      addNotification({
+        type: 'error',
+        title: 'Archive Failed',
+        message: 'Failed to archive form. Please try again.',
+        duration: 5000
+      })
+    }
+  }
+
+  const confirmDelete = (formId: string) => {
+    setDeleteFormId(formId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteForm = async () => {
+    if (!deleteFormId) return
+
+    // Check if form still exists in local state
+    const formExists = forms.find(f => f.id === deleteFormId)
+    if (!formExists) {
+      setDeleteDialogOpen(false)
+      setDeleteFormId(null)
+      return
+    }
+
+    try {
+      const response = await makeAuthenticatedRequest(`/api/user/forms/${deleteFormId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        let errorMessage = response.statusText
+        try {
+        const errorData = await response.json()
+          if (errorData?.message) {
+            errorMessage = errorData.message
+          }
+        } catch (jsonError) {
+          // Failed to parse error response as JSON, use status text
+        }
+        throw new Error(`Failed to delete form: ${errorMessage}`)
+      }
+
+      // Success - parse result if available
+      let result = null
+      try {
+        result = await response.json()
+      } catch (jsonError) {
+        // Some delete endpoints may not return JSON, that's okay
+      }
+
+        addNotification({
+          type: 'success',
+          title: 'Form Deleted',
+          message: 'Form has been deleted successfully! It is permanently removed.',
+          duration: 3000
+      })
+
+      // Update local state
+      setForms(prev => prev.filter(form => form.id !== deleteFormId))
+      } catch (error: any) {
+      console.error('❌ Delete error:', error)
+        addNotification({
+          type: 'error',
+          title: 'Delete Failed',
+          message: 'Failed to delete form. Please ensure you have permission and try again.',
+          duration: 5000
+      })
+    } finally {
+      setDeleteDialogOpen(false)
+      setDeleteFormId(null)
+    }
+  }
+
+  const handleShareForm = async (formId: string) => {
+    const form = forms.find(f => f.id === formId)
+    if (!form || form.status !== 'published') {
+      addNotification({
+        type: 'warning',
+        title: 'Form Not Published',
+        message: 'Please publish the form first to share it.',
+        duration: 3000
+      })
+      return
+    }
+
+    const origin = window.location.origin
+    const formUrl = form.publishedUrl
+      || (form.slug ? `${origin}/forms/${form.slug}` : `${origin}/forms/${formId}`)
+    
+    try {
+      await navigator.clipboard.writeText(formUrl)
+      setCopiedFormId(formId)
+      addNotification({
+        type: 'success',
+        title: 'Link Copied',
+        message: 'Form link copied to clipboard!',
+        duration: 2000
+      })
+      
+      // Reset copied state after 2 seconds
+      setTimeout(() => setCopiedFormId(null), 2000)
+    } catch (error: any) {
+      console.error('❌ Copy error:', error)
+      addNotification({
+        type: 'error',
+        title: 'Copy Failed',
+        message: 'Failed to copy link to clipboard. Please try again or copy manually.',
+        duration: 3000
+      })
+    }
+  }
+
+  const toggleFormExpansion = (formId: string) => {
+    setExpandedForms(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(formId)) {
+        newSet.delete(formId)
+      } else {
+        newSet.add(formId)
+      }
+      return newSet
+    })
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      published: { color: 'bg-green-100 text-green-800', text: 'Published' },
+      draft: { color: 'bg-yellow-100 text-yellow-800', text: 'Draft' },
+      archived: { color: 'bg-gray-100 text-gray-800', text: 'Archived' }
+    }
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+        {config.text}
+      </span>
+    )
+  }
+
+  // Show loading spinner while checking authentication or fetching data
+  if (isLoading || isFetching) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-600 mt-4">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        {/* Header */}
+        <div className="bg-white/70 backdrop-blur-sm border-b border-white/20 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-5">
+              <div className="flex-1"></div>
+              <div className="flex items-center space-x-4">
+                <Button 
+                  onClick={() => router.push('/builder')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300 px-2.5 py-1 text-xs h-8"
+                >
+                  <PlusIcon className="h-3 w-3 mr-1" />
+                  Create Form
+                </Button>
+                {/* export button removed per requirements */}
+                            </div>
+                        </div>
+              </div>
+              </div>
+              
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {forms.length > 0 ? (
+            <>
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Card className="bg-gradient-to-br from-blue-50/80 to-blue-100/80 backdrop-blur-sm border border-blue-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-700/80 text-xs font-semibold uppercase tracking-wider mb-2">
+                          Total Forms
+                        </p>
+                        <p className="text-2xl font-bold text-blue-800">
+                          {dashboardStats.totalForms}
+                        </p>
+                        <p className="text-blue-600/70 text-xs mt-1 font-medium">
+                          All forms
+                        </p>
+                      </div>
+                      <div className="bg-blue-500/20 p-2.5 rounded-xl">
+                        <DocumentIcon className="h-6 w-6 text-blue-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                <Card className="bg-gradient-to-br from-green-50/80 to-green-100/80 backdrop-blur-sm border border-green-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                    <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                            <div>
+                        <p className="text-green-700/80 text-xs font-semibold uppercase tracking-wider mb-2">
+                          Published
+                        </p>
+                        <p className="text-3xl font-bold text-green-800">
+                          {dashboardStats.publishedForms}
+                        </p>
+                        <p className="text-green-600/70 text-xs mt-1 font-medium">
+                          Active forms
+                        </p>
+                            </div>
+                      <div className="bg-green-500/20 p-3 rounded-xl">
+                        <CloudArrowUpIcon className="h-8 w-8 text-green-600" />
+                            </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                <Card className="bg-gradient-to-br from-purple-50/80 to-purple-100/80 backdrop-blur-sm border border-purple-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                        <p className="text-purple-700/80 text-xs font-semibold uppercase tracking-wider mb-2">
+                          Responses
+                        </p>
+                        <p className="text-3xl font-bold text-purple-800">
+                          {dashboardStats.totalResponses}
+                        </p>
+                        <p className="text-purple-600/70 text-xs mt-1 font-medium">
+                          Total submissions
+                        </p>
+                        </div>
+                      <div className="bg-purple-500/20 p-3 rounded-xl">
+                        <ClipboardDocumentListIcon className="h-8 w-8 text-purple-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-50/80 to-orange-100/80 backdrop-blur-sm border border-orange-200/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-700/80 text-xs font-semibold uppercase tracking-wider mb-2">
+                          Conversion
+                        </p>
+                        <p className="text-3xl font-bold text-orange-800">
+                          {dashboardStats.conversionRate}%
+                        </p>
+                        <p className="text-orange-600/70 text-xs mt-1 font-medium">
+                          Success rate
+                        </p>
+                      </div>
+                      <div className="bg-orange-500/20 p-3 rounded-xl">
+                        <ArrowTrendingUpIcon className="h-8 w-8 text-orange-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                        </div>
+
+              {/* Forms Section */}
+              <div className="mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search forms..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-64 pl-10 bg-white/80 backdrop-blur-sm border-white/30 focus:border-blue-500/50 focus:ring-blue-500/20"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="w-32 bg-white/80 backdrop-blur-sm border-white/30 focus:border-blue-500/50 focus:ring-blue-500/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="published">Published</SelectItem>
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="archived">Archived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="relative">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-40 bg-white/80 backdrop-blur-sm border-white/30 focus:border-blue-500/50 focus:ring-blue-500/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recent">Recent</SelectItem>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="responses">Most Responses</SelectItem>
+                      <SelectItem value="views">Most Views</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-lg p-1 border border-white/30">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                    <Button 
+                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                      size="sm"
+                        onClick={() => setViewMode('grid')}
+                        className="h-8 w-8 p-0"
+                    >
+                        <ViewColumnsIcon className="h-4 w-4" />
+                    </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Grid view</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={viewMode === 'list' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('list')}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ListBulletIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>List view</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+                  </div>
+                  
+                {/* Forms List */}
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 -mt-2">
+                    {filteredAndSortedForms.length === 0 ? (
+                      <div className="col-span-full text-center py-10 -mt-4">
+                        <div className="relative mb-8">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                          <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-full p-8 w-24 h-24 mx-auto flex items-center justify-center">
+                            <DocumentIcon className="h-12 w-12 text-gray-400 animate-bounce" />
+                        </div>
+                        </div>
+                        <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3">
+                          No forms found
+                        </h3>
+                        <p className="text-gray-600 text-xs mb-6 max-w-md mx-auto leading-relaxed">
+                          Try adjusting your search or filters to find what you're looking for
+                        </p>
+                        <div className="flex justify-center space-x-2 mt-8">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                      </div>
+                    ) : (
+                  filteredAndSortedForms.map((form) => (
+                    <Card key={form.id} className="bg-white/80 backdrop-blur-sm border border-white/30 shadow-sm hover:shadow-md transition-all duration-200">
+              <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">{form.title}</h3>
+                            <div className="flex items-center space-x-2 mb-3">
+                              {getStatusBadge(form.status)}
+                              {form.status === 'published' && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+                                  Live
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-500 font-medium">
+                                {formatDate(form.updatedAt || form.createdAt)}
+                              </span>
+                    </div>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500">
+                              <span className="flex items-center">
+                                <EyeIcon className="h-3 w-3 mr-1" />
+                                {form.viewCount || 0} views
+                              </span>
+                              <span className="flex items-center">
+                                <ClipboardDocumentListIcon className="h-3 w-3 mr-1" />
+                                {form.submissionCount || 0} responses
+                              </span>
+                  </div>
+                    </div>
+                  </div>
+                  
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-blue-50"
+                                >
+                                  <PencilIcon className="h-4 w-4 text-blue-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {form.status !== 'draft' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => router.push(`/dashboard/responses/${form.id}`)}
+                                    className="h-8 w-8 p-0 hover:bg-indigo-50"
+                                  >
+                                    <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-600" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View responses</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                    <Button 
+                                  variant="ghost"
+                      size="sm"
+                                  onClick={() => handleViewForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-green-50"
+                    >
+                                  <EyeIcon className="h-4 w-4 text-green-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {form.status === 'published' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                    <Button 
+                                    variant="ghost"
+                      size="sm"
+                                    onClick={() => handleShareForm(form.id)}
+                                    className="h-8 w-8 p-0 hover:bg-purple-50"
+                                  >
+                                    {copiedFormId === form.id ? (
+                                      <ClipboardIcon className="h-4 w-4 text-purple-600" />
+                                    ) : (
+                                      <ShareIcon className="h-4 w-4 text-purple-600" />
+                                    )}
+                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{copiedFormId === form.id ? 'Link copied!' : 'Share form URL'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCloneForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-orange-50"
+                                >
+                                  <DocumentDuplicateIcon className="h-4 w-4 text-orange-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Clone form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleArchiveForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-gray-50"
+                                >
+                                  <ArchiveBoxIcon className="h-4 w-4 text-gray-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Archive form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => confirmDelete(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-red-50"
+                                >
+                                  <TrashIcon className="h-4 w-4 text-red-600" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+                  ))
+                )}
+              </div>
+            ) : (
+                  <div className="space-y-4">
+                    {filteredAndSortedForms.length === 0 ? (
+                      <div className="text-center py-10 -mt-4">
+                        <div className="relative mb-8">
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+                          <div className="relative bg-gradient-to-br from-gray-100 to-gray-200 rounded-full p-8 w-24 h-24 mx-auto flex items-center justify-center">
+                            <DocumentIcon className="h-12 w-12 text-gray-400 animate-bounce" />
+                        </div>
+                        </div>
+                        <h3 className="text-xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3">
+                          No forms found
+                        </h3>
+                        <p className="text-gray-600 text-xs mb-6 max-w-md mx-auto leading-relaxed">
+                          Try adjusting your search or filters to find what you're looking for
+                        </p>
+                        <div className="flex justify-center space-x-2 mt-8">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      </div>
+                ) : (
+                  filteredAndSortedForms.map((form) => {
+                    const isExpanded = expandedForms.has(form.id)
+                    const responses = form.submissions || []
+                    
+                    return (
+                      <div key={form.id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                        {/* Form Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div 
+                              className="cursor-pointer p-3 hover:bg-white/50 rounded-xl transition-all duration-200 group"
+                              onClick={() => toggleFormExpansion(form.id)}
+                            >
+                              {isExpanded ? (
+                                <ChevronDownIcon className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                              ) : (
+                                <ChevronRightIcon className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
+                              )}
+                  </div>
+                  
+                    <div>
+                              <h3 className="text-lg font-semibold text-gray-800 mb-2">{form.title}</h3>
+                              <div className="flex items-center space-x-4">
+                                {getStatusBadge(form.status)}
+                                <span className="text-xs text-gray-500 font-medium">
+                                  {formatDate(form.updated_at || form.created_at)}
+                                </span>
+                                <span className="text-xs text-gray-500 font-medium flex items-center">
+                                  <EyeIcon className="h-3 w-3 mr-1" />
+                                  {form.view_count || 0} views
+                                </span>
+                                <span className="text-xs text-gray-500 font-medium flex items-center">
+                                  <ClipboardDocumentListIcon className="h-3 w-3 mr-1" />
+                                  {form.submission_count || 0} responses
+                                </span>
+                    </div>
+                  </div>
+                </div>
+                          
+                          <div className="flex items-center space-x-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                    <Button 
+                                  variant="ghost"
+                      size="sm"
+                                  onClick={() => handleEditForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-blue-50"
+                    >
+                                  <PencilIcon className="h-4 w-4 text-blue-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {form.status !== 'draft' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => router.push(`/dashboard/responses/${form.id}`)}
+                                    className="h-8 w-8 p-0 hover:bg-indigo-50"
+                                  >
+                                    <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-600" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View responses</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                    <Button 
+                                  variant="ghost"
+                      size="sm"
+                                  onClick={() => handleViewForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-green-50"
+                    >
+                                  <EyeIcon className="h-4 w-4 text-green-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            {form.status === 'published' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                    <Button 
+                                    variant="ghost"
+                      size="sm"
+                                    onClick={() => handleShareForm(form.id)}
+                                    className="h-8 w-8 p-0 hover:bg-purple-50"
+                                  >
+                                    {copiedFormId === form.id ? (
+                                      <ClipboardIcon className="h-4 w-4 text-purple-600" />
+                                    ) : (
+                                      <ShareIcon className="h-4 w-4 text-purple-600" />
+                                    )}
+                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{copiedFormId === form.id ? 'Link copied!' : 'Share form URL'}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCloneForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-orange-50"
+                                >
+                                  <DocumentDuplicateIcon className="h-4 w-4 text-orange-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Clone form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleArchiveForm(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-gray-50"
+                                >
+                                  <ArchiveBoxIcon className="h-4 w-4 text-gray-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Archive form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => confirmDelete(form.id)}
+                                  className="h-8 w-8 p-0 hover:bg-red-50"
+                                >
+                                  <TrashIcon className="h-4 w-4 text-red-600" />
+                    </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Delete form</p>
+                              </TooltipContent>
+                            </Tooltip>
+                  </div>
+                </div>
+
+                        {/* Expanded Responses Section */}
+                        {isExpanded && (
+                          <div className="mt-6 pl-10">
+                            <div className="bg-gray-50 rounded-lg p-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-4">
+                                Recent Responses ({responses.length})
+                              </h4>
+                              {responses.length > 0 ? (
+                                <div className="space-y-3">
+                                  {responses.slice(0, 5).map((response: any, index: number) => (
+                                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                      <div className="flex items-center space-x-3">
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                          <UsersIcon className="h-4 w-4 text-blue-600" />
+                                        </div>
+                    <div>
+                                          <p className="text-sm font-medium text-gray-900">
+                                            Response #{index + 1}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            {formatDate(response.created_at || response.submitted_at)}
+                                          </p>
+                    </div>
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {response.fields?.length || 0} fields
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {responses.length > 5 && form.status !== 'draft' && (
+                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => router.push(`/dashboard/responses/${form.id}`)}
+                                      className="w-full mt-3"
+                                    >
+                                      View All Responses ({responses.length})
+                    </Button>
+                                  )}
+                  </div>
+                              ) : (
+                                <div className="text-center py-6">
+                                  <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                  <p className="text-sm text-gray-500">No responses yet</p>
+                    </div>
+                              )}
+                  </div>
+                    </div>
+                        )}
+                  </div>
+                    )
+                  })
+                )}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div></div>
+          )}
+        </div>
+        
+        {/* No Forms - show only after first fetch completes */}
+        {hasFetchedOnce && !isFetching && forms.length === 0 && (
+          <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 min-h-[calc(100vh-200px)] overflow-hidden flex items-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+              <div className="text-center relative z-10">
+                {/* Floating Background Elements */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full blur-3xl opacity-40 animate-pulse"></div>
+                  <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full blur-2xl opacity-30 animate-pulse" style={{animationDelay: '1s'}}></div>
+                  <div className="absolute bottom-1/3 left-1/3 w-20 h-20 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full blur-xl opacity-50 animate-pulse" style={{animationDelay: '2s'}}></div>
+                </div>
+
+                {/* Main Icon Container */}
+                <div className="relative mb-4 mt-8">
+                  {/* Outer Glow Ring */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 rounded-full blur-lg opacity-30 animate-pulse scale-110"></div>
+                  
+                  {/* Middle Ring */}
+                  <div className="absolute inset-2 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full blur-md opacity-40 animate-pulse"></div>
+                  
+                  {/* Clickable Icon */}
+                  <button
+                    onClick={() => router.push('/builder')}
+                    className="relative bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600 rounded-full p-6 w-20 h-20 mx-auto flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 transform cursor-pointer group border-2 border-white/20 backdrop-blur-sm"
+                  >
+                    <DocumentIcon className="h-8 w-8 text-white animate-bounce drop-shadow-md" />
+                    
+                    {/* Sparkle Effects */}
+                    <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-300 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-pink-300 rounded-full animate-ping opacity-60" style={{animationDelay: '0.5s'}}></div>
+                  </button>
+                </div>
+
+                {/* Professional Title */}
+                <div className="mb-4">
+                  <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                    No Forms Found
+                  </h1>
+                  <p className="text-base text-gray-600 font-medium">
+                    Get started by creating your first form
+                  </p>
+                </div>
+
+                {/* CTA Button */}
+                <div className="mb-4">
+                  <Button 
+                    onClick={() => router.push('/builder')}
+                    className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 px-6 py-2.5 text-sm font-semibold rounded-xl border border-white/20 backdrop-blur-sm group overflow-hidden"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                    Create Your First Form
+                    <div className="absolute inset-0 bg-white/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </Button>
+                </div>
+
+                {/* Professional Description */}
+                <div className="mb-6 max-w-xl mx-auto">
+                  <p className="text-sm text-gray-600 leading-relaxed font-medium mb-4">
+                    Create stunning, interactive forms that capture hearts and data with our powerful form builder.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                      Professional templates
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
+                      Real-time analytics
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></div>
+                      Mobile-responsive design
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                      Secure data collection
+                    </div>
+                  </div>
+                </div>
+
+                {/* Animated Dots */}
+                <div className="flex justify-center space-x-2 mb-6">
+                  <div className="w-2 h-2 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full animate-bounce shadow-md"></div>
+                  <div className="w-2 h-2 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full animate-bounce shadow-md" style={{animationDelay: '0.2s'}}></div>
+                  <div className="w-2 h-2 bg-gradient-to-r from-indigo-400 to-indigo-500 rounded-full animate-bounce shadow-md" style={{animationDelay: '0.4s'}}></div>
+                </div>
+
+                {/* Feature Highlights */}
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="group">
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <DocumentIcon className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-800 mb-1 text-xs">Beautiful Forms</h4>
+                    <p className="text-xs text-gray-600">Create stunning forms with our intuitive builder</p>
+                  </div>
+                  
+                  <div className="group">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <ClipboardDocumentListIcon className="h-4 w-4 text-purple-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-800 mb-1 text-xs">Smart Analytics</h4>
+                    <p className="text-xs text-gray-600">Track responses and get insights instantly</p>
+                  </div>
+                  
+                  <div className="group">
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                      <ShareIcon className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <h4 className="font-medium text-gray-800 mb-1 text-xs">Easy Sharing</h4>
+                    <p className="text-xs text-gray-600">Share your forms with a simple link</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+              <AlertDialogTitle>Delete Form</AlertDialogTitle>
+            <AlertDialogDescription>
+                Are you sure you want to delete this form? This action cannot be undone and will permanently remove the form and all its responses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteForm} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </TooltipProvider>
+  )
+}
+
+export default Dashboard 

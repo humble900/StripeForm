@@ -1,0 +1,76 @@
+import { MetadataRoute } from 'next'
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: [
+          '/',
+          '/pricing',
+          '/features',
+          '/faq',
+          '/about',
+          '/contact',
+          '/help',
+          '/guides',
+          '/blog',
+          '/privacy',
+          '/terms',
+          '/integrations',
+          '/enterprise'
+        ],
+        disallow: [
+          '/api/',
+          '/admin/',
+          '/_next/',
+          '/private/',
+          '/dashboard',
+          '/builder',
+          '/login',
+          '/register',
+          '/profile',
+          '/settings',
+          '/analytics',
+          '/forms/',
+          '/test-phone'
+        ],
+      },
+      {
+        userAgent: 'Googlebot',
+        allow: [
+          '/',
+          '/pricing',
+          '/features',
+          '/faq',
+          '/about',
+          '/contact',
+          '/help',
+          '/guides',
+          '/blog',
+          '/privacy',
+          '/terms',
+          '/integrations',
+          '/enterprise'
+        ],
+        disallow: [
+          '/api/',
+          '/admin/',
+          '/_next/',
+          '/private/',
+          '/dashboard',
+          '/builder',
+          '/login',
+          '/register',
+          '/profile',
+          '/settings',
+          '/analytics',
+          '/forms/',
+          '/test-phone'
+        ],
+      }
+    ],
+    sitemap: 'https://stripeform.app/sitemap.xml',
+    host: 'https://stripeform.app',
+  }
+} 
