@@ -12,7 +12,11 @@ import {
 } from '@heroicons/react/24/outline'
 import { FieldComponent } from './FieldComponents'
 
-export function FormBuilderCanvas() {
+interface FormBuilderCanvasProps {
+  isThemeMode?: boolean
+}
+
+export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProps) {
   const { state, selectField, updateForm, deleteField, reorderFields, addField, setPreviewMode } = useFormBuilder()
   const [draggedField, setDraggedField] = useState<string | null>(null)
   const [dragOverField, setDragOverField] = useState<string | null>(null)
@@ -256,9 +260,9 @@ export function FormBuilderCanvas() {
               />
               {(() => { /* helper to ease TS */ return null })()}
               {/**/}
-                <div className="p-2 md:p-3">
-                  <div className="flex items-center justify-between mb-1.5 md:mb-2">
-                    <div className="flex items-center space-x-1.5 md:space-x-2 w-full">
+                <div className="p-1.5 md:p-3">
+                  <div className="flex items-center justify-between mb-1 md:mb-2">
+                    <div className="flex items-center space-x-1 md:space-x-2 w-full">
                       <div className="flex-1">
                         {(() => {
                           const isCover = (field as any).type === 'cover_slide'
@@ -415,18 +419,20 @@ export function FormBuilderCanvas() {
                         const coverBg = (field.settings as any)?.coverBackgroundColor || '#f8fafc'
                         const ctaBg = (field.settings as any)?.coverButtonColor || '#111827'
                         return (
-                          <div className="w-full rounded-2xl p-8 md:p-12 min-h-[220px] md:min-h-[280px] border flex flex-col items-center justify-center" style={{ backgroundColor: coverBg, borderColor: '#dbeafe' }}>
-                            <h3 className="text-lg md:text-xl font-semibold text-gray-900">{title}</h3>
-                            {subtitle && <p className="mt-2 text-xs md:text-sm text-gray-600">{subtitle}</p>}
-                            <div className="mt-4">
-                              <button type="button" className="px-4 py-2 rounded-full text-white text-sm md:text-base" style={{ background: ctaBg }}>{cta}</button>
+                          <div className="w-full rounded-xl md:rounded-2xl p-4 md:p-12 min-h-[120px] md:min-h-[280px] border flex flex-col items-center justify-center" style={{ backgroundColor: coverBg, borderColor: '#dbeafe' }}>
+                            <h3 className="text-sm md:text-xl font-semibold text-gray-900">{title}</h3>
+                            {subtitle && <p className="mt-1 md:mt-2 text-xs md:text-sm text-gray-600">{subtitle}</p>}
+                            <div className="mt-2 md:mt-4">
+                              <button type="button" className="px-2 py-1 md:px-4 md:py-2 rounded-full text-white text-xs md:text-base" style={{ background: ctaBg }}>{cta}</button>
                 </div>
                           </div>
                         )
                       })()}
                     </div>
                   ) : (
-                      <FieldComponent field={field} isPreview={true} disabled={true} showLabel={false} />
+                      <div className="mobile-field-preview">
+                        <FieldComponent field={field} isPreview={true} disabled={true} showLabel={false} />
+                      </div>
                   )}
               </div>
             </div>

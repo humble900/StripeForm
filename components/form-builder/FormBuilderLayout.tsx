@@ -27,6 +27,7 @@ export function FormBuilderLayout() {
   } = useFormBuilder()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [inspectorOpen, setInspectorOpen] = useState(true)
+  const [isThemeMode, setIsThemeMode] = useState(false)
   
   // Auto-collapse side panels on small screens
   // This keeps desktop behavior unchanged while improving mobile usability
@@ -43,6 +44,7 @@ export function FormBuilderLayout() {
         setSidebarOpen={setSidebarOpen}
         inspectorOpen={inspectorOpen}
         setInspectorOpen={setInspectorOpen}
+        onThemeModeChange={setIsThemeMode}
       />
 
       {/* Main Content Area */}
@@ -71,6 +73,18 @@ export function FormBuilderLayout() {
               </div>
             </>
           )}
+          
+          {/* Expand button for collapsed left sidebar */}
+          {!sidebarOpen && (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="hidden md:flex absolute -right-3 top-2 z-50 h-6 w-6 rounded-full bg-white border border-gray-200 shadow items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-opacity"
+              title="Expand fields"
+            >
+              <ArrowRightIcon className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Center Canvas - Form Builder */}
@@ -92,7 +106,7 @@ export function FormBuilderLayout() {
           </div>
 
           {/* Canvas content */}
-          <FormBuilderCanvas />
+          <FormBuilderCanvas isThemeMode={isThemeMode} />
         </div>
 
         {/* Right Inspector - Field/Form settings */}
@@ -115,9 +129,21 @@ export function FormBuilderLayout() {
                 <ArrowRightIcon className="h-3.5 w-3.5" />
               </button>
               <div className="relative z-50">
-                <FormBuilderInspector />
+                <FormBuilderInspector isThemeMode={isThemeMode} />
               </div>
             </>
+          )}
+          
+          {/* Expand button for collapsed right sidebar */}
+          {!inspectorOpen && (
+            <button
+              type="button"
+              onClick={() => setInspectorOpen(true)}
+              className="hidden md:flex absolute -left-3 top-2 z-50 h-6 w-6 rounded-full bg-white border border-gray-200 shadow items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-opacity"
+              title="Expand settings"
+            >
+              <ArrowLeftIcon className="h-3.5 w-3.5" />
+            </button>
           )}
         </div>
       </div>

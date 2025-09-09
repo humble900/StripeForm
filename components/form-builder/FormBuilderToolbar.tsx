@@ -28,13 +28,15 @@ interface FormBuilderToolbarProps {
   setSidebarOpen: (open: boolean) => void
   inspectorOpen: boolean
   setInspectorOpen: (open: boolean) => void
+  onThemeModeChange?: (isThemeMode: boolean) => void
 }
 
 export function FormBuilderToolbar({ 
   sidebarOpen, 
   setSidebarOpen, 
   inspectorOpen, 
-  setInspectorOpen 
+  setInspectorOpen,
+  onThemeModeChange
 }: FormBuilderToolbarProps) {
   const { state, dispatch, undo, redo, canUndo, canRedo, setPreviewMode, updateForm, saveForm } = useFormBuilder()
   const { addNotification } = useNotifications()
@@ -92,7 +94,7 @@ export function FormBuilderToolbar({
       addNotification({
         type: 'error',
         title: 'Save Failed',
-        message: 'Could not save your form. Please check your internet connection or try again.',
+        message: 'Failed to save form. Please try again.',
         duration: 5000
       })
     }
@@ -104,6 +106,7 @@ export function FormBuilderToolbar({
 
   const handleThemeEditor = () => {
     setShowThemeEditor(true)
+    onThemeModeChange?.(true)
   }
 
   const handleApplyBrandKit = async () => {
@@ -126,8 +129,8 @@ export function FormBuilderToolbar({
     } catch (error) {
       addNotification?.({
         type: 'error',
-        title: 'Brand Kit Error',
-        message: error instanceof Error ? error.message : 'Failed to apply brand kit. Please try again.'
+        title: 'Brand Kit',
+        message: 'Failed to apply brand kit'
       })
     }
   }
@@ -169,7 +172,7 @@ export function FormBuilderToolbar({
       addNotification({
         type: 'error',
         title: 'Publish Failed',
-        message: 'Failed to verify form limits. Please check your internet connection and try again.',
+        message: 'Failed to check form limits. Please try again.',
         duration: 5000
       })
     }
@@ -378,7 +381,7 @@ export function FormBuilderToolbar({
       addNotification({
         type: 'error',
         title: 'Publish Failed',
-        message: error instanceof Error && error.message.includes('No published URL returned') ? 'Form published, but the URL could not be retrieved. Please check the dashboard.' : 'Failed to publish form. Please try again.',
+        message: 'Failed to publish form. Please try again.',
         duration: 5000
       })
     }
@@ -497,7 +500,8 @@ export function FormBuilderToolbar({
             className="flex items-center space-x-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors text-xs"
             title="Preview Form"
           >
-            <span className="font-medium">Preview</span>
+            <EyeIcon className="h-3.5 w-3.5" />
+            <span className="font-medium hidden sm:inline">Preview</span>
           </button>
 
 
@@ -510,7 +514,7 @@ export function FormBuilderToolbar({
             title="Save Form"
           >
             <DocumentArrowDownIcon className="h-3.5 w-3.5" />
-            <span className="font-medium">Save</span>
+            <span className="font-medium hidden sm:inline">Save</span>
           </button>
 
           {/* Enhanced Publish Button */}
@@ -548,7 +552,10 @@ export function FormBuilderToolbar({
                   <p className="text-sm text-gray-600">Customize your form's appearance</p>
                 </div>
                 <button
-                  onClick={() => setShowThemeEditor(false)}
+                  onClick={() => {
+                    setShowThemeEditor(false)
+                    onThemeModeChange?.(false)
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <XMarkIcon className="h-6 w-6" />

@@ -891,3 +891,42 @@
 .dark .stitch-form .stitch-back:hover {
   color: #f9fafb;
 }
+
+/* Mobile Form Builder Optimizations */
+@media (max-width: 768px) {
+  .mobile-field-preview {
+    transform: scale(0.85);
+    transform-origin: top left;
+    width: 117.65%; /* Compensate for scale */
+  }
+  
+  .mobile-field-preview input,
+  .mobile-field-preview textarea,
+  .mobile-field-preview select {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+    min-height: 32px !important;
+  }
+  
+  .mobile-field-preview .text-sm {
+    font-size: 11px !important;
+  }
+  
+  .mobile-field-preview .text-base {
+    font-size: 12px !important;
+  }
+  
+  .mobile-field-preview .p-3 {
+    padding: 8px !important;
+  }
+  
+  .mobile-field-preview .py-2 {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  
+  .mobile-field-preview .px-3 {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}

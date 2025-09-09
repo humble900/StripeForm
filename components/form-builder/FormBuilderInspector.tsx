@@ -29,7 +29,11 @@ import {
 import { GlobeAltIcon, NoSymbolIcon } from '@heroicons/react/24/outline'
 import { ImageUploader } from '@/components/upload/ImageUploader'
 
-export function FormBuilderInspector() {
+interface FormBuilderInspectorProps {
+  isThemeMode?: boolean
+}
+
+export function FormBuilderInspector({ isThemeMode = false }: FormBuilderInspectorProps) {
   const { state, updateField, updateForm } = useFormBuilder()
   const selectedField = state.selected_field
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
@@ -38,14 +42,34 @@ export function FormBuilderInspector() {
     return (
       <div className="h-full bg-white border-l border-gray-200 flex flex-col">
         <div className="p-3 md:p-4 border-b border-gray-200">
-          <h2 className="text-sm md:text-lg font-semibold text-gray-900">Question</h2>
-          <p className="text-xs md:text-sm text-gray-600 mt-1">Select a question to edit its properties</p>
+          <h2 className="text-sm md:text-lg font-semibold text-gray-900">
+            {isThemeMode ? 'Theme Editor' : 'Question'}
+          </h2>
+          <p className="text-xs md:text-sm text-gray-600 mt-1">
+            {isThemeMode 
+              ? 'Customize your form\'s appearance and styling'
+              : 'Select a question to edit its properties'
+            }
+          </p>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500">
-            <CursorArrowRaysIcon className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" />
-            <p className="text-sm md:font-medium">No question selected</p>
-            <p className="text-xs md:text-sm">Click on a question to edit its properties</p>
+            {isThemeMode ? (
+              <svg className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a4 4 0 004-4V5z" />
+              </svg>
+            ) : (
+              <CursorArrowRaysIcon className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" />
+            )}
+            <p className="text-sm md:font-medium">
+              {isThemeMode ? 'Theme Editor Active' : 'No question selected'}
+            </p>
+            <p className="text-xs md:text-sm">
+              {isThemeMode 
+                ? 'Use the Theme Editor panel to customize colors, fonts, and layout'
+                : 'Click on a question to edit its properties'
+              }
+            </p>
           </div>
         </div>
       </div>
@@ -107,6 +131,21 @@ export function FormBuilderInspector() {
       </div>
 
       <div className="flex-1 overflow-y-auto sidebar-scroll">
+        {isThemeMode && (
+          /* Theme Mode - Show theme-focused banner */
+          <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a4 4 0 004-4V5z" />
+              </svg>
+              <div>
+                <p className="text-xs font-semibold text-purple-900">Theme Editor Active</p>
+                <p className="text-xs text-purple-700">Use the Theme Editor panel to customize appearance</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Theme (Background & Header Colors) */}
         <div className="border-b border-gray-200">
           {renderSectionHeader('Theme', 'theme', <PaintBrushIcon className="w-4 h-4" />)}

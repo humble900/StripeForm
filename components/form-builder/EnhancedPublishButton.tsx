@@ -352,7 +352,7 @@ export function EnhancedPublishButton({
         ) : (
           <>
             <GlobeAltIcon className="w-4 h-4" />
-            <span>Publish</span>
+            <span className="hidden sm:inline">Publish</span>
           </>
         )}
       </button>
@@ -367,7 +367,7 @@ export function EnhancedPublishButton({
           className="flex items-center space-x-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors text-xs font-medium h-8"
         >
           <CheckIcon className="w-4 h-4" />
-          <span>Published</span>
+          <span className="hidden sm:inline">Published</span>
           <ChevronDownIcon className="w-3 h-3" />
         </button>
 
