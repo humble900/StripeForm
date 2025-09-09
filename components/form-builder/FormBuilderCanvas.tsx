@@ -256,9 +256,9 @@ export function FormBuilderCanvas() {
               />
               {(() => { /* helper to ease TS */ return null })()}
               {/**/}
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2 w-full">
+                <div className="p-2 md:p-3">
+                  <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                    <div className="flex items-center space-x-1.5 md:space-x-2 w-full">
                       <div className="flex-1">
                         {(() => {
                           const isCover = (field as any).type === 'cover_slide'
@@ -266,19 +266,19 @@ export function FormBuilderCanvas() {
                             return (
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between">
-                                  <div className="text-[10px] font-medium text-gray-900">Cover screen</div>
+                                  <div className="text-[9px] md:text-[10px] font-medium text-gray-900">Cover screen</div>
                                 </div>
                               </div>
                             )
                           }
                           if (editingField === field.id) {
                             return (
-                              <div className="space-y-2">
+                              <div className="space-y-1.5 md:space-y-2">
                                 <input
                                   type="text"
                                   value={editingLabel}
                                   onChange={(e) => setEditingLabel(e.target.value)}
-                                  className="w-full text-xs font-medium text-gray-900 border-b border-gray-300 focus:border-blue-500 outline-none bg-transparent"
+                                  className="w-full text-xs md:text-sm font-medium text-gray-900 border-b border-gray-300 focus:border-blue-500 outline-none bg-transparent"
                                   placeholder="Type your question here"
                                   autoFocus
                                 />
@@ -287,11 +287,11 @@ export function FormBuilderCanvas() {
                                     type="text"
                                     value={editingDescription}
                                     onChange={(e) => setEditingDescription(e.target.value)}
-                                    className="flex-1 text-xs text-gray-500 border-b border-gray-200 focus:border-blue-500 outline-none bg-transparent mr-2"
+                                    className="flex-1 text-xs text-gray-500 border-b border-gray-200 focus:border-blue-500 outline-none bg-transparent mr-1 md:mr-2"
                                     placeholder="Description (optional)"
                                   />
-                                  <div className="flex items-center space-x-2">
-                                    <span className="text-[10px] text-gray-500">Show description</span>
+                                  <div className="flex items-center space-x-1 md:space-x-2">
+                                    <span className="text-[9px] md:text-[10px] text-gray-500">Show description</span>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation()
@@ -317,7 +317,7 @@ export function FormBuilderCanvas() {
                                       e.stopPropagation()
                                       handleSaveEditing(field.id)
                                     }}
-                                    className="px-2 py-1 text-[10px] bg-blue-500 text-white rounded hover:bg-blue-600"
+                                    className="px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] md:text-[10px] bg-blue-500 text-white rounded hover:bg-blue-600"
                                   >
                                     Save
                                   </button>
@@ -326,7 +326,7 @@ export function FormBuilderCanvas() {
                                       e.stopPropagation()
                                       handleCancelEditing()
                                     }}
-                                    className="px-2 py-1 text-[10px] bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                    className="px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] md:text-[10px] bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                                   >
                                     Cancel
                                   </button>
@@ -350,7 +350,7 @@ export function FormBuilderCanvas() {
                               className={`w-full text-left rounded-md bg-transparent px-0 py-1 transition-colors ${showPlaceholder ? 'border-b border-gray-300' : ''} hover:bg-transparent`}
                               title={showPlaceholder ? 'Click to add a question' : 'Click to edit question'}
                             >
-                              <span className={`${showPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'} text-[11px] font-medium`}>
+                              <span className={`${showPlaceholder ? 'text-gray-400 italic' : 'text-gray-900'} text-[10px] md:text-[11px] font-medium`}>
                                 {titleText}
                           </span>
                             </button>

@@ -37,15 +37,15 @@ export function FormBuilderInspector() {
   if (!selectedField) {
     return (
       <div className="h-full bg-white border-l border-gray-200 flex flex-col">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Question</h2>
-          <p className="text-sm text-gray-600 mt-1">Select a question to edit its properties</p>
+        <div className="p-3 md:p-4 border-b border-gray-200">
+          <h2 className="text-sm md:text-lg font-semibold text-gray-900">Question</h2>
+          <p className="text-xs md:text-sm text-gray-600 mt-1">Select a question to edit its properties</p>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-gray-500">
-            <CursorArrowRaysIcon className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="font-medium">No question selected</p>
-            <p className="text-sm">Click on a question to edit its properties</p>
+            <CursorArrowRaysIcon className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" />
+            <p className="text-sm md:font-medium">No question selected</p>
+            <p className="text-xs md:text-sm">Click on a question to edit its properties</p>
           </div>
         </div>
       </div>
@@ -71,10 +71,10 @@ export function FormBuilderInspector() {
   const renderSectionHeader = (title: string, section: string, icon: React.ReactNode) => (
     <button
       onClick={() => toggleSection(section)}
-      className="flex items-center justify-between w-full p-2 text-left hover:bg-gray-50 transition-colors"
+      className="flex items-center justify-between w-full p-1.5 md:p-2 text-left hover:bg-gray-50 transition-colors"
       title={title}
     >
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-1.5 md:space-x-2">
           {icon}
         <span className="sr-only">{title}</span>
       </div>
@@ -89,13 +89,13 @@ export function FormBuilderInspector() {
   return (
     <div className="h-full bg-white border-l border-gray-200 flex flex-col sidebar-scroll">
       {/* Header */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-2 md:p-3 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-800">Question</h2>
+            <h2 className="text-sm md:text-base font-semibold text-gray-800">Question</h2>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+          <div className="flex items-center space-x-1 md:space-x-2">
+            <span className={`px-1.5 md:px-2 py-0.5 text-xs font-medium rounded-full ${
               selectedField.required 
                 ? 'bg-red-100 text-red-800' 
                 : 'bg-gray-100 text-gray-800'

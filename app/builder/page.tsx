@@ -24,6 +24,7 @@ function FormBuilderContent() {
     const initializeBuilder = async () => {
       try {
         let userId = 'anonymous'
+        let newForm: Form | null = null
         
         if (isAuthenticated && user) {
           userId = user.id
@@ -40,12 +41,11 @@ function FormBuilderContent() {
             const formResp = await fetch(`/api/forms/${formIdFromQuery}`)
             const formData = await formResp.json()
             if (formData.success && formData.data) {
-              const found = formData.data
-              const newForm: Form = {
-                id: found.id,
-                title: found.title,
-                description: found.description || '',
-                fields: (found.fields || []).map((fld: any) => ({
+              newForm = {
+                id: formData.data.id,
+                title: formData.data.title,
+                description: formData.data.description || '',
+                fields: (formData.data.fields || []).map((fld: any) => ({
                   id: fld.id,
                   type: fld.type,
                   label: fld.label,
@@ -57,14 +57,14 @@ function FormBuilderContent() {
                   settings: fld.settings || {},
                   conditional_logic: fld.conditionalLogic || fld.conditional_logic || null,
                 })),
-                settings: found.settings || {},
-                theme: found.theme || {},
-                created_at: found.createdAt,
-                updated_at: found.updatedAt,
-                user_id: found.userId,
-                isPublished: found.status === 'published',
+                settings: formData.data.settings || {},
+                theme: formData.data.theme || {},
+                created_at: formData.data.createdAt,
+                updated_at: formData.data.updatedAt,
+                user_id: formData.data.userId,
+                isPublished: formData.data.status === 'published',
                 publishedUrl: '',
-                response_count: found.submissionCount || 0,
+                response_count: formData.data.submissionCount || 0,
               }
               dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
               setIsLoading(false)
@@ -78,9 +78,40 @@ function FormBuilderContent() {
 
         // Create a new empty form if none exists
         if (!state.current_form || state.current_form.id === 'default-form') {
-          let newForm: Form
+          if (!newForm) {
+            newForm = {
+              id: '',
+              title: '',
+              description: '',
+              fields: [],
+              settings: {
+                allow_multiple_responses: false,
+                require_login: false,
+                show_progress_bar: true,
+                submit_button_text: 'Submit',
+                success_message: 'Thank you for your response!',
+                redirect_url: '',
+                email_notifications: false,
+                notification_email: '',
+              },
+              theme: {
+                primary_color: '#3b82f6',
+                secondary_color: '#64748b',
+                background_color: '#ffffff',
+                text_color: '#1f2937',
+                font_family: 'Inter',
+                border_radius: 8,
+                custom_css: '',
+              },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              user_id: userId,
+              isPublished: false,
+              publishedUrl: '',
+              response_count: 0,
+            }
+          }
 
-          // If form id provided, fetch the created form + fields from dedicated API
           if (formIdFromQuery) {
             try {
               const formResp = await fetch(`/api/forms/${formIdFromQuery}`)
@@ -287,6 +318,75 @@ function FormBuilderContent() {
                 publishedUrl: '',
                 response_count: 0,
               }
+            }
+          }
+
+          if (!newForm) {
+            newForm = {
+              id: '',
+              title: '',
+              description: '',
+              fields: [],
+              settings: {
+                allow_multiple_responses: false,
+                require_login: false,
+                show_progress_bar: true,
+                submit_button_text: 'Submit',
+                success_message: 'Thank you for your response!',
+                redirect_url: '',
+                email_notifications: false,
+                notification_email: '',
+              },
+              theme: {
+                primary_color: '#3b82f6',
+                secondary_color: '#64748b',
+                background_color: '#ffffff',
+                text_color: '#1f2937',
+                font_family: 'Inter',
+                border_radius: 8,
+                custom_css: '',
+              },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              user_id: userId,
+              isPublished: false,
+              publishedUrl: '',
+              response_count: 0,
+            }
+          }
+
+          // Ensure newForm is always assigned before use
+          if (!newForm) {
+            newForm = {
+              id: '',
+              title: '',
+              description: '',
+              fields: [],
+              settings: {
+                allow_multiple_responses: false,
+                require_login: false,
+                show_progress_bar: true,
+                submit_button_text: 'Submit',
+                success_message: 'Thank you for your response!',
+                redirect_url: '',
+                email_notifications: false,
+                notification_email: '',
+              },
+              theme: {
+                primary_color: '#3b82f6',
+                secondary_color: '#64748b',
+                background_color: '#ffffff',
+                text_color: '#1f2937',
+                font_family: 'Inter',
+                border_radius: 8,
+                custom_css: '',
+              },
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              user_id: userId,
+              isPublished: false,
+              publishedUrl: '',
+              response_count: 0,
             }
           }
 

@@ -48,19 +48,27 @@ export function FormBuilderLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Field Library */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} hidden md:block transition-all duration-300 ease-in-out bg-white border-r border-gray-200 shadow-lg relative group`}>
+        <div className={`${sidebarOpen ? 'w-80 md:w-80' : 'w-0'} md:block transition-all duration-300 ease-in-out bg-white border-r border-gray-200 shadow-lg relative group ${sidebarOpen ? 'block' : 'hidden md:block'}`}>
           {sidebarOpen && (
             <>
+              {/* Mobile overlay */}
+              <div 
+                className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={() => setSidebarOpen(false)}
+              />
+              
               {/* Collapse control - left sidebar */}
               <button
                 type="button"
                 onClick={() => setSidebarOpen(false)}
-                className="absolute -right-3 top-2 z-10 h-6 w-6 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                className="absolute -right-3 top-2 z-50 h-6 w-6 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 title="Collapse fields"
               >
                 <ArrowLeftIcon className="h-3.5 w-3.5" />
               </button>
-              <FormBuilderSidebar />
+              <div className="relative z-50">
+                <FormBuilderSidebar />
+              </div>
             </>
           )}
         </div>
@@ -68,18 +76,18 @@ export function FormBuilderLayout() {
         {/* Center Canvas - Form Builder */}
         <div className="flex-1 flex flex-col relative group px-3 py-3 md:px-6 md:py-4">
           {/* Mobile controls to open side panels */}
-          <div className="md:hidden flex items-center justify-between mb-3">
+          <div className="md:hidden flex items-center justify-between mb-2">
             <button
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs font-medium shadow-sm hover:bg-gray-50"
               onClick={() => setSidebarOpen(true)}
             >
-              <Bars3Icon className="w-4 h-4" /> Add Fields
+              <Bars3Icon className="w-3.5 h-3.5" /> Add Fields
             </button>
             <button
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-gray-200 bg-white text-xs font-medium shadow-sm hover:bg-gray-50"
               onClick={() => setInspectorOpen(true)}
             >
-              <Cog6ToothIcon className="w-4 h-4" /> Settings
+              <Cog6ToothIcon className="w-3.5 h-3.5" /> Settings
             </button>
           </div>
 
@@ -88,19 +96,27 @@ export function FormBuilderLayout() {
         </div>
 
         {/* Right Inspector - Field/Form settings */}
-        <div className={`${inspectorOpen ? 'w-96' : 'w-0'} hidden md:block transition-all duration-300 ease-in-out bg-white border-l border-gray-200 shadow-lg relative group`}>
+        <div className={`${inspectorOpen ? 'w-96 md:w-96' : 'w-0'} md:block transition-all duration-300 ease-in-out bg-white border-l border-gray-200 shadow-lg relative group ${inspectorOpen ? 'block' : 'hidden md:block'}`}>
           {inspectorOpen && (
             <>
+              {/* Mobile overlay */}
+              <div 
+                className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={() => setInspectorOpen(false)}
+              />
+              
               {/* Collapse control - right sidebar */}
               <button
                 type="button"
                 onClick={() => setInspectorOpen(false)}
-                className="absolute -left-3 top-2 z-10 h-6 w-6 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                className="absolute -left-3 top-2 z-50 h-6 w-6 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
                 title="Collapse settings"
               >
                 <ArrowRightIcon className="h-3.5 w-3.5" />
               </button>
-              <FormBuilderInspector />
+              <div className="relative z-50">
+                <FormBuilderInspector />
+              </div>
             </>
           )}
         </div>
