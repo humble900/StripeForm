@@ -169,33 +169,21 @@ class UserTrackingManager {
   }
 
   /**
-   * Get IP address using multiple fallback methods
+   * Get IP address using our server-side API
    */
   private async getIPAddress(): Promise<string> {
     try {
-      // Primary method: ipify.org
-      const response = await fetch('https://api.ipify.org?format=json', {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      })
+      // Use our server-side API to avoid CORS issues
+      const response = await fetch('/api/geo-location')
       
       if (response.ok) {
-        const data = await response.json()
-        return data.ip
+        const result = await response.json()
+        if (result.success && result.data.ip) {
+          return result.data.ip
+        }
       }
     } catch (error) {
-      console.warn('Primary IP detection failed, trying fallback...')
-    }
-
-    try {
-      // Fallback method: ipapi.co (HTTPS)
-      const response = await fetch('https://ipapi.co/json/')
-      if (response.ok) {
-        const data = await response.json()
-        return data.ip
-      }
-    } catch (error) {
-      console.warn('Fallback IP detection failed')
+      console.warn('IP detection failed:', error)
     }
 
     // Final fallback: return localhost for development
@@ -207,15 +195,21 @@ class UserTrackingManager {
    */
   private async getGeoData(ip: string): Promise<UserTrackingData['geoData']> {
     try {
-      const response = await fetch(`https://ipapi.co/${ip}/json/`)
+      // Use our server-side API to avoid CORS issues
+      const response = await fetch('/api/geo-location')
+      
       if (response.ok) {
-        const data = await response.json()
-        return {
-          country: data.country || data.country_code || 'Unknown',
-          city: data.city || 'Unknown',
-          region: data.region || 'Unknown',
-          timezone: data.timezone || 'Unknown',
-          isp: data.org || 'Unknown'
+        const result = await response.json()
+        
+        if (result.success) {
+          const data = result.data
+          return {
+            country: data.country || 'Unknown',
+            city: data.city || 'Unknown',
+            region: data.region || 'Unknown',
+            timezone: data.timezone || 'Unknown',
+            isp: 'Unknown'
+          }
         }
       }
     } catch (error) {

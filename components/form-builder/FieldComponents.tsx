@@ -107,7 +107,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
     }, [country])
     if (options && options.length > 0) {
       return (
-        <select value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} required={required}>
+        <select id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} required={required}>
           <option value="">Select region</option>
           {options.map((r) => (
             <option key={r.shortCode || r.name} value={r.name}>{r.name}</option>
@@ -116,7 +116,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       )
     }
     return (
-      <input value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} placeholder="Region" required={required} />
+      <input id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} placeholder="Region" required={required} />
     )
   }
 
@@ -202,7 +202,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         return (
           <div className="space-y-1">
             <label className="text-[12px] text-gray-600">Target URL</label>
-            <input type="url" disabled className={`${baseInputClasses} ${neutralBorderClass}`} placeholder={(field.settings as any)?.redirectUrl || 'https://example.com/thank-you'} />
+            <input type="url" id={`${field.id}-url`} name={`${field.id}-url`} disabled className={`${baseInputClasses} ${neutralBorderClass}`} placeholder={(field.settings as any)?.redirectUrl || 'https://example.com/thank-you'} />
             <div className="text-[11px] text-gray-500">User will be redirected after this step.</div>
           </div>
         )
@@ -219,6 +219,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="relative">
               <input
                 type="text"
+                id={`${field.id}-first`}
+                name={`${field.id}-first`}
                 value={current.first || ''}
                 onChange={(e) => setPart('first', e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -233,6 +235,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="relative">
               <input
                 type="text"
+                id={`${field.id}-last`}
+                name={`${field.id}-last`}
                 value={current.last || ''}
                 onChange={(e) => setPart('last', e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -279,6 +283,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="flex items-stretch gap-2">
             <div className="relative w-[44%] max-w-[180px]">
               <select
+                id={`${field.id}-country`}
+                name={`${field.id}-country`}
                 value={countryCode}
                 onChange={(e) => { const cc = e.target.value; setCountryCode(cc); handleChange({ country: cc, dial: DIAL[cc] || '+', number: rawNumber, formatted: `${DIAL[cc] || '+'} ${formatPhone(onlyDigits(rawNumber))}` }) }}
                 disabled={disabled}
@@ -298,6 +304,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="flex-1 relative">
               <input
                 type="tel"
+                id={field.id}
+                name={field.id}
                 value={(typeof localValue === 'object' && (localValue as any)?.formatted) ? (localValue as any).formatted : `${dial} ${formatPhone(onlyDigits(rawNumber))}`}
                 onChange={(e) => setNumber(e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -333,6 +341,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <input
                 ref={inputRef}
                 type={show ? 'text' : 'password'}
+                id={field.id}
+                name={field.id}
                 value={pwd}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -436,7 +446,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="space-y-2">
             <div>
               <label className="block text-xs text-gray-700 mb-1">Search location</label>
-              <input ref={inputRef} value={text} onChange={(e)=>setText(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Start typing an address or place" />
+              <input ref={inputRef} id={`${field.id}-search`} name={`${field.id}-search`} value={text} onChange={(e)=>setText(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Start typing an address or place" />
                 </div>
             {pos?.lat && pos?.lng && (
               <div className="text-xs text-gray-600">Lat: {pos.lat}, Lng: {pos.lng}</div>
@@ -737,6 +747,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <input
                 ref={inputRef}
                 type="text"
+                id={field.id}
+                name={field.id}
                 aria-label={label}
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
@@ -782,6 +794,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <input
                 ref={inputRef}
                 type="email"
+                id={field.id}
+                name={field.id}
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
@@ -878,6 +892,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <input
                 type="number"
                 inputMode="numeric"
+                id={field.id}
+                name={field.id}
                 aria-label={label}
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
@@ -973,6 +989,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         return (
           <div className="relative">
             <select
+              id={field.id}
+              name={field.id}
               value={localValue}
               onChange={(e) => handleChange(e.target.value)}
               onFocus={() => setIsFocused(true)}
@@ -1068,6 +1086,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   <div className="p-2 border-b border-gray-100">
                     <input
                       autoFocus
+                      id={`${field.id}-search`}
+                      name={`${field.id}-search`}
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search..."
@@ -1158,6 +1178,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <div className="p-2 border-b border-gray-100">
                   <input
                     autoFocus
+                    id={`${field.id}-search-multi`}
+                    name={`${field.id}-search-multi`}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search..."
@@ -1277,21 +1299,21 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="space-y-2">
             <div>
               <label className="block text-xs text-gray-700 mb-1">Address</label>
-              <input ref={usePlaces ? inputRef : undefined} value={v.street1 || ''} onChange={(e) => set('street1', e.target.value)} className={inputCls} placeholder="65 Hansen Way" required={req('addressRequireStreet1', true)} />
+              <input ref={usePlaces ? inputRef : undefined} id={`${field.id}-street1`} name={`${field.id}-street1`} value={v.street1 || ''} onChange={(e) => set('street1', e.target.value)} className={inputCls} placeholder="65 Hansen Way" required={req('addressRequireStreet1', true)} />
             </div>
             <div>
               <label className="block text-xs text-gray-700 mb-1">Address line 2</label>
-              <input value={v.street2 || ''} onChange={(e) => set('street2', e.target.value)} className={inputCls} placeholder="Apartment 4" required={req('addressRequireStreet2')} />
+              <input id={`${field.id}-street2`} name={`${field.id}-street2`} value={v.street2 || ''} onChange={(e) => set('street2', e.target.value)} className={inputCls} placeholder="Apartment 4" required={req('addressRequireStreet2')} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-700 mb-1">City/Town</label>
-                <input value={v.city || ''} onChange={(e) => set('city', e.target.value)} className={inputCls} placeholder="Palo Alto" required={req('addressRequireCity', true)} />
+                <input id={`${field.id}-city`} name={`${field.id}-city`} value={v.city || ''} onChange={(e) => set('city', e.target.value)} className={inputCls} placeholder="Palo Alto" required={req('addressRequireCity', true)} />
               </div>
               <div>
                 <label className="block text-xs text-gray-700 mb-1">{regionMeta?.label || 'State/Region/Province'}</label>
                 {regionMeta?.options?.length ? (
-                  <select value={v.region || ''} onChange={(e) => set('region', e.target.value)} className={inputCls} required={req('addressRequireRegion', true)}>
+                  <select id={`${field.id}-region`} name={`${field.id}-region`} value={v.region || ''} onChange={(e) => set('region', e.target.value)} className={inputCls} required={req('addressRequireRegion', true)}>
                     <option value="">Select {regionMeta.label.toLowerCase()}</option>
                     {regionMeta.options.map(opt => (
                       <option key={opt.code} value={opt.name}>{opt.name}</option>
@@ -1305,11 +1327,11 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs text-gray-700 mb-1">Zip/Post code</label>
-                <input value={v.postalCode || ''} onChange={(e) => set('postalCode', e.target.value)} className={inputCls} placeholder="94025" required={req('addressRequirePostalCode', true)} />
+                <input id={`${field.id}-postalCode`} name={`${field.id}-postalCode`} value={v.postalCode || ''} onChange={(e) => set('postalCode', e.target.value)} className={inputCls} placeholder="94025" required={req('addressRequirePostalCode', true)} />
               </div>
               <div>
                 <label className="block text-xs text-gray-700 mb-1">Country</label>
-                <select value={v.country || ''} onChange={(e) => set('country', e.target.value)} className={inputCls} required={req('addressRequireCountry', true)}>
+                <select id={`${field.id}-country`} name={`${field.id}-country`} value={v.country || ''} onChange={(e) => set('country', e.target.value)} className={inputCls} required={req('addressRequireCountry', true)}>
                   <option value="">Select country</option>
                   {COUNTRIES.map(c => (
                     <option key={c.code || c.name} value={c.name}>{countryCodeToFlag(c.code)} {c.name}</option>
@@ -2214,77 +2236,135 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
 
         useEffect(() => {
           if (mode !== 'draw') return
-          const canvas = canvasRef.current
-          if (!canvas) return
-          const ctx = canvas.getContext('2d')
-          if (!ctx) return
-          // scale for DPR
-          const dpr = window.devicePixelRatio || 1
-          const rect = canvas.getBoundingClientRect()
-          canvas.width = rect.width * dpr
-          canvas.height = rect.height * dpr
-          ctx.scale(dpr, dpr)
-          ctx.lineJoin = 'round'
-          ctx.lineCap = 'round'
-          ctx.strokeStyle = '#111827'
-          ctx.lineWidth = penSize
-          // If existing image value
-          if (typeof value === 'string' && (value as string).startsWith('data:')) {
-            const img = new Image()
-            img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height)
-            img.src = value as string
+          
+          try {
+            const canvas = canvasRef.current
+            if (!canvas) return
+            
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            
+            // scale for DPR with mobile safety checks
+            const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+            const rect = canvas.getBoundingClientRect()
+            
+            // Ensure minimum dimensions for mobile
+            const minWidth = Math.max(rect.width || 300, 300)
+            const minHeight = Math.max(rect.height || 200, 200)
+            
+            canvas.width = minWidth * dpr
+            canvas.height = minHeight * dpr
+            ctx.scale(dpr, dpr)
+            ctx.lineJoin = 'round'
+            ctx.lineCap = 'round'
+            ctx.strokeStyle = '#111827'
+            ctx.lineWidth = penSize
+            
+            // If existing image value
+            if (typeof value === 'string' && (value as string).startsWith('data:')) {
+              const img = new Image()
+              img.onload = () => {
+                try {
+                  ctx.drawImage(img, 0, 0, minWidth, minHeight)
+                } catch (error) {
+                  console.warn('Failed to draw image on canvas:', error)
+                }
+              }
+              img.onerror = () => {
+                console.warn('Failed to load image for canvas')
+              }
+              img.src = value as string
+            }
+          } catch (error) {
+            console.error('Canvas initialization error:', error)
           }
         }, [mode, penSize, value])
 
         const getPos = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
-          const rect = canvas.getBoundingClientRect()
-          if ('touches' in e && e.touches[0]) {
-            return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top }
-          } else if ('clientX' in e) {
-            const me = e as MouseEvent
-            return { x: me.clientX - rect.left, y: me.clientY - rect.top }
+          try {
+            const rect = canvas.getBoundingClientRect()
+            if ('touches' in e && e.touches && e.touches.length > 0) {
+              return { 
+                x: e.touches[0].clientX - rect.left, 
+                y: e.touches[0].clientY - rect.top 
+              }
+            } else if ('clientX' in e) {
+              const me = e as MouseEvent
+              return { 
+                x: me.clientX - rect.left, 
+                y: me.clientY - rect.top 
+              }
+            }
+            return { x: 0, y: 0 }
+          } catch (error) {
+            console.warn('Error getting touch position:', error)
+            return { x: 0, y: 0 }
           }
-          return { x: 0, y: 0 }
         }
 
         const startDraw = (e: any) => {
-          if (mode !== 'draw') return
-          const canvas = canvasRef.current
-          const ctx = canvas?.getContext('2d')
-          if (!canvas || !ctx) return
-          drawingRef.current = true
-          lastRef.current = getPos(e.nativeEvent, canvas)
+          try {
+            if (mode !== 'draw') return
+            const canvas = canvasRef.current
+            const ctx = canvas?.getContext('2d')
+            if (!canvas || !ctx) return
+            
+            // Prevent default to avoid scrolling on mobile
+            if (e.preventDefault) e.preventDefault()
+            
+            drawingRef.current = true
+            lastRef.current = getPos(e.nativeEvent || e, canvas)
+          } catch (error) {
+            console.warn('Error starting draw:', error)
+          }
         }
         const moveDraw = (e: any) => {
-          if (mode !== 'draw') return
-          const canvas = canvasRef.current
-          const ctx = canvas?.getContext('2d')
-          if (!canvas || !ctx || !drawingRef.current || !lastRef.current) return
-          const now = getPos(e.nativeEvent, canvas)
-          ctx.beginPath()
-          ctx.moveTo(lastRef.current.x, lastRef.current.y)
-          ctx.lineTo(now.x, now.y)
-          ctx.stroke()
-          lastRef.current = now
+          try {
+            if (mode !== 'draw') return
+            const canvas = canvasRef.current
+            const ctx = canvas?.getContext('2d')
+            if (!canvas || !ctx || !drawingRef.current || !lastRef.current) return
+            
+            // Prevent default to avoid scrolling on mobile
+            if (e.preventDefault) e.preventDefault()
+            
+            const now = getPos(e.nativeEvent || e, canvas)
+            ctx.beginPath()
+            ctx.moveTo(lastRef.current.x, lastRef.current.y)
+            ctx.lineTo(now.x, now.y)
+            ctx.stroke()
+            lastRef.current = now
+          } catch (error) {
+            console.warn('Error during draw move:', error)
+          }
         }
         const endDraw = () => {
-          if (mode !== 'draw') return
-          const canvas = canvasRef.current
-          if (!canvas) return
-          drawingRef.current = false
-          lastRef.current = null
           try {
+            if (mode !== 'draw') return
+            const canvas = canvasRef.current
+            if (!canvas) return
+            
+            drawingRef.current = false
+            lastRef.current = null
+            
             const data = canvas.toDataURL('image/png')
             onChange?.(data)
-          } catch {}
+          } catch (error) {
+            console.warn('Error ending draw:', error)
+          }
         }
 
         const clearCanvas = () => {
-          const canvas = canvasRef.current
-          const ctx = canvas?.getContext('2d')
-          if (!canvas || !ctx) return
-          ctx.clearRect(0, 0, canvas.width, canvas.height)
-          onChange?.('')
+          try {
+            const canvas = canvasRef.current
+            const ctx = canvas?.getContext('2d')
+            if (!canvas || !ctx) return
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            onChange?.('')
+          } catch (error) {
+            console.warn('Error clearing canvas:', error)
+          }
         }
 
         const fileInputRef = useRef<HTMLInputElement>(null)

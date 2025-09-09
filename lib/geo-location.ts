@@ -13,23 +13,20 @@ const geoCache = new Map<string, GeoLocationData>()
 
 export async function getGeoLocationData(): Promise<GeoLocationData | null> {
   try {
-    // First try to get IP from client-side
-    const response = await fetch('https://ipapi.co/json/')
+    // Use our server-side API to avoid CORS issues
+    const response = await fetch('/api/geo-location')
     
     if (!response.ok) {
       throw new Error('Failed to fetch geolocation data')
     }
 
-    const data = await response.json()
+    const result = await response.json()
     
-    const geoData: GeoLocationData = {
-      country: data.country_name || 'Unknown',
-      countryCode: data.country_code || 'US',
-      region: data.region || 'Unknown',
-      city: data.city || 'Unknown',
-      timezone: data.timezone || 'UTC',
-      ip: data.ip || 'Unknown'
+    if (!result.success) {
+      throw new Error('API returned error')
     }
+
+    const geoData: GeoLocationData = result.data
 
     // Cache the result
     geoCache.set(geoData.ip, geoData)

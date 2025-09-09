@@ -1,273 +1,208 @@
-import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server'
 
-export class AppError extends Error {
-  public readonly statusCode: number
-  public readonly isOperational: boolean
-  public readonly code?: string
-  public readonly details?: any
-
-  constructor(
-    message: string,
-    statusCode: number = 500,
-    isOperational: boolean = true,
-    code?: string,
-    details?: any
-  ) {
-    super(message)
-    this.statusCode = statusCode
-    this.isOperational = isOperational
-    this.code = code
-    this.details = details
-
-    Error.captureStackTrace(this, this.constructor)
-  }
-}
-
-// Predefined error classes
-export class ValidationError extends AppError {
-  constructor(message: string, details?: any) {
-    super(message, 400, true, 'VALIDATION_ERROR', details)
-  }
-}
-
-export class AuthenticationError extends AppError {
-  constructor(message: string = 'Authentication required') {
-    super(message, 401, true, 'AUTHENTICATION_ERROR')
-  }
-}
-
-export class AuthorizationError extends AppError {
-  constructor(message: string = 'Access denied') {
-    super(message, 403, true, 'AUTHORIZATION_ERROR')
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(resource: string = 'Resource') {
-    super(`${resource} not found`, 404, true, 'NOT_FOUND_ERROR')
-  }
-}
-
-export class ConflictError extends AppError {
+// Custom error classes
+export class AuthenticationError extends Error {
+  statusCode: number = 401
+  
   constructor(message: string) {
-    super(message, 409, true, 'CONFLICT_ERROR')
+    super(message)
+    this.name = 'AuthenticationError'
   }
 }
 
-export class RateLimitError extends AppError {
-  constructor(message: string = 'Rate limit exceeded') {
-    super(message, 429, true, 'RATE_LIMIT_ERROR')
+export class AuthorizationError extends Error {
+  statusCode: number = 403
+  
+  constructor(message: string) {
+    super(message)
+    this.name = 'AuthorizationError'
   }
 }
 
-export class ExternalServiceError extends AppError {
-  constructor(service: string, message?: string) {
-    super(
-      message || `External service error: ${service}`,
-      502,
-      true,
-      'EXTERNAL_SERVICE_ERROR',
-      { service }
-    )
+export class NotFoundError extends Error {
+  statusCode: number = 404
+  
+  constructor(message: string) {
+    super(message)
+    this.name = 'NotFoundError'
   }
 }
 
-// Error response interface
-interface ErrorResponse {
-  error: string
-  message: string
-  code?: string
-  details?: any
-  timestamp: string
-  requestId?: string
-}
-
-// Error handler function
-export function handleError(error: unknown, requestId?: string): NextResponse {
-  console.error('API Error:', error)
-
-  // Handle AppError instances
-  if (error instanceof AppError) {
-    const response: ErrorResponse = {
-      error: error.constructor.name,
-      message: error.message,
-      code: error.code,
-      details: error.details,
-      timestamp: new Date().toISOString(),
-      requestId
-    }
-
-    return NextResponse.json(response, { status: error.statusCode })
-  }
-
-  // Handle Zod validation errors
-  if (error instanceof z.ZodError) {
-    const response: ErrorResponse = {
-      error: 'ValidationError',
-      message: 'Request validation failed',
-      code: 'VALIDATION_ERROR',
-      details: {
-        errors: error.errors.map(err => ({
-          field: err.path.join('.'),
-          message: err.message,
-          code: err.code
-        }))
-      },
-      timestamp: new Date().toISOString(),
-      requestId
-    }
-
-    return NextResponse.json(response, { status: 400 })
-  }
-
-  // Handle database errors
-  if (error && typeof error === 'object' && 'code' in error) {
-    const dbError = error as any
-    
-    // PostgreSQL specific errors
-    switch (dbError.code) {
-      case '23505': // unique_violation
-        return NextResponse.json({
-          error: 'ConflictError',
-          message: 'Resource already exists',
-          code: 'DUPLICATE_RESOURCE',
-          timestamp: new Date().toISOString(),
-          requestId
-        }, { status: 409 })
-        
-      case '23503': // foreign_key_violation
-        return NextResponse.json({
-          error: 'ValidationError',
-          message: 'Referenced resource does not exist',
-          code: 'FOREIGN_KEY_VIOLATION',
-          timestamp: new Date().toISOString(),
-          requestId
-        }, { status: 400 })
-        
-      case '23502': // not_null_violation
-        return NextResponse.json({
-          error: 'ValidationError',
-          message: 'Required field is missing',
-          code: 'MISSING_REQUIRED_FIELD',
-          timestamp: new Date().toISOString(),
-          requestId
-        }, { status: 400 })
-    }
-  }
-
-  // Handle JavaScript errors
-  if (error instanceof Error) {
-    // Don't expose internal error details in production
-    const isDevelopment = process.env.NODE_ENV === 'development'
-    
-    const response: ErrorResponse = {
-      error: 'InternalServerError',
-      message: isDevelopment ? error.message : 'An internal server error occurred',
-      code: 'INTERNAL_SERVER_ERROR',
-      details: isDevelopment ? { stack: error.stack } : undefined,
-      timestamp: new Date().toISOString(),
-      requestId
-    }
-
-    return NextResponse.json(response, { status: 500 })
-  }
-
-  // Handle unknown errors
-  const response: ErrorResponse = {
-    error: 'UnknownError',
-    message: 'An unknown error occurred',
-    code: 'UNKNOWN_ERROR',
-    timestamp: new Date().toISOString(),
-    requestId
-  }
-
-  return NextResponse.json(response, { status: 500 })
-}
-
-// Async error wrapper for API routes
-export function asyncHandler<T extends any[], R>(
-  fn: (...args: T) => Promise<R>
-) {
-  return async (...args: T): Promise<R | NextResponse> => {
-    try {
-      return await fn(...args)
-    } catch (error) {
-      return handleError(error)
-    }
+export class ExternalServiceError extends Error {
+  statusCode: number = 502
+  
+  constructor(service: string, message: string) {
+    super(`${service} error: ${message}`)
+    this.name = 'ExternalServiceError'
   }
 }
 
-// Wrapper for API route handlers
+export class ValidationError extends Error {
+  statusCode: number = 400
+  
+  constructor(message: string) {
+    super(message)
+    this.name = 'ValidationError'
+  }
+}
+
+// Error handling wrapper for API routes
 export function withErrorHandling<T extends any[]>(
-  handler: (...args: T) => Promise<NextResponse>,
-  options?: { requestId?: string }
+  handler: (...args: T) => Promise<NextResponse>
 ) {
   return async (...args: T): Promise<NextResponse> => {
     try {
       return await handler(...args)
-    } catch (error) {
-      return handleError(error, options?.requestId)
+    } catch (error: unknown) {
+      console.error('API Error:', error)
+      
+      // Handle custom error types
+      if (error instanceof AuthenticationError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.statusCode }
+        )
+      }
+      
+      if (error instanceof AuthorizationError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.statusCode }
+        )
+      }
+      
+      if (error instanceof NotFoundError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.statusCode }
+        )
+      }
+      
+      if (error instanceof ValidationError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: error.statusCode }
+        )
+      }
+      
+      if (error instanceof ExternalServiceError) {
+        return NextResponse.json(
+          { success: false, message: 'External service error' },
+          { status: error.statusCode }
+        )
+      }
+      
+      // Handle generic errors
+      const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+      
+      return NextResponse.json(
+        { success: false, message: errorMessage },
+        { status: 500 }
+      )
     }
   }
 }
 
-// Logger interface for structured error logging
-export interface ErrorLogger {
-  error: (message: string, error: Error, context?: any) => void
-  warn: (message: string, context?: any) => void
-  info: (message: string, context?: any) => void
+// Global error handling for client-side errors
+export function setupGlobalErrorHandlers() {
+  if (typeof window === 'undefined') return
+
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason)
+    
+    // Log to external service in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production unhandled rejection:', {
+        reason: event.reason?.toString(),
+        stack: event.reason?.stack,
+        userAgent: window.navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      })
+    }
+    
+    // Prevent the default browser behavior
+    event.preventDefault()
+  })
+
+  // Handle general JavaScript errors
+  window.addEventListener('error', (event) => {
+    console.error('Global JavaScript error:', event.error)
+    
+    // Log to external service in production
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Production JavaScript error:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error?.toString(),
+        stack: event.error?.stack,
+        userAgent: window.navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      })
+    }
+  })
+
+  // Handle resource loading errors
+  window.addEventListener('error', (event) => {
+    if (event.target !== window) {
+      console.error('Resource loading error:', {
+        tagName: (event.target as any)?.tagName,
+        src: (event.target as any)?.src,
+        href: (event.target as any)?.href,
+        userAgent: window.navigator.userAgent,
+        url: window.location.href
+      })
+    }
+  }, true)
 }
 
-// Simple console logger implementation
-export const consoleLogger: ErrorLogger = {
-  error: (message: string, error: Error, context?: any) => {
-    console.error(`[ERROR] ${message}`, {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      },
-      context,
-      timestamp: new Date().toISOString()
-    })
-  },
-  warn: (message: string, context?: any) => {
-    console.warn(`[WARN] ${message}`, context)
-  },
-  info: (message: string, context?: any) => {
-    console.info(`[INFO] ${message}`, context)
+// Mobile-specific error detection
+export function detectMobileIssues() {
+  if (typeof window === 'undefined') return
+
+  const userAgent = window.navigator.userAgent.toLowerCase()
+  const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+  
+  if (isMobile) {
+    // Check for common mobile issues
+    const issues = []
+    
+    // Check for touch support
+    if (!('ontouchstart' in window)) {
+      issues.push('No touch support detected')
+    }
+    
+    // Check for device pixel ratio
+    if (window.devicePixelRatio && window.devicePixelRatio > 3) {
+      issues.push('High DPI display detected')
+    }
+    
+    // Check for canvas support
+    const canvas = document.createElement('canvas')
+    if (!canvas.getContext) {
+      issues.push('Canvas not supported')
+    }
+    
+    // Check for localStorage
+    try {
+      localStorage.setItem('test', 'test')
+      localStorage.removeItem('test')
+    } catch (e) {
+      issues.push('localStorage not available')
+    }
+    
+    if (issues.length > 0) {
+      console.warn('Mobile compatibility issues detected:', issues)
+    }
   }
 }
 
-// Error reporting function
-export function reportError(
-  error: Error,
-  context: {
-    userId?: string
-    requestId?: string
-    endpoint?: string
-    userAgent?: string
-    ip?: string
-  },
-  logger: ErrorLogger = consoleLogger
-) {
-  logger.error(
-    `API Error in ${context.endpoint || 'unknown endpoint'}`,
-    error,
-    context
-  )
-  
-  // Here you could integrate with error tracking services like:
-  // - Sentry
-  // - Rollbar
-  // - Bugsnag
-  // - Custom logging service
+// Initialize error handlers
+export function initializeErrorHandling() {
+  setupGlobalErrorHandlers()
+  detectMobileIssues()
 }
-
-
-
-
-
-
-

@@ -9,6 +9,8 @@ import { FormBuilderLayout } from '@/components/form-builder/FormBuilderLayout'
 import LoadingSpinner from '@/components/ui/loading-spinner'
 import { useNotifications } from '@/components/providers/NotificationProvider'
 import { StripeProvider } from '@/components/providers/StripeProvider'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { initializeErrorHandling } from '@/lib/error-handler'
 import { Form } from '@/types'
 
 function FormBuilderContent() {
@@ -19,6 +21,11 @@ function FormBuilderContent() {
   const searchParams = useSearchParams()
   const templateId = searchParams ? searchParams.get('template') : null
   const formIdFromQuery = searchParams ? searchParams.get('form') : null
+
+  // Initialize error handling
+  useEffect(() => {
+    initializeErrorHandling()
+  }, [])
 
   useEffect(() => {
     const initializeBuilder = async () => {
@@ -240,14 +247,16 @@ function FormBuilderContent() {
 
 export default function FormBuilderPage() {
   return (
-    <BrandKitProvider>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <LoadingSpinner size="lg" />
-        </div>
-      }>
-        <FormBuilderContent />
-      </Suspense>
-    </BrandKitProvider>
+    <ErrorBoundary>
+      <BrandKitProvider>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <LoadingSpinner size="lg" />
+          </div>
+        }>
+          <FormBuilderContent />
+        </Suspense>
+      </BrandKitProvider>
+    </ErrorBoundary>
   )
 }

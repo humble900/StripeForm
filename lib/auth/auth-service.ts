@@ -37,9 +37,15 @@ export interface PasswordResetConfirmData {
 }
 
 export class AuthService {
-  private readonly JWT_SECRET = process.env.JWT_SECRET!
+  private readonly JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET
   private readonly JWT_EXPIRES_IN = '7d'
   private readonly PASSWORD_SALT_ROUNDS = 12
+
+  constructor() {
+    if (!this.JWT_SECRET) {
+      throw new Error('JWT_SECRET or NEXTAUTH_SECRET environment variable is required for authentication')
+    }
+  }
 
   /**
    * Register a new user
@@ -127,6 +133,10 @@ export class AuthService {
    */
   async verifyToken(token: string): Promise<AuthUser> {
     try {
+      if (!this.JWT_SECRET) {
+        throw new Error('JWT secret is not configured')
+      }
+      
       const decoded = jwt.verify(token, this.JWT_SECRET) as any
       
       // Get user from database
@@ -360,6 +370,10 @@ export class AuthService {
    * Generate JWT token
    */
   private generateToken(user: { id: string }): string {
+    if (!this.JWT_SECRET) {
+      throw new Error('JWT secret is not configured. Please set NEXTAUTH_SECRET or JWT_SECRET environment variable.')
+    }
+    
     return jwt.sign(
       { userId: user.id },
       this.JWT_SECRET,
