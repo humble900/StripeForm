@@ -189,7 +189,8 @@ class UserTrackingManager {
 
     try {
       // Fallback method: ip-api.com
-      const response = await fetch('http://ip-api.com/json')
+      const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
+      const response = await fetch(`${protocol}//ip-api.com/json`)
       if (response.ok) {
         const data = await response.json()
         return data.query
@@ -207,7 +208,8 @@ class UserTrackingManager {
    */
   private async getGeoData(ip: string): Promise<UserTrackingData['geoData']> {
     try {
-      const response = await fetch(`http://ip-api.com/json/${ip}`)
+      const protocol = typeof window !== 'undefined' ? window.location.protocol : 'https:'
+      const response = await fetch(`${protocol}//ip-api.com/json/${ip}`)
       if (response.ok) {
         const data = await response.json()
         return {

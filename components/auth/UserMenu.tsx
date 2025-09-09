@@ -78,7 +78,7 @@ export default function UserMenu() {
             </p>
             <p className="text-xs text-gray-500">{user.email}</p>
           </div>
-          <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDownIcon className={`hidden md:block w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
       {isOpen && (

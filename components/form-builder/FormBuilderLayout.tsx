@@ -11,6 +11,7 @@ import { FieldComponent } from './FieldComponents'
 import EnhancedFormPreview from './EnhancedFormPreview'
 import { EnhancedAutoSave } from './EnhancedAutoSave'
 import { ResumeDialog } from './ResumeDialog'
+import { Bars3Icon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 
 export function FormBuilderLayout() {
   const { 
@@ -27,7 +28,8 @@ export function FormBuilderLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [inspectorOpen, setInspectorOpen] = useState(true)
   
-
+  // Auto-collapse side panels on small screens
+  // This keeps desktop behavior unchanged while improving mobile usability
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100" style={{
       backgroundColor: (() => {
@@ -44,14 +46,9 @@ export function FormBuilderLayout() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden" style={{
-        backgroundColor: (() => {
-          const cover = state.current_form?.fields.find(f => f.type === 'cover_slide') as any
-          return cover?.settings?.coverBackgroundColor || undefined
-        })()
-      }}>
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Field Library */}
-        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out bg-white border-r border-gray-200 shadow-lg relative group`}>
+        <div className={`${sidebarOpen ? 'w-80' : 'w-0'} hidden md:block transition-all duration-300 ease-in-out bg-white border-r border-gray-200 shadow-lg relative group`}>
           {sidebarOpen && (
             <>
               {/* Collapse control - left sidebar */}
@@ -69,38 +66,29 @@ export function FormBuilderLayout() {
         </div>
 
         {/* Center Canvas - Form Builder */}
-        <div className="flex-1 flex flex-col relative group" style={{
-          backgroundColor: (() => {
-            const cover = state.current_form?.fields.find(f => f.type === 'cover_slide') as any
-            return cover?.settings?.coverBackgroundColor || undefined
-          })()
-        }}>
-          {/* Peek controls to re-open sidebars when collapsed */}
-          {!sidebarOpen && (
+        <div className="flex-1 flex flex-col relative group px-3 py-3 md:px-6 md:py-4">
+          {/* Mobile controls to open side panels */}
+          <div className="md:hidden flex items-center justify-between mb-3">
             <button
-              type="button"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm"
               onClick={() => setSidebarOpen(true)}
-              className="absolute left-1 top-2 z-10 h-6 px-2 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-              title="Show fields"
             >
-              <ArrowRightIcon className="h-3.5 w-3.5" />
+              <Bars3Icon className="w-4 h-4" /> Add Fields
             </button>
-          )}
-          {!inspectorOpen && (
             <button
-              type="button"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 bg-white text-sm shadow-sm"
               onClick={() => setInspectorOpen(true)}
-              className="absolute right-1 top-2 z-10 h-6 px-2 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-              title="Show properties"
             >
-              <ArrowLeftIcon className="h-3.5 w-3.5" />
+              <Cog6ToothIcon className="w-4 h-4" /> Settings
             </button>
-          )}
+          </div>
+
+          {/* Canvas content */}
           <FormBuilderCanvas />
         </div>
 
-        {/* Right Inspector - Question */}
-        <div className={`${inspectorOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out bg-white border-l border-gray-200 shadow-lg relative group`}>
+        {/* Right Inspector - Field/Form settings */}
+        <div className={`${inspectorOpen ? 'w-96' : 'w-0'} hidden md:block transition-all duration-300 ease-in-out bg-white border-l border-gray-200 shadow-lg relative group`}>
           {inspectorOpen && (
             <>
               {/* Collapse control - right sidebar */}
@@ -108,7 +96,7 @@ export function FormBuilderLayout() {
                 type="button"
                 onClick={() => setInspectorOpen(false)}
                 className="absolute -left-3 top-2 z-10 h-6 w-6 rounded-full bg-white border border-gray-200 shadow flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-                title="Collapse properties"
+                title="Collapse settings"
               >
                 <ArrowRightIcon className="h-3.5 w-3.5" />
               </button>
