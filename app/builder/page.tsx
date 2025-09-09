@@ -24,7 +24,6 @@ function FormBuilderContent() {
     const initializeBuilder = async () => {
       try {
         let userId = 'anonymous'
-        let newForm: Form | null = null
         
         if (isAuthenticated && user) {
           userId = user.id
@@ -35,7 +34,42 @@ function FormBuilderContent() {
           console.log('🔍 Anonymous user using fingerprint as ID:', userId)
         }
 
-        // If a form id is explicitly provided in the URL, always load that form
+        // Create default form structure
+        const createDefaultForm = (): Form => ({
+          id: '',
+          title: '',
+          description: '',
+          fields: [],
+          settings: {
+            allow_multiple_responses: false,
+            require_login: false,
+            show_progress_bar: true,
+            submit_button_text: 'Submit',
+            success_message: 'Thank you for your response!',
+            redirect_url: '',
+            email_notifications: false,
+            notification_email: '',
+          },
+          theme: {
+            primary_color: '#3b82f6',
+            secondary_color: '#64748b',
+            background_color: '#ffffff',
+            text_color: '#1f2937',
+            font_family: 'Inter',
+            border_radius: 8,
+            custom_css: '',
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id: userId,
+          isPublished: false,
+          publishedUrl: '',
+          response_count: 0,
+        })
+
+        let newForm: Form
+
+        // Priority 1: Load specific form if formIdFromQuery is provided
         if (formIdFromQuery && state.current_form?.id !== formIdFromQuery) {
           try {
             const formResp = await fetch(`/api/forms/${formIdFromQuery}`)
@@ -72,177 +106,57 @@ function FormBuilderContent() {
             }
           } catch (e) {
             console.error('Error loading form by query param:', e)
-            // fall through to default path
+            // Continue to next priority
           }
         }
 
-        // Create a new empty form if none exists
-        if (!state.current_form || state.current_form.id === 'default-form') {
-          if (!newForm) {
-            newForm = {
-              id: '',
-              title: '',
-              description: '',
-              fields: [],
-              settings: {
-                allow_multiple_responses: false,
-                require_login: false,
-                show_progress_bar: true,
-                submit_button_text: 'Submit',
-                success_message: 'Thank you for your response!',
-                redirect_url: '',
-                email_notifications: false,
-                notification_email: '',
-              },
-              theme: {
-                primary_color: '#3b82f6',
-                secondary_color: '#64748b',
-                background_color: '#ffffff',
-                text_color: '#1f2937',
-                font_family: 'Inter',
-                border_radius: 8,
-                custom_css: '',
-              },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              user_id: userId,
-              isPublished: false,
-              publishedUrl: '',
-              response_count: 0,
-            }
-          }
-
-          if (formIdFromQuery) {
-            try {
-              const formResp = await fetch(`/api/forms/${formIdFromQuery}`)
-              const formData = await formResp.json()
-              
-              if (formData.success && formData.data) {
-                const found = formData.data
-                // Compose Form shape expected by builder from server form
-                newForm = {
-                  id: found.id,
-                  title: found.title,
-                  description: found.description || '',
-                  fields: (found.fields || []).map((fld: any) => ({
-                    id: fld.id,
-                    type: fld.type,
-                    label: fld.label,
-                    placeholder: fld.placeholder || '',
-                    required: !!fld.required,
-                    validation: fld.validation || null,
-                    options: fld.options || null,
-                    order: fld.order,
-                    settings: fld.settings || {},
-                    conditional_logic: fld.conditionalLogic || null,
-                  })),
-                  settings: found.settings || {},
-                  theme: found.theme || {},
-                  created_at: found.createdAt,
-                  updated_at: found.updatedAt,
-                  user_id: found.userId,
-                                  isPublished: found.status === 'published',
-                publishedUrl: '',
-                  response_count: found.submissionCount || 0,
-                }
-                
-
-                
-                addNotification({
-                  type: 'success',
-                  title: 'Form Loaded',
-                  message: `Draft "${found.title}" loaded successfully`,
-                  duration: 3000
-                })
-                
-                dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
-                setIsLoading(false)
-                return
-              }
-            } catch (error) {
-              console.error('Error loading form:', error)
-              addNotification({
-                type: 'error',
-                title: 'Load Error',
-                message: 'Failed to load form. Creating new form instead.',
-                duration: 5000
-              })
-            }
-          }
-
-          // If templateId is provided, load the template
-          if (templateId) {
-            try {
-              const templateResponse = await fetch(`/api/templates/${templateId}`)
-              const templateData = await templateResponse.json()
-              
-              if (templateData.success) {
-                const template = templateData.data
-                newForm = {
-                  ...template.templateData,
-                  id: '',
-                  title: `${template.templateData.title} (Copy)`,
-                  user_id: userId,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  isPublished: false,
-                  published_url: '',
-                  response_count: 0,
-                }
-                
-                addNotification({
-                  type: 'success',
-                  title: 'Template Loaded',
-                  message: `Template "${template.name}" has been loaded`,
-                  duration: 3000
-                })
-              } else {
-                throw new Error('Template not found')
-              }
-            } catch (error) {
-              console.error('Error loading template:', error)
-              addNotification({
-                type: 'error',
-                title: 'Template Error',
-                message: error instanceof Error && error.message.includes('Template not found') ? 'The selected template could not be loaded. Please try a different template or create a new empty form.' : 'Failed to load template. Creating empty form instead.',
-                duration: 5000
-              })
-              
-              // Fallback to empty form
+        // Priority 2: Load template if templateId is provided
+        if (templateId) {
+          try {
+            const templateResponse = await fetch(`/api/templates/${templateId}`)
+            const templateData = await templateResponse.json()
+            
+            if (templateData.success) {
+              const template = templateData.data
               newForm = {
+                ...template.templateData,
                 id: '',
-                title: '',
-                description: '',
-                fields: [],
-                settings: {
-                  allow_multiple_responses: false,
-                  require_login: false,
-                  show_progress_bar: true,
-                  submit_button_text: 'Submit',
-                  success_message: 'Thank you for your response!',
-                  redirect_url: '',
-                  email_notifications: false,
-                  notification_email: '',
-                },
-                theme: {
-                  primary_color: '#3b82f6',
-                  secondary_color: '#64748b',
-                  background_color: '#ffffff',
-                  text_color: '#1f2937',
-                  font_family: 'Inter',
-                  border_radius: 8,
-                  custom_css: '',
-                },
+                title: `${template.templateData.title} (Copy)`,
+                user_id: userId,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
-                user_id: userId,
                 isPublished: false,
-                publishedUrl: '',
+                published_url: '',
                 response_count: 0,
               }
+              
+              addNotification({
+                type: 'success',
+                title: 'Template Loaded',
+                message: `Template "${template.name}" has been loaded`,
+                duration: 3000
+              })
+              
+              dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
+              setIsLoading(false)
+              return
             }
-          } else if (!state.current_form || state.current_form.id === 'default-form') {
-            // Create an empty draft form on the server first so it appears on dashboard
+          } catch (error) {
+            console.error('Error loading template:', error)
+            addNotification({
+              type: 'error',
+              title: 'Template Error',
+              message: 'Failed to load template. Creating empty form instead.',
+              duration: 5000
+            })
+            // Continue to default form creation
+          }
+        }
+
+        // Priority 3: Only create new form if current form is default or doesn't exist
+        if (!state.current_form || state.current_form.id === 'default-form') {
+          // Try to create server-side draft first for authenticated users
+          if (isAuthenticated) {
             try {
               const resp = await fetch('/api/user/forms', {
                 method: 'POST',
@@ -266,15 +180,7 @@ function FormBuilderContent() {
                   description: created.description || '',
                   fields: [],
                   settings: created.settings || {},
-                  theme: created.theme || {
-                    primary_color: '#3b82f6',
-                    secondary_color: '#64748b',
-                    background_color: '#ffffff',
-                    text_color: '#1f2937',
-                    font_family: 'Inter',
-                    border_radius: 8,
-                    custom_css: '',
-                  },
+                  theme: created.theme || createDefaultForm().theme,
                   created_at: created.createdAt || new Date().toISOString(),
                   updated_at: created.updatedAt || new Date().toISOString(),
                   user_id: created.userId || userId,
@@ -286,116 +192,22 @@ function FormBuilderContent() {
                 throw new Error('Failed to create server draft')
               }
             } catch (e) {
-              // Fallback to local-only draft
-              newForm = {
-                id: '',
-                title: '',
-                description: '',
-                fields: [],
-                settings: {
-                  allow_multiple_responses: false,
-                  require_login: false,
-                  show_progress_bar: true,
-                  submit_button_text: 'Submit',
-                  success_message: 'Thank you for your response!',
-                  redirect_url: '',
-                  email_notifications: false,
-                  notification_email: '',
-                },
-                theme: {
-                  primary_color: '#3b82f6',
-                  secondary_color: '#64748b',
-                  background_color: '#ffffff',
-                  text_color: '#1f2937',
-                  font_family: 'Inter',
-                  border_radius: 8,
-                  custom_css: '',
-                },
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                user_id: userId,
-                isPublished: false,
-                publishedUrl: '',
-                response_count: 0,
-              }
+              console.log('Failed to create server draft, using local form')
+              newForm = createDefaultForm()
             }
-          }
-
-          if (!newForm) {
-            newForm = {
-              id: '',
-              title: '',
-              description: '',
-              fields: [],
-              settings: {
-                allow_multiple_responses: false,
-                require_login: false,
-                show_progress_bar: true,
-                submit_button_text: 'Submit',
-                success_message: 'Thank you for your response!',
-                redirect_url: '',
-                email_notifications: false,
-                notification_email: '',
-              },
-              theme: {
-                primary_color: '#3b82f6',
-                secondary_color: '#64748b',
-                background_color: '#ffffff',
-                text_color: '#1f2937',
-                font_family: 'Inter',
-                border_radius: 8,
-                custom_css: '',
-              },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              user_id: userId,
-              isPublished: false,
-              publishedUrl: '',
-              response_count: 0,
-            }
-          }
-
-          // Ensure newForm is always assigned before use
-          if (!newForm) {
-            newForm = {
-              id: '',
-              title: '',
-              description: '',
-              fields: [],
-              settings: {
-                allow_multiple_responses: false,
-                require_login: false,
-                show_progress_bar: true,
-                submit_button_text: 'Submit',
-                success_message: 'Thank you for your response!',
-                redirect_url: '',
-                email_notifications: false,
-                notification_email: '',
-              },
-              theme: {
-                primary_color: '#3b82f6',
-                secondary_color: '#64748b',
-                background_color: '#ffffff',
-                text_color: '#1f2937',
-                font_family: 'Inter',
-                border_radius: 8,
-                custom_css: '',
-              },
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              user_id: userId,
-              isPublished: false,
-              publishedUrl: '',
-              response_count: 0,
-            }
+          } else {
+            // For anonymous users, just create local form
+            newForm = createDefaultForm()
           }
 
           console.log('🎯 Form prepared for builder:', newForm)
-          
           dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
           setIsLoading(false)
-          
           console.log('✅ Form builder initialization complete')
+        } else {
+          // Form already exists and is not default, no need to reinitialize
+          console.log('✅ Form already loaded, skipping initialization')
+          setIsLoading(false)
         }
       } catch (error) {
         console.error('Error initializing form builder:', error)
@@ -404,13 +216,12 @@ function FormBuilderContent() {
           title: 'Error',
           message: 'Failed to initialize form builder. Please try again.',
         })
-      } finally {
         setIsLoading(false)
       }
     }
 
     initializeBuilder()
-  }, [user, isAuthenticated, isAnonymous, formIdFromQuery, templateId, dispatch, addNotification, getUserTrackingData])
+  }, [user, isAuthenticated, isAnonymous, formIdFromQuery, templateId, dispatch, addNotification, getUserTrackingData, state.current_form?.id])
 
   if (isLoading) {
     return (

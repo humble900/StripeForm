@@ -59,14 +59,18 @@ const initialState: FormBuilderState = {
 function formBuilderReducer(state: FormBuilderState, action: FormBuilderAction): FormBuilderState {
   switch (action.type) {
     case 'SET_CURRENT_FORM':
-
+      // Only reset stacks and selection if it's truly a new form
+      const isNewForm = !state.current_form || 
+                       state.current_form.id !== action.payload?.id ||
+                       state.current_form.id === 'default-form'
+      
       return {
         ...state,
         current_form: action.payload,
-        selected_field: null,
+        selected_field: isNewForm ? null : state.selected_field,
         has_unsaved_changes: false,
-        undo_stack: [],
-        redo_stack: [],
+        undo_stack: isNewForm ? [] : state.undo_stack,
+        redo_stack: isNewForm ? [] : state.redo_stack,
       }
 
     case 'LOAD_FORM':
@@ -410,14 +414,13 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
         savedForm = result.data
       }
       
-      // Update the form with saved data
-      const updatedForm = {
-        ...form,
+      // Update the form with saved data - use UPDATE_FORM to preserve state
+      const formUpdates = {
         id: savedForm.id,
         updated_at: savedForm.updatedAt || new Date().toISOString()
       }
       
-      dispatch({ type: 'SET_CURRENT_FORM', payload: updatedForm })
+      dispatch({ type: 'UPDATE_FORM', payload: formUpdates })
       dispatch({ type: 'SET_UNSAVED_CHANGES', payload: false })
       
       console.log('✅ Form auto-saved successfully:', savedForm.id)
