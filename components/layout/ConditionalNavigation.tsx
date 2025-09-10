@@ -44,10 +44,10 @@ export function ConditionalNavigation() {
   const pathname = usePathname()
   const { isAuthenticated } = useAuth()
   const isPublicPage = pathname ? PUBLIC_PAGES.includes(pathname) : false
-  const isCleanPage = pathname ? pathname.startsWith('/forms/') : false
+  const isCleanPage = pathname ? (pathname.startsWith('/forms/') || pathname.startsWith('/admin')) : false
   
   if (isCleanPage) {
-    return null // Don't show navigation for form pages
+    return null // Don't show navigation for form pages and admin pages
   }
   
   if (isAuthenticated) {
