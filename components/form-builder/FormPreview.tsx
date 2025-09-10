@@ -218,7 +218,12 @@ export function FormPreview({ form, onClose }: FormPreviewProps) {
   const onDraftRestored = (draft: any) => {
     console.log('📄 Form filling draft found:', draft)
     setPendingDraft(draft)
-    setShowResumeDialog(true)
+    // Auto-restore draft without showing dialog
+    if (draft && draft.data) {
+      setFormData(draft.data)
+    }
+    // Don't show resume dialog - just use in-memory functionality
+    // setShowResumeDialog(true)
   }
 
   const onDraftSaved = (draftId: string) => {

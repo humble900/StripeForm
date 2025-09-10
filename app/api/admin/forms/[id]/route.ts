@@ -42,7 +42,7 @@ export async function GET(
         
         const { id } = await params
         
-        const form = await dbService.getFormById(id)
+        const form = await dbService.getForm(id)
         
         if (!form) {
           return NextResponse.json({
@@ -54,7 +54,7 @@ export async function GET(
         // Get user information
         let userInfo = null
         try {
-          const user = await dbService.getUserById(form.userId)
+          const user = await dbService.getUser(form.userId)
           userInfo = {
             email: user?.email,
             name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined
@@ -160,14 +160,17 @@ export async function DELETE(
         
         const { id } = await params
         
-        const deleted = await dbService.deleteForm(id)
-
-        if (!deleted) {
+        // Check if form exists first
+        const existingForm = await dbService.getForm(id)
+        if (!existingForm) {
           return NextResponse.json({
             success: false,
             message: 'Form not found'
           }, { status: 404 })
         }
+        
+        // Delete the form
+        await dbService.deleteForm(id)
 
         return NextResponse.json({
           success: true,

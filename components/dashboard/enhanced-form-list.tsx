@@ -24,6 +24,7 @@ import {
   AdjustmentsHorizontalIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
+import { getPublishedFormUrl } from '@/lib/utils/url'
 
 interface Form {
   id: string
@@ -198,10 +199,9 @@ const EnhancedFormList: React.FC<EnhancedFormListProps> = ({
   }
 
   const handleShareForm = async (formId: string) => {
-    const origin = window.location.origin
     const form = forms.find(f => f.id === formId)
     const formUrl = form?.publishedUrl
-      || (form?.slug ? `${origin}/forms/${form.slug}` : `${origin}/forms/${formId}`)
+      || getPublishedFormUrl(formId, form?.slug)
     
     try {
       await navigator.clipboard.writeText(formUrl)

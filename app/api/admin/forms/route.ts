@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         const formsWithUserInfo = await Promise.all(
           forms.forms.map(async (form) => {
             try {
-              const user = await dbService.getUserById(form.userId)
+              const user = await dbService.getUser(form.userId)
               return {
                 ...form,
                 userEmail: user?.email,

@@ -49,6 +49,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatDate } from '@/lib/utils';
+import { getPublishedFormUrl } from '@/lib/utils/url';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const Dashboard = () => {
@@ -484,9 +485,8 @@ const Dashboard = () => {
       return
     }
 
-    const origin = window.location.origin
     const formUrl = form.publishedUrl
-      || (form.slug ? `${origin}/forms/${form.slug}` : `${origin}/forms/${formId}`)
+      || getPublishedFormUrl(formId, form.slug)
     
     try {
       await navigator.clipboard.writeText(formUrl)

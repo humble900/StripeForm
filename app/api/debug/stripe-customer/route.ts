@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
     })
 
     let customerData = null
-    let subscriptions = []
-    let paymentIntents = []
+    let subscriptions: any[] = []
+    let paymentIntents: any[] = []
 
     if (customers.data.length > 0) {
       const customer = customers.data[0] // Get the first customer
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       subscriptions = customerSubscriptions.data.map(sub => ({
         id: sub.id,
         status: sub.status,
-        current_period_start: sub.current_period_start,
-        current_period_end: sub.current_period_end,
+        current_period_start: (sub as any).current_period_start,
+        current_period_end: (sub as any).current_period_end,
         items: sub.items.data.map(item => ({
           price_id: item.price.id,
           product_id: item.price.product
