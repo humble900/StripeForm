@@ -118,44 +118,44 @@ function FormBuilderContent() {
         }
 
         // Priority 2: Load template if templateId is provided
-        if (templateId) {
-          try {
-            const templateResponse = await fetch(`/api/templates/${templateId}`)
-            const templateData = await templateResponse.json()
-            
-            if (templateData.success) {
-              const template = templateData.data
-              newForm = {
-                ...template.templateData,
-                id: '',
-                title: `${template.templateData.title} (Copy)`,
-                user_id: userId,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                isPublished: false,
-                published_url: '',
-                response_count: 0,
-              }
+          if (templateId) {
+            try {
+              const templateResponse = await fetch(`/api/templates/${templateId}`)
+              const templateData = await templateResponse.json()
               
-              addNotification({
-                type: 'success',
-                title: 'Template Loaded',
-                message: `Template "${template.name}" has been loaded`,
-                duration: 3000
-              })
+              if (templateData.success) {
+                const template = templateData.data
+                newForm = {
+                  ...template.templateData,
+                  id: '',
+                  title: `${template.templateData.title} (Copy)`,
+                  user_id: userId,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  isPublished: false,
+                  published_url: '',
+                  response_count: 0,
+                }
+                
+                addNotification({
+                  type: 'success',
+                  title: 'Template Loaded',
+                  message: `Template "${template.name}" has been loaded`,
+                  duration: 3000
+                })
               
               dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
               setIsLoading(false)
               return
-            }
-          } catch (error) {
-            console.error('Error loading template:', error)
-            addNotification({
-              type: 'error',
-              title: 'Template Error',
+              }
+            } catch (error) {
+              console.error('Error loading template:', error)
+              addNotification({
+                type: 'error',
+                title: 'Template Error',
               message: 'Failed to load template. Creating empty form instead.',
-              duration: 5000
-            })
+                duration: 5000
+              })
             // Continue to default form creation
           }
         }
@@ -248,15 +248,15 @@ function FormBuilderContent() {
 export default function FormBuilderPage() {
   return (
     <ErrorBoundary>
-      <BrandKitProvider>
-        <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <LoadingSpinner size="lg" />
-          </div>
-        }>
-          <FormBuilderContent />
-        </Suspense>
-      </BrandKitProvider>
+    <BrandKitProvider>
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <LoadingSpinner size="lg" />
+        </div>
+      }>
+        <FormBuilderContent />
+      </Suspense>
+    </BrandKitProvider>
     </ErrorBoundary>
   )
 }

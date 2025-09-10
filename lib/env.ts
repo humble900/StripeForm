@@ -73,7 +73,7 @@ export const env = {
   },
   app: {
     secret: process.env.NEXTAUTH_SECRET!,
-    url: process.env.NEXTAUTH_URL!,
+    url: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL!,
   },
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',

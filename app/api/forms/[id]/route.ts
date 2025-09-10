@@ -147,12 +147,12 @@ export async function PUT(
         formUpdates.isPublished = true
         formUpdates.isPublic = true
 
-        // Generate absolute publishedUrl using request URL origin (header may be missing)
-        const origin = (() => {
+        // Generate absolute publishedUrl using production domain
+        const origin = process.env.NEXT_PUBLIC_APP_URL || (() => {
           try {
             return new URL(request.url).origin
           } catch {
-            return process.env.NEXT_PUBLIC_APP_URL || ''
+            return 'https://stripeform.com'
           }
         })()
         formUpdates.publishedUrl = `${origin}/forms/${formUpdates.slug}`

@@ -69,7 +69,7 @@ export function FormBuilderLayout() {
                 <ArrowLeftIcon className="h-3.5 w-3.5" />
               </button>
               <div className="relative z-50">
-                <FormBuilderSidebar />
+              <FormBuilderSidebar />
               </div>
             </>
           )}

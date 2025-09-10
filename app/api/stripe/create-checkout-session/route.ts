@@ -3,13 +3,18 @@ import Stripe from 'stripe'
 import { env } from '@/lib/env'
 
 function getOrigin(request: NextRequest): string {
+  // Prioritize production domain from environment
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL
+  }
+  
   const proto = request.headers.get('x-forwarded-proto')
   const host = request.headers.get('x-forwarded-host') || request.headers.get('host')
   if (proto && host) return `${proto}://${host}`
   try {
     return new URL(request.url).origin
   } catch {
-    return env.app.url || 'http://localhost:3000'
+    return env.app.url || 'https://stripeform.com'
   }
 }
 
