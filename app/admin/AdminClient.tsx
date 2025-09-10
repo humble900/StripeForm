@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { useAdminAuth } from '@/components/providers/AdminAuthProvider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -328,22 +329,41 @@ export default function AdminClient() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">
-            Welcome back, {user.firstName || user.email}
+    <div className="min-h-screen bg-gray-50">
+      {/* Admin Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <Link href="/" className="text-xl font-bold text-[#6C5CE7] flex items-center">
+                <span>StripeForm</span>
+                <span className="ml-2 bg-[#6C5CE7] text-white text-xs px-2 py-1 rounded-full font-medium">ADMIN</span>
+              </Link>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Welcome, {user.firstName || user.email}
+              </span>
+              <Button 
+                onClick={logout}
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600 mt-2">
+            Manage your platform and users
           </p>
         </div>
-        <Button 
-          onClick={logout}
-          variant="outline"
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
-          Logout
-        </Button>
-      </div>
 
       {/* Tab Navigation */}
       <div className="mb-6">
@@ -772,6 +792,7 @@ export default function AdminClient() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   )
 }

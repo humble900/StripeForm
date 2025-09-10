@@ -34,9 +34,10 @@ const PUBLIC_PAGES = [
   '/templates',
 ]
 
-// Pages that should not show navigation (clean form pages)
+// Pages that should not show navigation (clean form pages and admin pages)
 const CLEAN_PAGES = [
   '/forms',
+  '/admin',
 ]
 
 export function ConditionalNavigation() {

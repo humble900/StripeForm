@@ -188,11 +188,7 @@ npm run db:seed
 
 ## Default Users
 
-After running the seed script, you'll have these default users:
-
-- **Super Admin**: `admin@stripeform.com` / `admin123`
-- **Admin**: `admin@example.com` / `admin123`
-- **Demo User**: `demo@example.com` / `demo123`
+⚠️ **Security Notice**: No hardcoded admin credentials are provided. Admin accounts must be created through the secure role management system. See `ADMIN_SETUP.md` for details.
 
 ## Project Structure
 

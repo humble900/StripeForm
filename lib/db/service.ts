@@ -31,6 +31,9 @@ export const dbService = {
     phoneNumber?: string | null
     countryCode?: string | null
     avatar?: string | null
+    role?: 'user' | 'admin' | 'super_admin'
+    status?: 'active' | 'inactive' | 'suspended'
+    emailVerified?: boolean
   }) {
     const [newUser] = await db.insert(users).values({
       id: user.id,
@@ -39,7 +42,9 @@ export const dbService = {
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
       countryCode: user.countryCode,
-      emailVerified: true, // Firebase users are pre-verified
+      role: user.role || 'user',
+      status: user.status || 'active',
+      emailVerified: user.emailVerified ?? true, // Default to verified for admin-created users
       createdAt: new Date(),
       updatedAt: new Date(),
     }).returning()
@@ -77,6 +82,8 @@ export const dbService = {
     phone?: string
     timezone?: string
     language?: string
+    role?: 'user' | 'admin' | 'super_admin'
+    status?: 'active' | 'inactive' | 'suspended'
   }) {
     // Separate user and profile updates
     const userData: any = {}
@@ -87,6 +94,8 @@ export const dbService = {
     if (updates.lastName) userData.lastName = updates.lastName
     if (updates.phoneNumber) userData.phoneNumber = updates.phoneNumber
     if (updates.countryCode) userData.countryCode = updates.countryCode
+    if (updates.role) userData.role = updates.role
+    if (updates.status) userData.status = updates.status
 
     if (updates.bio) profileData.bio = updates.bio
     if (updates.company) profileData.company = updates.company
@@ -625,18 +634,62 @@ export const dbService = {
   
 
   // Admin methods
-  async getUsers() {
+  async getUsers(options: {
+    page?: number
+    limit?: number
+    role?: 'user' | 'admin' | 'super_admin'
+  } = {}) {
     try {
-      const allUsers = await db.query.users.findMany({
+      const { page = 1, limit = 50, role } = options
+      const offset = (page - 1) * limit
+
+      let query = db.query.users.findMany({
         with: {
           profile: true,
         },
         orderBy: [desc(users.createdAt)],
+        limit,
+        offset
       })
-      return allUsers
+
+      // Apply role filter if specified
+      if (role) {
+        query = db.query.users.findMany({
+          with: {
+            profile: true,
+          },
+          where: eq(users.role, role),
+          orderBy: [desc(users.createdAt)],
+          limit,
+          offset
+        })
+      }
+
+      const allUsers = await query
+      
+      // Get total count for pagination
+      const totalCount = await db.select({ count: count() }).from(users)
+      
+      return {
+        users: allUsers,
+        pagination: {
+          page,
+          limit,
+          total: totalCount[0]?.count || 0,
+          totalPages: Math.ceil((totalCount[0]?.count || 0) / limit)
+        }
+      }
     } catch (error) {
       console.warn('Users query failed, returning empty array:', error)
-      return []
+      return {
+        users: [],
+        pagination: {
+          page: 1,
+          limit: 50,
+          total: 0,
+          totalPages: 0
+        }
+      }
     }
   },
 
@@ -1261,3 +1314,4 @@ export const dbService = {
     }
   },
 }
+

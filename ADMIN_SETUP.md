@@ -1,41 +1,20 @@
 # Admin User Setup Guide
 
-This guide will help you set up an admin user for your StripeForm platform so you can test the backend functionality.
+This guide explains how to securely manage admin users in your StripeForm platform.
+
+## ⚠️ Security Notice
+
+**No hardcoded admin credentials are provided for security reasons.** Admin accounts must be created through the secure role management system.
 
 ## Prerequisites
 
-- Firebase project configured
 - Supabase project configured
 - Environment variables set up
+- At least one superadmin account (created manually in database)
 
-## Step 1: Create Admin User in Firebase
+## Step 1: Create Initial Superadmin
 
-### Option A: Using the Script (Recommended)
-
-1. **Install dependencies** (if not already installed):
-   ```bash
-   npm install
-   ```
-
-2. **Run the admin user creation script**:
-   ```bash
-   node create-admin-user.js
-   ```
-
-3. **Copy the Firebase UID** that gets displayed in the console.
-
-### Option B: Manual Firebase Console
-
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project
-3. Go to Authentication → Users
-4. Click "Add User"
-5. Enter:
-   - Email: `admin@stripeform.com`
-   - Password: `Help1234`
-6. Copy the generated UID
-
-## Step 2: Update Database Schema
+The initial superadmin must be created directly in the database:
 
 1. **Go to your Supabase project**:
    - Navigate to [supabase.com](https://supabase.com)
@@ -43,9 +22,50 @@ This guide will help you set up an admin user for your StripeForm platform so yo
    - Go to SQL Editor
 
 2. **Run the SQL script**:
-   - Copy the contents of `setup-admin-user.sql`
-   - Replace `'admin-firebase-uid'` with the actual Firebase UID from Step 1
-   - Execute the script
+   ```sql
+   INSERT INTO public.users (
+       id,
+       email,
+       password_hash,
+       first_name,
+       last_name,
+       role,
+       status,
+       email_verified,
+       created_at,
+       updated_at
+   ) VALUES (
+       'your-superadmin-id',
+       'your-superadmin@email.com',
+       crypt('your-secure-password', gen_salt('bf')),
+       'Super',
+       'Admin',
+       'super_admin',
+       'active',
+       true,
+       NOW(),
+       NOW()
+   );
+   ```
+
+## Step 2: Create Admin Users Securely
+
+Once you have a superadmin account, you can create admin users through the API:
+
+1. **Login as superadmin**:
+   ```bash
+   curl -X POST http://localhost:3000/api/auth/login \
+        -H "Content-Type: application/json" \
+        -d '{"email":"your-superadmin@email.com","password":"your-secure-password"}'
+   ```
+
+2. **Create admin user**:
+   ```bash
+   curl -X POST http://localhost:3000/api/admin/users \
+        -H "Authorization: Bearer YOUR_SUPERADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"email":"admin@example.com","firstName":"Admin","lastName":"User","role":"admin"}'
+   ```
 
 ## Step 3: Test the Setup
 
@@ -56,25 +76,26 @@ This guide will help you set up an admin user for your StripeForm platform so yo
 
 2. **Navigate to the admin page**:
    - Go to `http://localhost:3000/admin`
-   - Sign in with:
-     - Email: `admin@stripeform.com`
-     - Password: `Help1234`
+   - Sign in with your admin credentials
 
 3. **Test the admin dashboard**:
    - The page should load and display system statistics
    - Check the browser console for any errors
    - Test the different time period filters (day, week, month, year)
 
-## Step 4: Test Backend API
+## Step 4: Role Management
 
-1. **Test the admin API endpoint**:
-   ```bash
-   curl -H "Authorization: Bearer YOUR_FIREBASE_TOKEN" \
-        http://localhost:3000/api/admin/dashboard
-   ```
+### Available Roles:
+- **user**: Regular users (default)
+- **admin**: Can access admin dashboard and manage content
+- **super_admin**: Can create admin users and manage roles
 
-2. **Test cache health endpoint**:
-   ```bash
+### API Endpoints:
+- `GET /api/admin/users` - List all users (superadmin only)
+- `POST /api/admin/users` - Create new user (superadmin only)
+- `PUT /api/admin/users` - Update user role (superadmin only)
+
+## Security Features:
    curl http://localhost:3000/api/cache/health
    ```
 

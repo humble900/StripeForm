@@ -17,12 +17,12 @@ async function getAdminUser(request: NextRequest) {
   try {
     // Verify the JWT token using auth service
     const user = await authService.verifyToken(token)
-    
-    if (user.role !== 'admin' && user.role !== 'super_admin') {
-      throw new AuthorizationError('Admin access required')
-    }
 
-    return { id: user.id, role: user.role }
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
+    throw new AuthorizationError('Admin access required')
+  }
+
+  return { id: user.id, role: user.role }
   } catch (error) {
     throw new AuthenticationError('Invalid or expired token')
   }

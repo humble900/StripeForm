@@ -29,15 +29,34 @@ const PUBLIC_PAGES = [
   '/register',
 ]
 
+// Admin pages that use custom authentication (not Firebase)
+const ADMIN_PAGES = [
+  '/admin',
+  '/admin/login',
+  '/admin/faq',
+]
+
 export function ConditionalProviders({ children }: ConditionalProvidersProps) {
   const pathname = usePathname()
   
   // Check if current page is public
   const isPublicPage = pathname ? PUBLIC_PAGES.includes(pathname) : false
   
+  // Check if current page is admin (uses custom auth, not Firebase)
+  const isAdminPage = pathname ? ADMIN_PAGES.some(adminPath => pathname.startsWith(adminPath)) : false
+  
   // Pages that need authentication providers (login, register, pricing uses useAuth)
   const authPages = ['/login', '/register', '/pricing']
   const needsAuth = pathname ? authPages.includes(pathname) : false
+  
+  if (isAdminPage) {
+    // For admin pages, don't provide Firebase authentication
+    return (
+      <NotificationProvider>
+        {children}
+      </NotificationProvider>
+    )
+  }
   
   if (needsAuth) {
     // For login/register pages, provide authentication providers

@@ -21,92 +21,19 @@ async function seed() {
   try {
     console.log('🌱 Starting database seeding...')
 
-    // Create super admin user (using Firebase UID as ID)
-    const superAdminPassword = 'admin123'
-    const superAdminPasswordHash = await bcrypt.hash(superAdminPassword, 12)
-    const superAdminFirebaseUid = 'xBesp0ZBq5h0vS34Ka6eIvFRkmf1' // From migration
+    console.log('⚠️  Admin user creation removed for security.')
+    console.log('📝 To create admin users, use the secure role management API.')
+    console.log('🔐 Only superadmin users can create admin accounts.')
 
-    let superAdmin
-    try {
-      [superAdmin] = await db.insert(users).values({
-        id: superAdminFirebaseUid,
-        email: 'admin@stripeform.com',
-        passwordHash: superAdminPasswordHash,
-        firstName: 'Super',
-        lastName: 'Admin',
-        role: 'super_admin',
-        status: 'active',
-        emailVerified: true,
-        subscriptionTier: 'enterprise',
-        subscriptionStatus: 'active',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }).returning()
-      console.log('✅ Super admin user created:', superAdmin.email)
-    } catch (error: any) {
-      if (error.code === '23505') { // Duplicate key error
-        console.log('ℹ️ Super admin user already exists')
-        superAdmin = { id: superAdminFirebaseUid, email: 'admin@stripeform.com' }
-      } else {
-        throw error
-      }
-    }
-
-    // Create super admin profile
-    await db.insert(userProfiles).values({
-      userId: superAdmin.id,
-      company: 'StripeForm',
-      bio: 'System Administrator',
-      timezone: 'UTC',
-      language: 'en',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-
-    console.log('✅ Super admin user created:', superAdmin.email)
-    console.log('📝 Password:', superAdminPassword)
-
-    // Create regular admin user
-    const adminPassword = 'admin123'
-    const adminPasswordHash = await bcrypt.hash(adminPassword, 12)
-    const adminFirebaseUid = 'admin-example-uid-123' // Generate a test Firebase UID
-
-    const [admin] = await db.insert(users).values({
-      id: adminFirebaseUid,
-      email: 'admin@example.com',
-      passwordHash: adminPasswordHash,
-      firstName: 'Admin',
-      lastName: 'User',
-      role: 'admin',
-      status: 'active',
-      emailVerified: true,
-      subscriptionTier: 'pro',
-      subscriptionStatus: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning()
-
-    // Create admin profile
-    await db.insert(userProfiles).values({
-      userId: admin.id,
-      company: 'Example Corp',
-      bio: 'Administrator',
-      timezone: 'UTC',
-      language: 'en',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    })
-
-    console.log('✅ Admin user created:', admin.email)
-    console.log('📝 Password:', adminPassword)
-
-    // Seed FAQs
-    await seedFAQs(admin.id)
+    // Seed FAQs with a placeholder admin ID (this should be updated to use actual admin)
+    const placeholderAdminId = 'placeholder-admin-id'
+    await seedFAQs(placeholderAdminId)
 
     console.log('🎉 Database seeding completed successfully!')
-    console.log('\n📋 Created users:')
-    console.log(`   - Super Admin: ${superAdmin.email} (${superAdminPassword})`)
-    console.log(`   - Admin: ${admin.email} (${adminPassword})`)
+    console.log('\n📋 Security Notes:')
+    console.log('   - No hardcoded admin credentials')
+    console.log('   - Use secure role management for admin creation')
+    console.log('   - Only superadmin can create admin accounts')
 
   } catch (error) {
     console.error('❌ Seeding failed:', error)
