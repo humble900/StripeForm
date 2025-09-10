@@ -587,12 +587,12 @@ export default function AdminClient() {
 
       {/* Users Tab */}
       {activeTab === 'users' && (
-        <UserManagement userRole={user.role} />
+        <UserManagement userRole={user.role as 'admin' | 'super_admin'} />
       )}
 
       {/* Forms Tab */}
       {activeTab === 'forms' && (
-        <FormManagement userRole={user.role} />
+        <FormManagement userRole={user.role as 'admin' | 'super_admin'} />
       )}
 
       {/* Support Tickets Tab */}
