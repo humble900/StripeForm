@@ -124,6 +124,59 @@ export const dbService = {
     return userResult
   },
 
+  // Subscription management
+  async updateUserSubscription(userId: string, subscriptionData: {
+    subscriptionTier?: 'free' | 'pro' | 'enterprise'
+    subscriptionStatus?: 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid'
+    subscriptionExpiresAt?: Date | null
+    stripeCustomerId?: string | null
+  }) {
+    try {
+      const [updatedUser] = await db.update(users)
+        .set({
+          ...subscriptionData,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning()
+
+      return updatedUser
+    } catch (error) {
+      console.error('Error updating user subscription:', error)
+      throw error
+    }
+  },
+
+  async getUserByEmail(email: string) {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.email, email),
+        with: {
+          profile: true,
+        },
+      })
+      return user
+    } catch (error) {
+      console.error('Error fetching user by email:', error)
+      return null
+    }
+  },
+
+  async getUserByStripeCustomerId(stripeCustomerId: string) {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.stripeCustomerId, stripeCustomerId),
+        with: {
+          profile: true,
+        },
+      })
+      return user
+    } catch (error) {
+      console.error('Error fetching user by Stripe customer ID:', error)
+      return null
+    }
+  },
+
   // Forms
   async createForm(form: {
     title: string

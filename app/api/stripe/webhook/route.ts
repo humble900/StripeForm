@@ -206,8 +206,28 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   try {
     // Update user subscription status in database
     if (subscription.metadata?.user_id) {
-      // Update user profile with subscription info
-      console.log(`Subscription created for user ${subscription.metadata.user_id}`)
+      const { dbService } = await import('@/lib/db/service')
+      
+      // Determine subscription tier based on price ID
+      const priceId = subscription.items.data[0]?.price.id
+      let subscriptionTier = 'free'
+      
+      if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 
+          priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID) {
+        subscriptionTier = 'pro'
+      }
+      
+      // Calculate expiration date
+      const expiresAt = new Date(subscription.current_period_end * 1000)
+      
+      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+        subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
+        subscriptionStatus: subscription.status as 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid',
+        subscriptionExpiresAt: expiresAt,
+        stripeCustomerId: subscription.customer as string
+      })
+      
+      console.log(`Subscription created for user ${subscription.metadata.user_id}: ${subscriptionTier}`)
     }
   } catch (error) {
     console.error('Error handling subscription created:', error)
@@ -218,7 +238,28 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   try {
     // Update subscription status in database
     if (subscription.metadata?.user_id) {
-      console.log(`Subscription updated for user ${subscription.metadata.user_id}`)
+      const { dbService } = await import('@/lib/db/service')
+      
+      // Determine subscription tier based on price ID
+      const priceId = subscription.items.data[0]?.price.id
+      let subscriptionTier = 'free'
+      
+      if (priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || 
+          priceId === process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID) {
+        subscriptionTier = 'pro'
+      }
+      
+      // Calculate expiration date
+      const expiresAt = new Date(subscription.current_period_end * 1000)
+      
+      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+        subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
+        subscriptionStatus: subscription.status as 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid',
+        subscriptionExpiresAt: expiresAt,
+        stripeCustomerId: subscription.customer as string
+      })
+      
+      console.log(`Subscription updated for user ${subscription.metadata.user_id}: ${subscriptionTier}`)
     }
   } catch (error) {
     console.error('Error handling subscription updated:', error)
@@ -229,6 +270,14 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   try {
     // Update subscription status in database
     if (subscription.metadata?.user_id) {
+      const { dbService } = await import('@/lib/db/service')
+      
+      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+        subscriptionTier: 'free',
+        subscriptionStatus: 'canceled',
+        subscriptionExpiresAt: null
+      })
+      
       console.log(`Subscription deleted for user ${subscription.metadata.user_id}`)
     }
   } catch (error) {
