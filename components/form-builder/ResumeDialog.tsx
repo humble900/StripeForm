@@ -63,7 +63,7 @@ export function ResumeDialog({
   }
 
   const getProgressPercentage = () => {
-    if (!draft.progressData.completedFields) return 0
+    if (!draft.progressData || !draft.progressData.completedFields) return 0
     return Math.round((draft.progressData.completedFields / draft.progressData.fieldCount) * 100)
   }
 
@@ -108,7 +108,7 @@ export function ResumeDialog({
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Progress</span>
               <span className="font-medium text-gray-900">
-                {draft.progressData.completedFields || 0} of {draft.progressData.fieldCount} questions
+                {draft.progressData?.completedFields || 0} of {draft.progressData?.fieldCount || 0} questions
               </span>
             </div>
             
@@ -134,17 +134,17 @@ export function ResumeDialog({
             <div className="flex items-center space-x-2">
               <CheckCircleIcon className="w-4 h-4 text-green-500" />
               <span className="text-gray-600">
-                {draft.progressData.fieldCount} questions
+                {draft.progressData?.fieldCount || 0} questions
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              {draft.progressData.hasCover ? (
+              {draft.progressData?.hasCover ? (
                 <DocumentTextIcon className="w-4 h-4 text-blue-500" />
               ) : (
                 <CheckCircleIcon className="w-4 h-4 text-gray-400" />
               )}
               <span className="text-gray-600">
-                {draft.progressData.hasCover ? 'With cover page' : 'No cover page'}
+                {draft.progressData?.hasCover ? 'With cover page' : 'No cover page'}
               </span>
             </div>
           </div>
