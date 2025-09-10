@@ -218,7 +218,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       }
       
       // Calculate expiration date
-      const expiresAt = new Date(subscription.current_period_end * 1000)
+      const expiresAt = new Date((subscription as any).current_period_end * 1000)
       
       await dbService.updateUserSubscription(subscription.metadata.user_id, {
         subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
@@ -250,7 +250,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       }
       
       // Calculate expiration date
-      const expiresAt = new Date(subscription.current_period_end * 1000)
+      const expiresAt = new Date((subscription as any).current_period_end * 1000)
       
       await dbService.updateUserSubscription(subscription.metadata.user_id, {
         subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
