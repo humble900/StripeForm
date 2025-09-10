@@ -95,8 +95,8 @@ export function ResumeDialog({
         <div className="p-6 space-y-6">
           {/* Form Info */}
           <div className="space-y-3">
-            <h4 className="font-medium text-gray-900">{draft.draftData.title}</h4>
-            {draft.draftData.description && (
+            <h4 className="font-medium text-gray-900">{draft.draftData?.title || 'Untitled Form'}</h4>
+            {draft.draftData?.description && (
               <p className="text-sm text-gray-600 line-clamp-2">
                 {draft.draftData.description}
               </p>
