@@ -26,12 +26,17 @@ export async function GET(request: NextRequest) {
         }
 
         // Call ipapi.co from server-side to avoid CORS issues
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+        
         const response = await fetch(`https://ipapi.co/${clientIp}/json/`, {
           headers: {
             'User-Agent': 'StripeForm/1.0'
           },
-          timeout: 5000 // 5 second timeout
+          signal: controller.signal
         })
+        
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`)
