@@ -693,6 +693,22 @@ export const dbService = {
     }
   },
 
+  // Get all users for admin statistics (no pagination)
+  async getAllUsers() {
+    try {
+      const allUsers = await db.query.users.findMany({
+        with: {
+          profile: true,
+        },
+        orderBy: [desc(users.createdAt)],
+      })
+      return allUsers
+    } catch (error) {
+      console.warn('Users query failed, returning empty array:', error)
+      return []
+    }
+  },
+
   async getForms() {
     try {
       const allForms = await db.query.forms.findMany({

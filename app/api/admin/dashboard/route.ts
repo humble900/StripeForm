@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           totalNotifications
         ] = await Promise.all([
           // Total counts
-          dbService.getUsers(),
+          dbService.getAllUsers(),
           dbService.getForms(),
           dbService.getAllFormSubmissions(),
           dbService.getPaymentIntents(),
