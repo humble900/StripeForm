@@ -1,0 +1,85 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { dbService } from '@/lib/db/service'
+import { authService } from '@/lib/auth/auth-service'
+import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
+import { withErrorHandling, AuthenticationError, AuthorizationError } from '@/lib/error-handler'
+
+// Helper function to verify admin access
+async function verifyAdminAccess(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new AuthenticationError('Authentication required')
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const user = await authService.verifyToken(token)
+  
+  if (user.role !== 'admin' && user.role !== 'super_admin') {
+    throw new AuthorizationError('Admin access required')
+  }
+
+  return user
+}
+
+// GET /api/admin/forms - Get all forms (admin/superadmin only)
+export async function GET(request: NextRequest) {
+  return withRateLimit(request, apiRateLimit,
+    withErrorHandling(async (request: NextRequest) => {
+      try {
+        await verifyAdminAccess(request)
+        
+        const { searchParams } = new URL(request.url)
+        const page = parseInt(searchParams.get('page') || '1')
+        const limit = parseInt(searchParams.get('limit') || '50')
+        const status = searchParams.get('status')
+        const userId = searchParams.get('userId')
+        
+        // Get forms with pagination and filtering
+        const forms = await dbService.getForms({
+          page,
+          limit,
+          status: status as 'draft' | 'published' | 'archived' | undefined,
+          userId: userId || undefined
+        })
+
+        // Get user information for each form
+        const formsWithUserInfo = await Promise.all(
+          forms.forms.map(async (form) => {
+            try {
+              const user = await dbService.getUserById(form.userId)
+              return {
+                ...form,
+                userEmail: user?.email,
+                userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined
+              }
+            } catch {
+              return {
+                ...form,
+                userEmail: 'Unknown user',
+                userName: undefined
+              }
+            }
+          })
+        )
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            forms: formsWithUserInfo,
+            pagination: forms.pagination
+          }
+        })
+      } catch (error) {
+        if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+          return NextResponse.json({
+            success: false,
+            message: error.message
+          }, { status: error.statusCode })
+        }
+        
+        throw error
+      }
+    })
+  )
+}

@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         // Get system statistics using Drizzle
         const [
           totalUsers,
-          totalForms,
+          totalFormsData,
           totalSubmissions,
           totalPaymentIntents,
           totalTickets,
@@ -77,6 +77,8 @@ export async function GET(request: NextRequest) {
           dbService.getSupportTickets(),
           dbService.getNotifications()
         ])
+        
+        const totalForms = totalFormsData.forms || []
         
         // Filter by date for period statistics
         const newUsersThisPeriod = totalUsers.filter(user => 

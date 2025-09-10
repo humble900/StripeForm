@@ -762,9 +762,31 @@ export const dbService = {
     }
   },
 
-  async getForms() {
+  async getForms(options?: {
+    page?: number
+    limit?: number
+    status?: 'draft' | 'published' | 'archived'
+    userId?: string
+  }) {
     try {
-      const allForms = await db.query.forms.findMany({
+      const page = options?.page || 1
+      const limit = options?.limit || 50
+      const offset = (page - 1) * limit
+
+      // Build where conditions
+      const whereConditions = []
+      if (options?.status) {
+        whereConditions.push(eq(forms.status, options.status))
+      }
+      if (options?.userId) {
+        whereConditions.push(eq(forms.userId, options.userId))
+      }
+
+      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined
+
+      // Get forms with pagination
+      const formsData = await db.query.forms.findMany({
+        where: whereClause,
         with: {
           user: true,
           fields: {
@@ -772,11 +794,37 @@ export const dbService = {
           },
         },
         orderBy: [desc(forms.createdAt)],
+        limit,
+        offset
       })
-      return allForms
+
+      // Get total count for pagination
+      const totalCount = await db.select({ count: count() })
+        .from(forms)
+        .where(whereClause)
+
+      const totalPages = Math.ceil((totalCount[0]?.count || 0) / limit)
+
+      return {
+        forms: formsData,
+        pagination: {
+          page,
+          limit,
+          totalCount: totalCount[0]?.count || 0,
+          totalPages
+        }
+      }
     } catch (error) {
       console.warn('Forms query failed, returning empty array:', error)
-      return []
+      return {
+        forms: [],
+        pagination: {
+          page: 1,
+          limit: 50,
+          totalCount: 0,
+          totalPages: 0
+        }
+      }
     }
   },
 

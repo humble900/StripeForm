@@ -21,8 +21,12 @@ import {
   Filter,
   Search,
   Plus,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  Settings
 } from 'lucide-react'
+import { UserManagement } from '@/components/admin/UserManagement'
+import { FormManagement } from '@/components/admin/FormManagement'
 
 interface AdminStats {
   period: string
@@ -269,6 +273,7 @@ export default function AdminClient() {
       } else if (activeTab === 'notifications') {
         fetchNotifications()
       }
+      // Users and Forms tabs handle their own data fetching
     }
   }, [isAuthenticated, user, period, activeTab, ticketFilters])
 
@@ -370,23 +375,33 @@ export default function AdminClient() {
         <nav className="flex space-x-8 border-b border-gray-200">
           {[
             { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+            { id: 'users', label: 'Users', icon: Users, requiresSuperAdmin: true },
+            { id: 'forms', label: 'Forms', icon: FileText },
             { id: 'tickets', label: 'Support Tickets', icon: MessageSquare },
             { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'analytics', label: 'Analytics', icon: FileText }
+            { id: 'analytics', label: 'Analytics', icon: TrendingUp }
           ].map((tab) => {
             const Icon = tab.icon
+            const isDisabled = tab.requiresSuperAdmin && user.role !== 'super_admin'
+            
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => !isDisabled && setActiveTab(tab.id)}
+                disabled={isDisabled}
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                   activeTab === tab.id
                     ? 'border-purple-500 text-purple-600'
+                    : isDisabled
+                    ? 'border-transparent text-gray-300 cursor-not-allowed'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
                 <Icon className="w-5 h-5" />
                 <span>{tab.label}</span>
+                {tab.requiresSuperAdmin && (
+                  <Shield className="w-3 h-3 text-gray-400" />
+                )}
               </button>
             )
           })}
@@ -568,6 +583,16 @@ export default function AdminClient() {
             </Card>
           )}
         </div>
+      )}
+
+      {/* Users Tab */}
+      {activeTab === 'users' && (
+        <UserManagement userRole={user.role} />
+      )}
+
+      {/* Forms Tab */}
+      {activeTab === 'forms' && (
+        <FormManagement userRole={user.role} />
       )}
 
       {/* Support Tickets Tab */}
