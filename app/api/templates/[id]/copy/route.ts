@@ -37,9 +37,14 @@ export async function POST(
 
     console.log('✅ Template found:', template.name)
 
-    // Generate a unique slug
-    const baseSlug = template.templateData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-    const slug = `${baseSlug}-${Date.now()}`
+    // Generate a unique slug (consistent with forms API)
+    const baseSlug = template.templateData.title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50)
+    
+    const timestamp = Date.now().toString(36)
+    const slug = `${baseSlug}-${timestamp}`
 
     console.log('📝 Creating form with slug:', slug)
 

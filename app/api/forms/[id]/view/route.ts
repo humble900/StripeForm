@@ -39,8 +39,8 @@ export async function POST(
           }, { status: 403 })
         }
         
-        // Increment view count
-        await db.updateForm(id, {
+        // Increment view count using the form's actual ID (not slug)
+        await db.updateForm(form.id, {
           viewCount: (form.viewCount || 0) + 1
         })
         

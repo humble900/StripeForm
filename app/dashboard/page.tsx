@@ -832,6 +832,7 @@ const Dashboard = () => {
                   
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
+                            {form.status !== 'published' && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -847,6 +848,7 @@ const Dashboard = () => {
                                 <p>Edit form</p>
                               </TooltipContent>
                             </Tooltip>
+                            )}
                             
                             {form.status !== 'draft' && (
                               <Tooltip>
@@ -1021,6 +1023,7 @@ const Dashboard = () => {
                 </div>
                           
                           <div className="flex items-center space-x-1">
+                            {form.status !== 'published' && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                     <Button 
@@ -1036,6 +1039,7 @@ const Dashboard = () => {
                                 <p>Edit form</p>
                               </TooltipContent>
                             </Tooltip>
+                            )}
                             
                             {form.status !== 'draft' && (
                               <Tooltip>

@@ -115,6 +115,7 @@ export default function PublishedFormPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
   const [geoBlocked, setGeoBlocked] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
   const AUTOSAVE_RESP_KEY = formId ? `stripeform-autosave-response-${formId}` : ''
 
   // Payment API ref - must be declared before any early returns
@@ -122,6 +123,11 @@ export default function PublishedFormPage() {
     confirm: () => Promise<{ ok: boolean; id?: string; error?: string }>;
     getStatus: () => { isBlocked: boolean };
   } | null>(null)
+
+  // Ensure component is mounted before rendering
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Fetch form data
   useEffect(() => {
@@ -156,18 +162,16 @@ export default function PublishedFormPage() {
 
         setForm(formData)
         
-        // Track form view for analytics
-        try {
-          await fetch(`/api/forms/${formId}/view`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          })
-        } catch (viewError) {
+        // Track form view for analytics (non-blocking)
+        fetch(`/api/forms/${formId}/view`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }).catch(viewError => {
           console.warn('Failed to track form view:', viewError)
           // Don't fail the form loading if view tracking fails
-        }
+        })
         
         // Set initial state based on form settings
         const hasCover = formData.fields?.some((f: any) => f.type === 'cover_slide')
@@ -419,41 +423,53 @@ export default function PublishedFormPage() {
     return fieldColor || brand.text?.primary?.hex || form?.theme?.text_color || '#374151'
   }
 
+  // Prevent hydration mismatches by not rendering until mounted
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto border-blue-600"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Loading state
   if (isLoading) {
-  return (
+    return (
       <div className="min-h-screen flex items-center justify-center" style={getThemeStyles()}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: form?.theme?.primary_color || '#3B82F6' }}></div>
           <p className="mt-2" style={{ color: form?.theme?.text_color || '#6B7280' }}>Loading form...</p>
         </div>
-                    </div>
-                  )
-                }
+      </div>
+    )
+  }
               
   // Error state
   if (error || !form) {
-              return (
+    return (
       <div className="min-h-screen flex items-center justify-center" style={getThemeStyles()}>
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4" style={{ color: form?.theme?.text_color || '#1F2937' }}>Form Not Found</h1>
           <p style={{ color: form?.theme?.text_color || '#6B7280' }}>{error || 'The form you are looking for does not exist or is not published.'}</p>
-                  </div>
-                        </div>
-                      )
-                    }
+        </div>
+      </div>
+    )
+  }
                     
   // Geo blocked state
   if (geoBlocked) {
-                    return (
+    return (
       <div className="min-h-screen flex items-center justify-center" style={getThemeStyles()}>
-                                      <div className="text-center">
+        <div className="text-center">
           <h1 className="text-2xl font-bold mb-4" style={{ color: form?.theme?.text_color || '#1F2937' }}>Access Restricted</h1>
           <p style={{ color: form?.theme?.text_color || '#6B7280' }}>This form is not available in your region.</p>
-                        </div>
-                    </div>
-                  )
-                }
+        </div>
+      </div>
+    )
+  }
 
   // Minimal renderer: rely fully on EnhancedFormPreview (no extra page/background wrappers)
   return (
