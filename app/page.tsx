@@ -16,13 +16,13 @@ export default function HomePage() {
                 Design forms people love to fill
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed animate-slide-in-right">
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed sm:animate-slide-in-right">
               Create beautiful, interactive forms that get higher response rates. No coding required.
             </p>
             <p className="text-lg text-[#6C5CE7] font-medium mb-8">
               No account needed — start creating forms instantly!
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up-delayed-2">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:animate-fade-in-up-delayed-2">
               <Link
                 href="/builder"
                 prefetch={true}
@@ -35,7 +35,7 @@ export default function HomePage() {
           </div>
 
           {/* Analytics Dashboard Image */}
-          <div className="mt-16 max-w-4xl mx-auto animate-fade-in-up-delayed-3">
+          <div className="mt-16 max-w-4xl mx-auto sm:animate-fade-in-up-delayed-3">
             <div className="bg-gray-900 rounded-lg p-8 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-white">
                 <div className="bg-gray-800 rounded-lg p-4">
