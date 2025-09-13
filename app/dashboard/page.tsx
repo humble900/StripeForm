@@ -173,7 +173,7 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, isAnonymous, user, addNotification, getUserTrackingData])
 
-  // Listen for form updates
+  // Listen for form updates and page visibility changes
   useEffect(() => {
     const handleStorageChange = () => {
       console.log('🔄 Dashboard: Storage change detected, refreshing forms...')
@@ -184,7 +184,7 @@ const Dashboard = () => {
           
           if (!userId) return
 
-          const response = await makeAuthenticatedRequest(`/api/user/forms?limit=100`)
+          const response = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
           if (response.ok) {
             const data = await response.json()
             setForms(data.data || data.forms || [])
@@ -196,12 +196,46 @@ const Dashboard = () => {
       fetchForms()
     }
 
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Dashboard: Page became visible, checking for form updates...')
+        // Check if there are any pending form updates
+        const formUpdated = localStorage.getItem('form-updated')
+        const formPublished = localStorage.getItem('form-published')
+        
+        if (formUpdated || formPublished) {
+          handleStorageChange()
+          // Clear the flags
+          localStorage.removeItem('form-updated')
+          localStorage.removeItem('form-published')
+        }
+      }
+    }
+
+    const handleFocus = () => {
+      console.log('🔄 Dashboard: Window focused, checking for form updates...')
+      // Check if there are any pending form updates
+      const formUpdated = localStorage.getItem('form-updated')
+      const formPublished = localStorage.getItem('form-published')
+      
+      if (formUpdated || formPublished) {
+        handleStorageChange()
+        // Clear the flags
+        localStorage.removeItem('form-updated')
+        localStorage.removeItem('form-published')
+      }
+    }
+
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('formUpdated', handleStorageChange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('formUpdated', handleStorageChange)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [])
   

@@ -82,18 +82,24 @@
   max-width: 100%;
 }
 
-/* Mobile responsive typewriter animation */
+/* Mobile responsive typewriter animation with line breaks */
 @media (max-width: 768px) {
   .typewriter {
     white-space: normal;
     word-wrap: break-word;
-    animation: typing-mobile 2s steps(40, end) 0.2s forwards;
+    animation: typing-mobile-multiline 2.5s steps(50, end) 0.2s forwards;
+    line-height: 1.2;
+    display: block;
+    text-align: center;
   }
 }
 
 @media (max-width: 480px) {
   .typewriter {
-    animation: typing-mobile-small 2s steps(40, end) 0.2s forwards;
+    animation: typing-mobile-small-multiline 2.5s steps(50, end) 0.2s forwards;
+    line-height: 1.3;
+    display: block;
+    text-align: center;
   }
 }
 
@@ -150,25 +156,29 @@
   to { width: 100% }
 }
 
-@keyframes typing-mobile {
+@keyframes typing-mobile-multiline {
   from { 
     width: 0;
     opacity: 0;
+    max-height: 0;
   }
   to { 
     width: 100%;
     opacity: 1;
+    max-height: 3em; /* Allow for 2-3 lines */
   }
 }
 
-@keyframes typing-mobile-small {
+@keyframes typing-mobile-small-multiline {
   from { 
     width: 0;
     opacity: 0;
+    max-height: 0;
   }
   to { 
     width: 100%;
     opacity: 1;
+    max-height: 4em; /* Allow for 3-4 lines on very small screens */
   }
 }
 

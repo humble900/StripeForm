@@ -516,7 +516,7 @@ export function FormBuilderToolbar({
                 className="text-xl font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-gray-400 placeholder:font-normal"
                 placeholder="Enter your form title..."
               />
-              
+
               {/* Form Description */}
               <textarea
                 value={state.current_form?.description || ''}

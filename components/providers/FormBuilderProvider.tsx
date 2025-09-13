@@ -423,6 +423,12 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'UPDATE_FORM', payload: formUpdates })
       dispatch({ type: 'SET_UNSAVED_CHANGES', payload: false })
       
+      // Trigger dashboard refresh for form updates
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('form-updated', 'true')
+        window.dispatchEvent(new CustomEvent('formUpdated'))
+      }
+      
       console.log('✅ Form auto-saved successfully:', savedForm.id)
       return { id: savedForm.id }
     } catch (error) {
