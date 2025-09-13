@@ -78,6 +78,23 @@
   overflow: hidden;
   white-space: nowrap;
   animation: typing 2s steps(40, end) 0.2s forwards;
+  display: inline-block;
+  max-width: 100%;
+}
+
+/* Mobile responsive typewriter animation */
+@media (max-width: 768px) {
+  .typewriter {
+    white-space: normal;
+    word-wrap: break-word;
+    animation: typing-mobile 2s steps(40, end) 0.2s forwards;
+  }
+}
+
+@media (max-width: 480px) {
+  .typewriter {
+    animation: typing-mobile-small 2s steps(40, end) 0.2s forwards;
+  }
 }
 
 /* Loading Spinner */
@@ -131,6 +148,28 @@
 @keyframes typing {
   from { width: 0 }
   to { width: 100% }
+}
+
+@keyframes typing-mobile {
+  from { 
+    width: 0;
+    opacity: 0;
+  }
+  to { 
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+@keyframes typing-mobile-small {
+  from { 
+    width: 0;
+    opacity: 0;
+  }
+  to { 
+    width: 100%;
+    opacity: 1;
+  }
 }
 
 

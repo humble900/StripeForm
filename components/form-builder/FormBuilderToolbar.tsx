@@ -399,12 +399,112 @@ export function FormBuilderToolbar({
 
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="flex items-center justify-between px-6 py-4">
-        {/* Left side - form details (removed duplicate sidebar toggle) */}
-        <div className="flex items-center space-x-6">
+      {/* Mobile Layout - Stacked */}
+      <div className="sm:hidden px-3 py-4 space-y-3">
+        {/* Form Title and Description - Full width on mobile */}
+        <div className="space-y-2">
+          {/* Form Title */}
+          <input
+            type="text"
+            value={state.current_form?.title || ''}
+            onChange={(e) => {
+              updateForm({ title: e.target.value })
+            }}
+            className="text-lg font-bold text-gray-900 bg-transparent border-none focus:outline-none focus:ring-0 w-full placeholder:text-gray-400 placeholder:font-normal"
+            placeholder="Enter your form title..."
+          />
+          
+          {/* Form Description */}
+          <textarea
+            value={state.current_form?.description || ''}
+            onChange={(e) => {
+              updateForm({ description: e.target.value })
+            }}
+            className="text-sm text-gray-600 bg-transparent border-none focus:outline-none focus:ring-0 w-full resize-none placeholder:text-gray-400"
+            placeholder="Describe your form..."
+            rows={1}
+          />
+        </div>
+        
+        {/* Mobile Actions Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            {/* Undo/Redo */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={undo}
+                disabled={!canUndo}
+                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Undo"
+              >
+                <ArrowUturnLeftIcon className="h-3.5 w-3.5" />
+              </button>
+              
+              <button
+                onClick={redo}
+                disabled={!canRedo}
+                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Redo"
+              >
+                <ArrowUturnRightIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            {/* Brand Kit */}
+            <button
+              onClick={handleApplyBrandKit}
+              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Apply Brand Kit"
+            >
+              <SparklesIcon className="h-4 w-4" />
+            </button>
 
+            {/* Theme Editor */}
+            <button
+              onClick={handleThemeEditor}
+              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Theme Editor"
+            >
+              <SwatchIcon className="h-4 w-4" />
+            </button>
+
+            {/* Preview */}
+            <button
+              onClick={handlePreview}
+              className="flex items-center space-x-1 px-2 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors text-xs"
+              title="Preview Form"
+            >
+              <EyeIcon className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Save */}
+            <button
+              onClick={handleSave}
+              disabled={state.is_saving}
+              className="flex items-center space-x-1 px-2 py-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs"
+              title="Save Form"
+            >
+              <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Enhanced Publish Button */}
+            <EnhancedPublishButton
+              onPublish={handlePublish}
+              isPublished={state.current_form?.isPublished || false}
+              publishedUrl={state.current_form?.publishedUrl}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout - Horizontal */}
+      <div className="hidden sm:flex items-center justify-between px-6 py-4">
+        {/* Left side - form details */}
+        <div className="flex items-center space-x-6">
           {/* Form Title and Description */}
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 max-w-md min-w-0">
             <div className="space-y-2">
               {/* Form Title */}
               <input
@@ -417,7 +517,6 @@ export function FormBuilderToolbar({
                 placeholder="Enter your form title..."
               />
               
-
               {/* Form Description */}
               <textarea
                 value={state.current_form?.description || ''}
@@ -501,10 +600,8 @@ export function FormBuilderToolbar({
             title="Preview Form"
           >
             <EyeIcon className="h-3.5 w-3.5" />
-            <span className="font-medium hidden sm:inline">Preview</span>
+            <span className="font-medium">Preview</span>
           </button>
-
-
 
           {/* Save */}
           <button
@@ -514,7 +611,7 @@ export function FormBuilderToolbar({
             title="Save Form"
           >
             <DocumentArrowDownIcon className="h-3.5 w-3.5" />
-            <span className="font-medium hidden sm:inline">Save</span>
+            <span className="font-medium">Save</span>
           </button>
 
           {/* Enhanced Publish Button */}
@@ -523,8 +620,6 @@ export function FormBuilderToolbar({
             isPublished={state.current_form?.isPublished || false}
             publishedUrl={state.current_form?.publishedUrl}
           />
-
-          {/* Inspector toggle removed; handled via sidebar controls */}
         </div>
       </div>
 
