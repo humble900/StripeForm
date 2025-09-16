@@ -217,7 +217,8 @@ export function FormBuilderToolbar({
           
           console.log('📤 Sending form update with status:', updateData.status)
           
-          // Use authenticated route when user is authenticated (cookies will be sent automatically)
+          // Always try authenticated route first if user is authenticated
+          // This ensures proper form ownership and migration handling
           const useAuthenticatedRoute = isAuthenticated && !!user?.id
           const targetUrl = useAuthenticatedRoute
             ? `/api/user/forms/${formIdForUrl}`
@@ -232,13 +233,20 @@ export function FormBuilderToolbar({
             }
           } catch {}
 
+          // Enhanced headers for mobile compatibility
+          const headers: Record<string, string> = { 
+            'Content-Type': 'application/json',
+            ...fingerprintHeader,
+          }
+          
+          // Add authentication header if user is authenticated
+          if (isAuthenticated && user?.id) {
+            headers['Authorization'] = `Bearer ${user.id}`
+          }
+
           let response = await fetch(targetUrl, {
             method: useAuthenticatedRoute ? 'PATCH' : 'PUT',
-            headers: { 
-              'Content-Type': 'application/json',
-              ...(isAuthenticated && user?.id ? { 'Authorization': `Bearer ${user.id}` } : {}),
-              ...fingerprintHeader,
-            },
+            headers,
             credentials: 'include',
             body: JSON.stringify(updateData)
           })
@@ -269,9 +277,14 @@ export function FormBuilderToolbar({
             // If authenticated route failed with 403/401 (e.g., missing token), retry via public route as fallback
             if (useAuthenticatedRoute && (response.status === 401 || response.status === 403 || response.status === 404)) {
               try {
+                console.log('🔄 Retrying with public route as fallback...')
                 response = await fetch(`/api/forms/${formIdForUrl}`, {
                   method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    ...fingerprintHeader, // Include fingerprint for migration
+                  },
+                  credentials: 'include',
                   body: JSON.stringify(updateData)
                 })
                 if (!response.ok) {

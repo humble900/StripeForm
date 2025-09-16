@@ -296,9 +296,10 @@ export const dbService = {
    */
   async migrateAnonymousToAuthenticated(fingerprint: string, userId: string) {
     // Move forms ownership
-    await db.update(forms)
+    const migratedForms = await db.update(forms)
       .set({ userId, updatedAt: new Date() })
       .where(eq(forms.userId, fingerprint))
+      .returning()
 
     // Move drafts ownership
     await db.update(formDrafts)
@@ -319,7 +320,37 @@ export const dbService = {
         .where(eq(anonymousUsers.fingerprint, fingerprint))
     }
 
-    return { success: true }
+    // Invalidate cache for both old and new user IDs to ensure fresh data
+    try {
+      const { formCache } = await import('@/lib/cache')
+      
+      // Clear cache for the old fingerprint (anonymous user)
+      const oldCacheKeys = [
+        `user-forms:${fingerprint}:all:50:0`,
+        `user-forms:${fingerprint}:published:50:0`,
+        `user-forms:${fingerprint}:draft:50:0`
+      ]
+      oldCacheKeys.forEach(key => formCache.delete(key))
+      
+      // Clear cache for the new user ID
+      const newCacheKeys = [
+        `user-forms:${userId}:all:50:0`,
+        `user-forms:${userId}:published:50:0`,
+        `user-forms:${userId}:draft:50:0`
+      ]
+      newCacheKeys.forEach(key => formCache.delete(key))
+      
+      // Clear individual form caches for migrated forms
+      migratedForms.forEach(form => {
+        formCache.delete(`form:${form.id}`)
+      })
+      
+      console.log('✅ Cache invalidated after migration:', { fingerprint, userId, migratedFormsCount: migratedForms.length })
+    } catch (cacheError) {
+      console.warn('⚠️ Cache invalidation failed during migration:', cacheError)
+    }
+
+    return { success: true, migratedFormsCount: migratedForms.length }
   },
 
   async deleteForm(formId: string) {

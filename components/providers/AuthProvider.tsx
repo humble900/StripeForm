@@ -282,7 +282,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (anonymousUser) {
             console.log('🔄 Converting anonymous user to authenticated...')
             if (userTracking) {
-              await migrateAnonymousToAuthenticated(userTracking.fingerprint, firebaseUser.uid)
+              const migrationResult = await migrateAnonymousToAuthenticated(userTracking.fingerprint, firebaseUser.uid)
+              console.log('✅ Migration completed:', migrationResult)
+              
+              // Trigger dashboard refresh to show migrated forms
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('form-migrated', 'true')
+                window.dispatchEvent(new CustomEvent('formMigrated'))
+              }
             }
             return
           }

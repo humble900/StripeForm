@@ -202,12 +202,14 @@ const Dashboard = () => {
         // Check if there are any pending form updates
         const formUpdated = localStorage.getItem('form-updated')
         const formPublished = localStorage.getItem('form-published')
+        const formMigrated = localStorage.getItem('form-migrated')
         
-        if (formUpdated || formPublished) {
+        if (formUpdated || formPublished || formMigrated) {
           handleStorageChange()
           // Clear the flags
           localStorage.removeItem('form-updated')
           localStorage.removeItem('form-published')
+          localStorage.removeItem('form-migrated')
         }
       }
     }
@@ -217,12 +219,14 @@ const Dashboard = () => {
       // Check if there are any pending form updates
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
+      const formMigrated = localStorage.getItem('form-migrated')
       
-      if (formUpdated || formPublished) {
+      if (formUpdated || formPublished || formMigrated) {
         handleStorageChange()
         // Clear the flags
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
+        localStorage.removeItem('form-migrated')
       }
     }
 
@@ -231,11 +235,13 @@ const Dashboard = () => {
       console.log('🔄 Dashboard: Page show event (mobile), checking for form updates...')
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
+      const formMigrated = localStorage.getItem('form-migrated')
       
-      if (formUpdated || formPublished) {
+      if (formUpdated || formPublished || formMigrated) {
         handleStorageChange()
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
+        localStorage.removeItem('form-migrated')
       }
     }
 
@@ -244,16 +250,19 @@ const Dashboard = () => {
       console.log('🔄 Dashboard: App state change detected, checking for form updates...')
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
+      const formMigrated = localStorage.getItem('form-migrated')
       
-      if (formUpdated || formPublished) {
+      if (formUpdated || formPublished || formMigrated) {
         handleStorageChange()
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
+        localStorage.removeItem('form-migrated')
       }
     }
 
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('formUpdated', handleStorageChange)
+    window.addEventListener('formMigrated', handleStorageChange) // Listen for form migration events
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
     
@@ -265,18 +274,21 @@ const Dashboard = () => {
     const mobileRefreshInterval = setInterval(() => {
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
+      const formMigrated = localStorage.getItem('form-migrated')
       
-      if (formUpdated || formPublished) {
-        console.log('🔄 Dashboard: Mobile refresh interval detected form updates')
+      if (formUpdated || formPublished || formMigrated) {
+        console.log('🔄 Dashboard: Mobile refresh interval detected form updates/migration')
         handleStorageChange()
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
+        localStorage.removeItem('form-migrated')
       }
     }, 30000)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('formUpdated', handleStorageChange)
+      window.removeEventListener('formMigrated', handleStorageChange)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
       window.removeEventListener('pageshow', handlePageShow)
