@@ -211,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAnonymous, setIsAnonymous] = useState(true) // Start as anonymous by default
 
   const [isEnsuringUserState, setIsEnsuringUserState] = useState(false)
-  const [userTracking, setUserTracking] = useState<{ ip: string; fingerprint: string; lastVisit: Date } | null>(null)
+  const [userTracking, setUserTracking] = useState<{ ip: string; fingerprint: string; lastVisit: Date; cookies?: string[] } | null>(null)
   const { addNotification } = useNotifications()
 
   // Track user visit immediately when component mounts and set anonymous state
@@ -383,8 +383,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         })
         
-        // Ensure user state is properly set after loading
-        if (firebaseUser && !user) {
+        // Ensure user state is properly set after loading (with guard to prevent loops)
+        if (firebaseUser && !user && !isEnsuringUserState) {
           console.log('🔍 Ensuring user state after auth state change...')
           setTimeout(() => ensureUserState(), 100)
         }
@@ -435,10 +435,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Get user tracking data
+  // Get user tracking data with caching to prevent repeated API calls
   const getUserTrackingData = async (): Promise<{ ip: string; fingerprint: string; cookies: string[] }> => {
     try {
+      // Return cached data if available and not expired (5 minutes)
+      if (userTracking && userTracking.fingerprint !== 'unknown') {
+        const now = new Date().getTime()
+        const lastVisit = userTracking.lastVisit ? new Date(userTracking.lastVisit).getTime() : 0
+        const fiveMinutes = 5 * 60 * 1000
+        
+        if (now - lastVisit < fiveMinutes) {
+          console.log('📊 Using cached user tracking data')
+          return {
+            ip: userTracking.ip,
+            fingerprint: userTracking.fingerprint,
+            cookies: userTracking.cookies || []
+          }
+        }
+      }
+      
+      // Only call trackUserVisit if we don't have recent data
+      console.log('📊 Fetching fresh user tracking data')
       const trackingData = await userTrackingManager.trackUserVisit()
+      
+      // Update cached data
+      setUserTracking({
+        ip: trackingData.ip,
+        fingerprint: trackingData.fingerprint,
+        cookies: trackingData.cookies,
+        lastVisit: trackingData.timestamp
+      })
+      
       return {
         ip: trackingData.ip,
         fingerprint: trackingData.fingerprint,
@@ -446,6 +473,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.warn('⚠️ Could not get user tracking data:', error)
+      
+      // Return cached data even if there's an error
+      if (userTracking) {
+        return {
+          ip: userTracking.ip,
+          fingerprint: userTracking.fingerprint,
+          cookies: userTracking.cookies || []
+        }
+      }
+      
       return {
         ip: 'unknown',
         fingerprint: 'unknown',

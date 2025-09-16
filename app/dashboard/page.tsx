@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNotifications } from '@/components/providers/NotificationProvider';
@@ -51,6 +51,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { formatDate } from '@/lib/utils';
 import { getPublishedFormUrl } from '@/lib/utils/url';
 import LoadingSpinner from '@/components/ui/loading-spinner';
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout;
+  return ((...args: any[]) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
 
 const Dashboard = () => {
   const router = useRouter();
@@ -114,9 +123,9 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, isAnonymous, user, isLoading, debugAuthState])
 
-  // Fetch forms and dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
+  // Debounced fetch function to prevent excessive API calls
+  const debouncedFetchForms = useCallback(
+    debounce(async () => {
       try {
         setIsFetching(true)
         // Get user tracking data for API calls
@@ -169,34 +178,22 @@ const Dashboard = () => {
       } finally {
         setIsFetching(false)
       }
-    }
+    }, 1000), // 1 second debounce
+    [isAuthenticated, user, getUserTrackingData, makeAuthenticatedRequest, addNotification]
+  )
 
+  // Fetch forms and dashboard data
+  useEffect(() => {
     if (isAuthenticated || isAnonymous) {
-      fetchDashboardData()
+      debouncedFetchForms()
     }
-  }, [isAuthenticated, isAnonymous, user, addNotification, getUserTrackingData])
+  }, [isAuthenticated, isAnonymous, debouncedFetchForms])
 
   // Listen for form updates and page visibility changes
   useEffect(() => {
     const handleStorageChange = () => {
       console.log('🔄 Dashboard: Storage change detected, refreshing forms...')
-      const fetchForms = async () => {
-        try {
-          const userTrackingData = await getUserTrackingData()
-          const userId = userTrackingData?.fingerprint || user?.id
-          
-          if (!userId) return
-
-          const response = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
-          if (response.ok) {
-            const data = await response.json()
-            setForms(data.data || data.forms || [])
-          }
-        } catch (error) {
-          console.error('❌ Dashboard: Error refreshing forms:', error)
-        }
-      }
-      fetchForms()
+      debouncedFetchForms()
     }
 
     const handleVisibilityChange = () => {
@@ -208,7 +205,8 @@ const Dashboard = () => {
         const formMigrated = localStorage.getItem('form-migrated')
         
         if (formUpdated || formPublished || formMigrated) {
-          handleStorageChange()
+          console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
+          debouncedFetchForms()
           // Clear the flags
           localStorage.removeItem('form-updated')
           localStorage.removeItem('form-published')
@@ -225,7 +223,8 @@ const Dashboard = () => {
       const formMigrated = localStorage.getItem('form-migrated')
       
       if (formUpdated || formPublished || formMigrated) {
-        handleStorageChange()
+        console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
+        debouncedFetchForms()
         // Clear the flags
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
@@ -241,7 +240,8 @@ const Dashboard = () => {
       const formMigrated = localStorage.getItem('form-migrated')
       
       if (formUpdated || formPublished || formMigrated) {
-        handleStorageChange()
+        console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
+        debouncedFetchForms()
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
         localStorage.removeItem('form-migrated')
@@ -256,7 +256,8 @@ const Dashboard = () => {
       const formMigrated = localStorage.getItem('form-migrated')
       
       if (formUpdated || formPublished || formMigrated) {
-        handleStorageChange()
+        console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
+        debouncedFetchForms()
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
         localStorage.removeItem('form-migrated')

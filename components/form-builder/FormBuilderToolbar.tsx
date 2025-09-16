@@ -235,8 +235,8 @@ export function FormBuilderToolbar({
 
           // Enhanced headers for mobile compatibility
           const headers: Record<string, string> = { 
-            'Content-Type': 'application/json',
-            ...fingerprintHeader,
+              'Content-Type': 'application/json',
+              ...fingerprintHeader,
           }
           
           // Add authentication header if user is authenticated
