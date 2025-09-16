@@ -14,11 +14,12 @@ async function getUserFromRequest(request: NextRequest) {
     return { id: user.id, email: user.email }
   }
 
-  // Fallback: Authorization header with Bearer userId (e.g., Firebase UID)
+  // Fallback: Authorization header with Bearer userId (e.g., Firebase UID or fingerprint)
   const authHeader = request.headers.get('authorization')
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const uid = authHeader.replace('Bearer ', '')
-    if (uid && uid !== 'anonymous') {
+    if (uid) {
+      // Allow both authenticated users and anonymous users (fingerprints)
       return { id: uid, email: 'user@example.com' }
     }
   }
@@ -223,9 +224,23 @@ export async function DELETE(
         const user = await getUserFromRequest(request)
         const { id } = await params
         
+        console.log('🗑️ Delete API: Attempting to delete form:', {
+          formId: id,
+          userId: user.id,
+          userEmail: user.email
+        })
+        
         // Verify the form belongs to the user
         const form = await dbService.getForm(id)
+        console.log('🗑️ Delete API: Form lookup result:', {
+          formFound: !!form,
+          formUserId: form?.userId,
+          requestingUserId: user.id,
+          ownershipMatch: form?.userId === user.id
+        })
+        
         if (!form || form.userId !== user.id) {
+          console.log('❌ Delete API: Access denied - form not found or user mismatch')
           return NextResponse.json({
             success: false,
             message: 'Form not found or access denied'

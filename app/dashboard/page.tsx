@@ -303,8 +303,9 @@ const Dashboard = () => {
       }
     }
 
-    const handleFocus = () => {
-      console.log('🔄 Dashboard: Window focused, checking for form updates...')
+    // Consolidated handler for all visibility/focus events to reduce redundancy
+    const handleVisibilityOrFocus = () => {
+      console.log('🔄 Dashboard: Visibility/focus change detected, checking for form updates...')
       // Check if there are any pending form updates
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
@@ -320,49 +321,17 @@ const Dashboard = () => {
       }
     }
 
-    // Mobile-specific: Handle page show/hide events for better mobile support
-    const handlePageShow = () => {
-      console.log('🔄 Dashboard: Page show event (mobile), checking for form updates...')
-      const formUpdated = localStorage.getItem('form-updated')
-      const formPublished = localStorage.getItem('form-published')
-      const formMigrated = localStorage.getItem('form-migrated')
-      
-      if (formUpdated || formPublished || formMigrated) {
-        console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
-        debouncedFetchForms()
-        localStorage.removeItem('form-updated')
-        localStorage.removeItem('form-published')
-        localStorage.removeItem('form-migrated')
-      }
-    }
-
-    // Mobile-specific: Handle app state changes
-    const handleAppStateChange = () => {
-      console.log('🔄 Dashboard: App state change detected, checking for form updates...')
-      const formUpdated = localStorage.getItem('form-updated')
-      const formPublished = localStorage.getItem('form-published')
-      const formMigrated = localStorage.getItem('form-migrated')
-      
-      if (formUpdated || formPublished || formMigrated) {
-        console.log('🔄 Dashboard: Found pending updates, refreshing forms...')
-        debouncedFetchForms()
-        localStorage.removeItem('form-updated')
-        localStorage.removeItem('form-published')
-        localStorage.removeItem('form-migrated')
-      }
-    }
-
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('formUpdated', handleStorageChange)
     window.addEventListener('formMigrated', handleStorageChange) // Listen for form migration events
     document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
+    window.addEventListener('focus', handleVisibilityOrFocus)
     
-    // Mobile-specific event listeners
-    window.addEventListener('pageshow', handlePageShow)
-    window.addEventListener('pagehide', handleAppStateChange)
+    // Mobile-specific event listeners (reduced frequency)
+    window.addEventListener('pageshow', handleVisibilityOrFocus)
+    // Removed pagehide listener as it was causing excessive reloads
     
-    // Additional mobile support: Check for updates every 30 seconds on mobile
+    // Reduced frequency mobile support: Check for updates every 2 minutes on mobile
     const mobileRefreshInterval = setInterval(() => {
       const formUpdated = localStorage.getItem('form-updated')
       const formPublished = localStorage.getItem('form-published')
@@ -370,21 +339,20 @@ const Dashboard = () => {
       
       if (formUpdated || formPublished || formMigrated) {
         console.log('🔄 Dashboard: Mobile refresh interval detected form updates/migration')
-        handleStorageChange()
+        debouncedFetchForms() // Use debounced version
         localStorage.removeItem('form-updated')
         localStorage.removeItem('form-published')
         localStorage.removeItem('form-migrated')
       }
-    }, 30000)
+    }, 120000) // 2 minutes instead of 30 seconds
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('formUpdated', handleStorageChange)
       window.removeEventListener('formMigrated', handleStorageChange)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('pageshow', handlePageShow)
-      window.removeEventListener('pagehide', handleAppStateChange)
+      window.removeEventListener('focus', handleVisibilityOrFocus)
+      window.removeEventListener('pageshow', handleVisibilityOrFocus)
       clearInterval(mobileRefreshInterval)
     }
   }, [])
@@ -421,20 +389,11 @@ const Dashboard = () => {
           }, (payload) => {
             console.log('🔄 Real-time form update:', payload)
             
-            // Refresh forms data
-            const refreshForms = async () => {
-              try {
-                const response = await makeAuthenticatedRequest(`/api/user/forms?limit=100`)
-                if (response.ok) {
-                  const data = await response.json()
-                  setForms(data.data || data.forms || [])
-                }
-              } catch (error) {
-                console.error('Error refreshing forms after real-time update:', error)
-              }
+            // Only refresh on INSERT, UPDATE, or DELETE events, not on every change
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+              // Use debounced refresh to prevent excessive API calls
+              debouncedFetchForms()
             }
-            
-            refreshForms()
           })
           .on('postgres_changes', {
             event: '*',
@@ -603,10 +562,18 @@ const Dashboard = () => {
     // Check if form still exists in local state
     const formExists = forms.find(f => f.id === deleteFormId)
     if (!formExists) {
+      console.log('⚠️ Dashboard: Form not found in local state:', deleteFormId)
       setDeleteDialogOpen(false)
       setDeleteFormId(null)
       return
     }
+
+    console.log('🗑️ Dashboard: Attempting to delete form:', {
+      formId: deleteFormId,
+      formTitle: formExists.title,
+      formStatus: formExists.status,
+      userId: isAuthenticated ? user?.id : 'anonymous'
+    })
 
     try {
       const response = await makeAuthenticatedRequest(`/api/user/forms/${deleteFormId}`, {
@@ -615,14 +582,24 @@ const Dashboard = () => {
 
       if (!response.ok) {
         let errorMessage = response.statusText
+        let errorData = null
         try {
-        const errorData = await response.json()
+          errorData = await response.json()
           if (errorData?.message) {
             errorMessage = errorData.message
           }
         } catch (jsonError) {
           // Failed to parse error response as JSON, use status text
         }
+        
+        console.error('❌ Dashboard: Delete API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+          formId: deleteFormId,
+          userId: isAuthenticated ? user?.id : 'anonymous'
+        })
+        
         throw new Error(`Failed to delete form: ${errorMessage}`)
       }
 
