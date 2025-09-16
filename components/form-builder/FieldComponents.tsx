@@ -2116,6 +2116,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const [slider, setSlider] = useState<number>(0)
         const [checked, setChecked] = useState<boolean>(false)
         const [inputVal, setInputVal] = useState<string>('')
+        const [isClient, setIsClient] = useState(false)
 
         const regen = () => {
           if (type === 'math') {
@@ -2150,7 +2151,16 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           }
         }
 
-        useEffect(() => { regen() }, [type, difficulty])
+        // Ensure we're on the client side before generating CAPTCHA
+        useEffect(() => {
+          setIsClient(true)
+        }, [])
+
+        useEffect(() => { 
+          if (isClient) {
+            regen() 
+          }
+        }, [type, difficulty, isClient])
 
         const verify = () => {
           if (type === 'math' && mathOps) {
@@ -2179,6 +2189,20 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
 
         const sectionCls = 'p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50'
         const labelCls = 'text-xs text-gray-600'
+        
+        // Show loading state until client-side generation is complete
+        if (!isClient) {
+          return (
+            <div className={sectionCls}>
+              <div className="text-center space-y-2">
+                <div className="animate-pulse bg-gray-200 h-6 w-24 mx-auto rounded"></div>
+                <div className="animate-pulse bg-gray-200 h-8 w-32 mx-auto rounded"></div>
+                <div className={labelCls}>Loading CAPTCHA...</div>
+              </div>
+            </div>
+          )
+        }
+        
         return (
           <div className={sectionCls}>
             {type === 'math' && mathOps && (
@@ -2188,7 +2212,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <div className={labelCls}>{verify() ? 'Verified' : 'Enter the result'}</div>
               </div>
             )}
-            {type === 'text' && (
+            {type === 'text' && challenge && (
               <div className="text-center space-y-2">
                 <div className="font-mono bg-gray-100 inline-block px-2 py-1 rounded tracking-widest select-none">{challenge}</div>
                 <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} className="w-32 h-8 mx-auto border rounded bg-white text-center" placeholder="Type here" />
