@@ -56,36 +56,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json()
-    const { fingerprint, action } = body
-    
-    if (!fingerprint) {
-      return NextResponse.json(
-        { success: false, error: 'Fingerprint is required' },
-        { status: 400 }
-      )
-    }
-
-    if (action === 'increment') {
-      await dbService.incrementAnonymousUserFormCount(fingerprint)
-      return NextResponse.json({
-        success: true,
-        message: 'Form count incremented successfully'
-      })
-    }
-
-    return NextResponse.json(
-      { success: false, error: 'Invalid action' },
-      { status: 400 }
-    )
-  } catch (error) {
-    console.error('Error updating form limits:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to update form limits' },
-      { status: 500 }
-    )
-  }
-}
+// POST method removed - form counting is now handled automatically by querying the forms table
+// No manual increment needed since we count published forms directly from the database
 

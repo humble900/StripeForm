@@ -350,22 +350,8 @@ export function FormBuilderToolbar({
         }
       }
 
-      // Increment form count for anonymous users
-      if (isAnonymous) {
-        try {
-          const trackingData = await getUserTrackingData()
-          await fetch('/api/user/form-limits', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              fingerprint: trackingData.fingerprint,
-              action: 'increment'
-            })
-          })
-        } catch (error) {
-          console.warn('Failed to increment anonymous form count:', error)
-        }
-      }
+      // Note: Form count is now automatically tracked by querying the forms table
+      // No need to manually increment anonymous user form count
 
       // Trigger dashboard refresh
       localStorage.setItem('form-published', 'true');

@@ -547,13 +547,19 @@ export const dbService = {
   },
 
   async canAnonymousUserCreateForm(fingerprint: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
+    // Ensure anonymous user exists
     const anonymousUser = await this.getAnonymousUser(fingerprint)
     if (!anonymousUser) {
       await this.createAnonymousUser({ fingerprint })
-      return { canCreate: true, currentCount: 0, limit: 5 }
     }
     
-    const currentCount = anonymousUser.formCount || 0
+    // Count published forms by querying the forms table (same as authenticated users)
+    const publishedCountRows = await db
+      .select({ c: count() })
+      .from(forms)
+      .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
+
+    const currentCount = (publishedCountRows?.[0]?.c as number) || 0
     const limit = 5 // Anonymous users limited to 5 forms
     
     return {
@@ -566,29 +572,26 @@ export const dbService = {
   
 
   async getAnonymousUserFormCount(fingerprint: string): Promise<{ currentCount: number; limit: number; remaining: number }> {
+    // Ensure anonymous user exists
     const anonymousUser = await this.getAnonymousUser(fingerprint)
     if (!anonymousUser) {
-      return { currentCount: 0, limit: 5, remaining: 5 }
+      await this.createAnonymousUser({ fingerprint })
     }
     
-    const currentCount = anonymousUser.formCount || 0
+    // Count published forms by querying the forms table (same as authenticated users)
+    const publishedCountRows = await db
+      .select({ c: count() })
+      .from(forms)
+      .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
+
+    const currentCount = (publishedCountRows?.[0]?.c as number) || 0
     const limit = 5
     const remaining = Math.max(0, limit - currentCount)
     
     return { currentCount, limit, remaining }
   },
 
-  async incrementAnonymousUserFormCount(fingerprint: string) {
-    const [updatedUser] = await db.update(anonymousUsers)
-      .set({ 
-        formCount: sql`${anonymousUsers.formCount} + 1`,
-        lastSeen: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(anonymousUsers.fingerprint, fingerprint))
-      .returning()
-    return updatedUser
-  },
+  // incrementAnonymousUserFormCount removed - form counting is now handled automatically by querying the forms table
 
   // Payment Intents
   async createPaymentIntent(paymentData: {
