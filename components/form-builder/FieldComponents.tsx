@@ -458,10 +458,22 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         // Modern calendar popover for single date
         const sel = typeof localValue === 'string' && localValue ? new Date(localValue + 'T00:00:00') : null
         const [open, setOpen] = useState(false)
+        const [isClient, setIsClient] = useState(false)
         const [view, setView] = useState(() => {
-          const d = sel || new Date()
-          return { y: d.getFullYear(), m: d.getMonth() }
+          // Default to current month/year, will be updated on client mount
+          return { y: 2024, m: 0 }
         })
+
+        // Update view on client-side mount
+        useEffect(() => {
+          setIsClient(true)
+          if (sel) {
+            setView({ y: sel.getFullYear(), m: sel.getMonth() })
+          } else {
+            const now = new Date()
+            setView({ y: now.getFullYear(), m: now.getMonth() })
+          }
+        }, [sel])
         const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa']
         const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
         const start = new Date(view.y, view.m, 1)
@@ -520,14 +532,23 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         // Modern calendar with multi-select
         const values: string[] = Array.isArray(localValue) ? localValue : []
         const [open, setOpen] = useState(false)
+        const [isClient, setIsClient] = useState(false)
         const [view, setView] = useState(() => {
+          // Default to current month/year, will be updated on client mount
+          return { y: 2024, m: 0 }
+        })
+
+        // Update view on client-side mount
+        useEffect(() => {
+          setIsClient(true)
           if (values.length > 0) {
             const d = new Date(values[0] + 'T00:00:00')
-            return { y: d.getFullYear(), m: d.getMonth() }
+            setView({ y: d.getFullYear(), m: d.getMonth() })
+          } else {
+            const now = new Date()
+            setView({ y: now.getFullYear(), m: now.getMonth() })
           }
-          const d = new Date()
-          return { y: d.getFullYear(), m: d.getMonth() }
-        })
+        }, [values])
         const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa']
         const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
         const start = new Date(view.y, view.m, 1)
