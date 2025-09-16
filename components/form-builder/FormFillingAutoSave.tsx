@@ -38,12 +38,22 @@ export const FormFillingAutoSave = React.forwardRef<any, FormFillingAutoSaveProp
     isSaving: false,
     saveStatus: 'idle' as 'idle' | 'saving' | 'saved' | 'error' | 'offline',
     hasUnsavedChanges: false,
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true
+    isOnline: true // Default to true, will be updated on client-side mount
   })
+  const [isClient, setIsClient] = useState(false)
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastFormDataRef = useRef<string>('')
   const storageKey = `${STORAGE_KEY_PREFIX}${formId}`
+
+  // Ensure we're on the client side before accessing browser APIs
+  useEffect(() => {
+    setIsClient(true)
+    // Update online status on client-side mount
+    if (typeof navigator !== 'undefined') {
+      setState(prev => ({ ...prev, isOnline: navigator.onLine }))
+    }
+  }, [])
 
   // Check if form data has changed
   const hasFormDataChanged = useCallback(() => {

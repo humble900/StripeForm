@@ -132,7 +132,7 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
   const handleFieldDuplicate = (field: any) => {
     const duplicatedField: FormField = {
       ...field,
-      id: `field_${Date.now()}`,
+      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       label: `${field.label} (Copy)`,
     }
     addField(duplicatedField)

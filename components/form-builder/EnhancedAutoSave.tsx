@@ -56,12 +56,22 @@ export function EnhancedAutoSave({
     saveStatus: 'idle',
     retryCount: 0,
     hasUnsavedChanges: false,
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true
+    isOnline: true // Default to true, will be updated on client-side mount
   })
+  const [isClient, setIsClient] = useState(false)
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastFormRef = useRef<string>('')
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Ensure we're on the client side before accessing browser APIs
+  useEffect(() => {
+    setIsClient(true)
+    // Update online status on client-side mount
+    if (typeof navigator !== 'undefined') {
+      setState(prev => ({ ...prev, isOnline: navigator.onLine }))
+    }
+  }, [])
 
   // Check if form has changed
   const hasFormChanged = useCallback(() => {

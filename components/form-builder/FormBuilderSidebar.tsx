@@ -295,7 +295,7 @@ export function FormBuilderSidebar() {
 
   const handleAddField = (fieldType: FieldType, fieldLabel: string) => {
     const newField: FormField = {
-      id: `field_${Date.now()}`,
+      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: fieldType,
       label: '', // Don't set a default label - let the placeholder show
       required: false,
