@@ -32,32 +32,18 @@ export async function GET(request: NextRequest) {
         
         console.log('📊 GET /api/user/forms - User:', user.id, 'Summary:', summary)
         
-        // Get user's forms from database
-        const forms = await dbService.getUserForms(user.id)
+        // Get user's forms from database using optimized method
+        const forms = summary 
+          ? await dbService.getUserFormsSummary(user.id)
+          : await dbService.getUserForms(user.id)
         
         console.log('📊 Retrieved forms count:', forms.length)
         
-        // If summary is requested, return minimal data for dashboard performance
+        // If summary is requested, return the optimized data directly
         if (summary) {
-          const summaryForms = forms.map(form => ({
-            id: form.id,
-            title: form.title,
-            description: form.description,
-            slug: form.slug,
-            status: form.status,
-            isPublished: form.isPublished,
-            publishedUrl: form.publishedUrl,
-            publishedAt: form.publishedAt,
-            createdAt: form.createdAt,
-            updatedAt: form.updatedAt,
-            userId: form.userId,
-            submissionCount: form.submissionCount || 0,
-            viewCount: form.viewCount || 0
-          }))
-          
           return NextResponse.json({
             success: true,
-            data: summaryForms
+            data: forms
           })
         }
         

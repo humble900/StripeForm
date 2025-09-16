@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNotifications } from '@/components/providers/NotificationProvider';
@@ -66,28 +66,47 @@ const Dashboard = () => {
   const { user, isAuthenticated, isAnonymous, isLoading, ensureUserState, debugAuthState, getUserTrackingData } = useAuth();
   const { addNotification } = useNotifications();
 
-  // Helper function to make authenticated API calls
-  const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
-    // For authenticated users, always use the user ID (Firebase UID)
-    // For anonymous users, use the fingerprint
-    const userTrackingData = await getUserTrackingData()
-    const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string> | undefined),
+  // Helper function to make authenticated API calls with cached user ID
+  const makeAuthenticatedRequest = useCallback(async (url: string, options: RequestInit = {}) => {
+    try {
+      // Get user ID with proper fallback logic
+      let userId: string | null = null
+      
+      if (isAuthenticated && user?.id) {
+        userId = user.id
+      } else {
+        // For anonymous users or when user object is not available, get tracking data
+        const userTrackingData = await getUserTrackingData()
+        userId = userTrackingData?.fingerprint || user?.id || null
+      }
+      
+      if (!userId) {
+        throw new Error('No user ID available for authentication')
+      }
+      
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${userId}`,
+        ...(options.headers as Record<string, string> | undefined),
+      }
+      
+      return fetch(url, {
+        ...options,
+        headers,
+        credentials: 'include'
+      })
+    } catch (error) {
+      console.error('❌ Dashboard: Error in makeAuthenticatedRequest:', error)
+      throw error
     }
-    if (userId) headers['Authorization'] = `Bearer ${userId}`
-    return fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include'
-    })
-  }
+  }, [isAuthenticated, user?.id, getUserTrackingData])
   const [deleteFormId, setDeleteFormId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [forms, setForms] = useState<any[]>([]);
   const [isFetching, setIsFetching] = useState<boolean>(false);
   const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -123,35 +142,65 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, isAnonymous, user, isLoading, debugAuthState])
 
-  // Debounced fetch function to prevent excessive API calls
-  const debouncedFetchForms = useCallback(
-    debounce(async () => {
-      try {
-        setIsFetching(true)
-        // Get user tracking data for API calls
+  // Stable fetch function to prevent memory leaks
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setIsFetching(true)
+      setFetchError(null)
+      
+      // Get user ID with proper fallback logic
+      let userId: string | null = null
+      
+      if (isAuthenticated && user?.id) {
+        userId = user.id
+      } else {
+        // For anonymous users or when user object is not available, get tracking data
         const userTrackingData = await getUserTrackingData()
-        // For authenticated users, always use the user ID (Firebase UID)
-        // For anonymous users, use the fingerprint
-        const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
-        
-        if (!userId) {
-          console.log('⚠️ Dashboard: No user ID available')
-          return
-        }
+        userId = userTrackingData?.fingerprint || user?.id || null
+      }
+      
+      if (!userId) {
+        console.log('⚠️ Dashboard: No user ID available')
+        setFetchError('No user ID available for fetching data')
+        return
+      }
 
-        console.log('🔄 Dashboard: Fetching data for user:', userId)
+      console.log('🔄 Dashboard: Fetching data for user:', userId)
 
-        // Fetch forms using authenticated endpoint (summary for speed)
-        const formsResponse = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
-        if (!formsResponse.ok) {
-          throw new Error(`Forms API error! status: ${formsResponse.status}`)
-        }
-        const formsData = await formsResponse.json()
-        console.log('📊 Dashboard: Fetched forms:', formsData)
-        setForms(formsData.data || formsData.forms || [])
+      // Fetch forms using authenticated endpoint (summary for speed)
+      const formsResponse = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
+      if (!formsResponse.ok) {
+        throw new Error(`Forms API error! status: ${formsResponse.status}`)
+      }
+      const formsData = await formsResponse.json()
+      console.log('📊 Dashboard: Fetched forms:', formsData)
+      
+      // Update forms state with proper validation
+      const fetchedForms = formsData.data || formsData.forms || []
+      
+      // Validate and clean form data
+      const validatedForms = fetchedForms.map((form: any) => ({
+        id: form.id,
+        title: form.title || 'Untitled Form',
+        description: form.description || '',
+        slug: form.slug || '',
+        status: form.status || 'draft',
+        isPublished: form.isPublished || false,
+        publishedUrl: form.publishedUrl || '',
+        publishedAt: form.publishedAt || null,
+        createdAt: form.createdAt || new Date().toISOString(),
+        updatedAt: form.updatedAt || new Date().toISOString(),
+        userId: form.userId || userId,
+        submissionCount: form.submissionCount || 0,
+        viewCount: form.viewCount || 0
+      }))
+      
+      console.log('📊 Dashboard: Validated forms:', validatedForms.length)
+      setForms(validatedForms)
 
-        // Fetch analytics/stats
-        const analyticsResponse = await fetch(`/api/analytics?userId=${userId}&period=30d`)
+      // Fetch analytics/stats using authenticated request
+      try {
+        const analyticsResponse = await makeAuthenticatedRequest(`/api/analytics?userId=${userId}&period=30d`)
         
         if (analyticsResponse.ok) {
           const analyticsData = await analyticsResponse.json()
@@ -163,24 +212,63 @@ const Dashboard = () => {
               conversionRate: parseFloat(analyticsData.analytics.averageSubmissionsPerForm) || 0
             })
           }
+        } else {
+          console.warn('⚠️ Dashboard: Analytics API returned error:', analyticsResponse.status)
         }
+      } catch (analyticsError) {
+        console.warn('⚠️ Dashboard: Analytics fetch failed (non-critical):', analyticsError)
+        // Set default stats if analytics fails
+        setDashboardStats({
+          totalForms: fetchedForms.length,
+          publishedForms: fetchedForms.filter((f: any) => f.status === 'published').length,
+          totalResponses: 0,
+          conversionRate: 0
+        })
+      }
 
-        console.log('✅ Dashboard: Data fetched successfully')
-        setHasFetchedOnce(true)
-      } catch (error: any) {
-        console.error('❌ Dashboard: Error fetching data:', error)
+      console.log('✅ Dashboard: Data fetched successfully')
+      setHasFetchedOnce(true)
+      setFetchError(null)
+    } catch (error: any) {
+      console.error('❌ Dashboard: Error fetching data:', error)
+      const errorMessage = error?.message?.includes('Forms API error!') 
+        ? 'Failed to load forms data. Please check your network connection and try again.' 
+        : 'Failed to load dashboard data. Please try again later.'
+      
+      setFetchError(errorMessage)
+      
+      // Auto-retry for network errors (up to 3 times)
+      if (retryCount < 3 && (error?.message?.includes('network') || error?.message?.includes('fetch'))) {
+        console.log(`🔄 Dashboard: Auto-retrying fetch (attempt ${retryCount + 1}/3)`)
+        setRetryCount(prev => prev + 1)
+        setTimeout(() => {
+          fetchDashboardData()
+        }, 2000 * (retryCount + 1)) // Exponential backoff
+      } else {
         addNotification({
           type: 'error',
           title: 'Load Failed',
-          message: error?.message?.includes('Forms API error!') ? 'Failed to load forms data. Please check your network connection and try again.' : 'Failed to load dashboard data. Please try again later.',
+          message: errorMessage,
           duration: 5000
         })
-      } finally {
-        setIsFetching(false)
       }
-    }, 1000), // 1 second debounce
-    [isAuthenticated, user, getUserTrackingData, makeAuthenticatedRequest, addNotification]
+    } finally {
+      setIsFetching(false)
+    }
+  }, [isAuthenticated, user?.id, getUserTrackingData, makeAuthenticatedRequest, addNotification, retryCount])
+
+  // Debounced fetch function to prevent excessive API calls
+  const debouncedFetchForms = useMemo(
+    () => debounce(fetchDashboardData, 1000),
+    [fetchDashboardData]
   )
+
+  // Manual retry function
+  const retryFetch = useCallback(() => {
+    setRetryCount(0)
+    setFetchError(null)
+    fetchDashboardData()
+  }, [fetchDashboardData])
 
   // Fetch forms and dashboard data
   useEffect(() => {
