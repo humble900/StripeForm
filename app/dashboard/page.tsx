@@ -226,16 +226,62 @@ const Dashboard = () => {
       }
     }
 
+    // Mobile-specific: Handle page show/hide events for better mobile support
+    const handlePageShow = () => {
+      console.log('🔄 Dashboard: Page show event (mobile), checking for form updates...')
+      const formUpdated = localStorage.getItem('form-updated')
+      const formPublished = localStorage.getItem('form-published')
+      
+      if (formUpdated || formPublished) {
+        handleStorageChange()
+        localStorage.removeItem('form-updated')
+        localStorage.removeItem('form-published')
+      }
+    }
+
+    // Mobile-specific: Handle app state changes
+    const handleAppStateChange = () => {
+      console.log('🔄 Dashboard: App state change detected, checking for form updates...')
+      const formUpdated = localStorage.getItem('form-updated')
+      const formPublished = localStorage.getItem('form-published')
+      
+      if (formUpdated || formPublished) {
+        handleStorageChange()
+        localStorage.removeItem('form-updated')
+        localStorage.removeItem('form-published')
+      }
+    }
+
     window.addEventListener('storage', handleStorageChange)
     window.addEventListener('formUpdated', handleStorageChange)
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
+    
+    // Mobile-specific event listeners
+    window.addEventListener('pageshow', handlePageShow)
+    window.addEventListener('pagehide', handleAppStateChange)
+    
+    // Additional mobile support: Check for updates every 30 seconds on mobile
+    const mobileRefreshInterval = setInterval(() => {
+      const formUpdated = localStorage.getItem('form-updated')
+      const formPublished = localStorage.getItem('form-published')
+      
+      if (formUpdated || formPublished) {
+        console.log('🔄 Dashboard: Mobile refresh interval detected form updates')
+        handleStorageChange()
+        localStorage.removeItem('form-updated')
+        localStorage.removeItem('form-published')
+      }
+    }, 30000)
     
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('formUpdated', handleStorageChange)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('pageshow', handlePageShow)
+      window.removeEventListener('pagehide', handleAppStateChange)
+      clearInterval(mobileRefreshInterval)
     }
   }, [])
   

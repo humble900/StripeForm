@@ -413,47 +413,60 @@ export function FormBuilderToolbar({
         </div>
         
         {/* Mobile Actions Row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {/* Undo/Redo */}
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={undo}
-                disabled={!canUndo}
-                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Undo"
-              >
-                <ArrowUturnLeftIcon className="h-3.5 w-3.5" />
-              </button>
-              
-              <button
-                onClick={redo}
-                disabled={!canRedo}
-                className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                title="Redo"
-              >
-                <ArrowUturnRightIcon className="h-3.5 w-3.5" />
-              </button>
+        <div className="space-y-3">
+          {/* Primary Actions Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {/* Undo/Redo */}
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={undo}
+                  disabled={!canUndo}
+                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Undo"
+                >
+                  <ArrowUturnLeftIcon className="h-3.5 w-3.5" />
+                </button>
+                
+                <button
+                  onClick={redo}
+                  disabled={!canRedo}
+                  className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Redo"
+                >
+                  <ArrowUturnRightIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
+            
+            {/* Enhanced Publish Button - Prominent on mobile */}
+            <EnhancedPublishButton
+              onPublish={handlePublish}
+              isPublished={state.current_form?.isPublished || false}
+              publishedUrl={state.current_form?.publishedUrl}
+            />
           </div>
           
-          <div className="flex items-center space-x-1">
+          {/* Secondary Actions Row */}
+          <div className="flex items-center justify-center space-x-2">
             {/* Brand Kit */}
             <button
               onClick={handleApplyBrandKit}
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center space-x-1 px-2 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-xs"
               title="Apply Brand Kit"
             >
-              <SparklesIcon className="h-4 w-4" />
+              <SparklesIcon className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Brand</span>
             </button>
 
             {/* Theme Editor */}
             <button
               onClick={handleThemeEditor}
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center space-x-1 px-2 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors text-xs"
               title="Theme Editor"
             >
-              <SwatchIcon className="h-4 w-4" />
+              <SwatchIcon className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Theme</span>
             </button>
 
             {/* Preview */}
@@ -463,6 +476,7 @@ export function FormBuilderToolbar({
               title="Preview Form"
             >
               <EyeIcon className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Preview</span>
             </button>
 
             {/* Save */}
@@ -473,14 +487,8 @@ export function FormBuilderToolbar({
               title="Save Form"
             >
               <DocumentArrowDownIcon className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Save</span>
             </button>
-
-            {/* Enhanced Publish Button */}
-            <EnhancedPublishButton
-              onPublish={handlePublish}
-              isPublished={state.current_form?.isPublished || false}
-              publishedUrl={state.current_form?.publishedUrl}
-            />
           </div>
         </div>
       </div>
