@@ -44,7 +44,7 @@ const FormResponsesPage = () => {
   const router = useRouter()
   const params = useParams()
   const formId = params?.id as string
-  const { user, getUserTrackingData } = useAuth()
+  const { user, isAuthenticated, getUserTrackingData } = useAuth()
   const { addNotification } = useNotifications()
 
   const [form, setForm] = useState<Form | null>(null)
@@ -59,7 +59,9 @@ const FormResponsesPage = () => {
   // Helper function to make authenticated API calls
   const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
     const userTrackingData = await getUserTrackingData()
-    const userId = userTrackingData?.fingerprint || user?.id
+    // For authenticated users, always use the user ID (Firebase UID)
+    // For anonymous users, use the fingerprint
+    const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
     
     if (!userId) {
       throw new Error('No user ID available for authentication')

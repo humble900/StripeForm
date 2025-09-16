@@ -59,9 +59,10 @@ const Dashboard = () => {
 
   // Helper function to make authenticated API calls
   const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
-    // Include cookies; also send Bearer fingerprint/uid as a fallback for older endpoints
+    // For authenticated users, always use the user ID (Firebase UID)
+    // For anonymous users, use the fingerprint
     const userTrackingData = await getUserTrackingData()
-    const userId = userTrackingData?.fingerprint || user?.id
+    const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> | undefined),
@@ -120,7 +121,9 @@ const Dashboard = () => {
         setIsFetching(true)
         // Get user tracking data for API calls
         const userTrackingData = await getUserTrackingData()
-        const userId = userTrackingData?.fingerprint || user?.id
+        // For authenticated users, always use the user ID (Firebase UID)
+        // For anonymous users, use the fingerprint
+        const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
         
         if (!userId) {
           console.log('⚠️ Dashboard: No user ID available')
