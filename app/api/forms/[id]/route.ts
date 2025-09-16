@@ -108,7 +108,7 @@ export async function PUT(
         }
       })
       
-      // Handle publishing
+      // Handle publishing with comprehensive field updates
       if (formUpdates.status === 'published') {
         // Enforce publish limit based on the owning user of the form
         try {
@@ -125,9 +125,12 @@ export async function PUT(
           console.warn('Form publish limit check failed (generic PUT); allowing publish by default:', e)
         }
 
+        // Comprehensive publishing field updates
+        const now = new Date()
+        
         // Set publishedAt if not already set
         if (!existingForm.publishedAt) {
-          formUpdates.publishedAt = new Date()
+          formUpdates.publishedAt = now
         }
         
         // Ensure we have a slug
@@ -143,9 +146,11 @@ export async function PUT(
           formUpdates.slug = existingForm.slug // Preserve existing slug
         }
         
-        // Ensure public flags are set on publish
+        // Ensure all publishing flags are set consistently
         formUpdates.isPublished = true
         formUpdates.isPublic = true
+        formUpdates.status = 'published' // Ensure status is explicitly set
+        formUpdates.updatedAt = now
 
         // Generate absolute publishedUrl using production domain
         const origin = process.env.NEXT_PUBLIC_APP_URL || (() => {
@@ -156,6 +161,15 @@ export async function PUT(
           }
         })()
         formUpdates.publishedUrl = `${origin}/forms/${formUpdates.slug}`
+        
+        console.log('📤 Publishing form with comprehensive updates:', {
+          id: existingForm.id,
+          status: formUpdates.status,
+          isPublished: formUpdates.isPublished,
+          isPublic: formUpdates.isPublic,
+          publishedAt: formUpdates.publishedAt,
+          publishedUrl: formUpdates.publishedUrl
+        })
       }
       
       console.log('📝 Updating form with data:', formUpdates)

@@ -265,29 +265,42 @@ export const dbService = {
     // Default free limit
     const FREE_LIMIT = 5
 
-    // Try to find a real user by ID
-    const user = await db.query.users.findFirst({ where: eq(users.id, userId) })
+    try {
+      // Try to find a real user by ID
+      const user = await db.query.users.findFirst({ where: eq(users.id, userId) })
 
-    // If user exists and is Pro with active subscription and not expired, allow unlimited
-    if (user && (user as any).subscriptionTier === 'pro') {
-      const status = (user as any).subscriptionStatus
-      const expiresAt = (user as any).subscriptionExpiresAt as Date | null
-      const isActive = status === 'active' && (!expiresAt || new Date(expiresAt) > new Date())
-      if (isActive) {
-        return { canCreate: true, currentCount: 0, limit: Number.POSITIVE_INFINITY as unknown as number }
+      // If user exists and is Pro with active subscription and not expired, allow unlimited
+      if (user && (user as any).subscriptionTier === 'pro') {
+        const status = (user as any).subscriptionStatus
+        const expiresAt = (user as any).subscriptionExpiresAt as Date | null
+        const isActive = status === 'active' && (!expiresAt || new Date(expiresAt) > new Date())
+        if (isActive) {
+          return { canCreate: true, currentCount: 0, limit: Number.POSITIVE_INFINITY as unknown as number }
+        }
       }
+
+      // Count how many published forms the owner already has with atomic query
+      const publishedCountRows = await db
+        .select({ c: count() })
+        .from(forms)
+        .where(and(eq(forms.userId, userId), eq(forms.status, 'published')))
+
+      const currentCount = (publishedCountRows?.[0]?.c as number) || 0
+      const canCreate = currentCount < FREE_LIMIT
+
+      console.log('📊 Form limit check for user:', {
+        userId,
+        currentCount,
+        limit: FREE_LIMIT,
+        canCreate
+      })
+
+      return { canCreate, currentCount, limit: FREE_LIMIT }
+    } catch (error) {
+      console.error('❌ Error checking user form limits:', error)
+      // Fail safe - allow creation if we can't check limits
+      return { canCreate: true, currentCount: 0, limit: FREE_LIMIT }
     }
-
-    // Count how many published forms the owner already has
-    const publishedCountRows = await db
-      .select({ c: count() })
-      .from(forms)
-      .where(and(eq(forms.userId, userId), eq(forms.status, 'published')))
-
-    const currentCount = (publishedCountRows?.[0]?.c as number) || 0
-    const canCreate = currentCount < FREE_LIMIT
-
-    return { canCreate, currentCount, limit: FREE_LIMIT }
   },
 
   /**
@@ -578,25 +591,39 @@ export const dbService = {
   },
 
   async canAnonymousUserCreateForm(fingerprint: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
-    // Ensure anonymous user exists
-    const anonymousUser = await this.getAnonymousUser(fingerprint)
-    if (!anonymousUser) {
-      await this.createAnonymousUser({ fingerprint })
-    }
-    
-    // Count published forms by querying the forms table (same as authenticated users)
-    const publishedCountRows = await db
-      .select({ c: count() })
-      .from(forms)
-      .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
+    try {
+      // Ensure anonymous user exists
+      const anonymousUser = await this.getAnonymousUser(fingerprint)
+      if (!anonymousUser) {
+        await this.createAnonymousUser({ fingerprint })
+      }
+      
+      // Count published forms by querying the forms table (same as authenticated users)
+      const publishedCountRows = await db
+        .select({ c: count() })
+        .from(forms)
+        .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
 
-    const currentCount = (publishedCountRows?.[0]?.c as number) || 0
-    const limit = 5 // Anonymous users limited to 5 forms
-    
-    return {
-      canCreate: currentCount < limit,
-      currentCount,
-      limit
+      const currentCount = (publishedCountRows?.[0]?.c as number) || 0
+      const limit = 5 // Anonymous users limited to 5 forms
+      const canCreate = currentCount < limit
+      
+      console.log('📊 Form limit check for anonymous user:', {
+        fingerprint,
+        currentCount,
+        limit,
+        canCreate
+      })
+      
+      return {
+        canCreate,
+        currentCount,
+        limit
+      }
+    } catch (error) {
+      console.error('❌ Error checking anonymous user form limits:', error)
+      // Fail safe - allow creation if we can't check limits
+      return { canCreate: true, currentCount: 0, limit: 5 }
     }
   },
 

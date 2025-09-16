@@ -99,6 +99,9 @@ export async function PATCH(
           }, { status: 404 })
         }
         
+        // Separate fields from other form updates
+        const { fields, ...otherUpdates } = body
+        
         // If attempting to publish, enforce free limit (5) for non-pro users
         if (body?.status === 'published') {
           try {
@@ -115,20 +118,47 @@ export async function PATCH(
             // If limit check fails unexpectedly, fail safe by allowing publish but log
             console.warn('Form publish limit check failed; allowing publish by default:', e)
           }
+          
+          // Comprehensive publishing field updates for user forms
+          const now = new Date()
+          otherUpdates.isPublished = true
+          otherUpdates.isPublic = true
+          otherUpdates.status = 'published'
+          otherUpdates.updatedAt = now
+          
+          // Set publishedAt if not already set
+          if (!form.publishedAt) {
+            otherUpdates.publishedAt = now
+          }
+          
+          // Generate publishedUrl if not already set
+          if (!form.publishedUrl && form.slug) {
+            const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://stripeform.com'
+            otherUpdates.publishedUrl = `${origin}/forms/${form.slug}`
+          }
+          
+          console.log('📤 Publishing user form with comprehensive updates:', {
+            id: form.id,
+            userId: user.id,
+            status: otherUpdates.status,
+            isPublished: otherUpdates.isPublished,
+            isPublic: otherUpdates.isPublic,
+            publishedAt: otherUpdates.publishedAt,
+            publishedUrl: otherUpdates.publishedUrl
+          })
         }
-
-        // Separate fields from other form updates
-        const { fields, ...formUpdates } = body
         
         // Update the form, preserving the existing slug
         const updatedForm = await dbService.updateForm(id, {
-          ...formUpdates,
+          ...otherUpdates,
           slug: form.slug, // Preserve the existing slug
           updatedAt: new Date()
         })
         
-        // Invalidate cache
+        // Comprehensive cache invalidation
         const { formCache } = await import('@/lib/cache')
+        
+        // Invalidate individual form cache
         formCache.delete(`form:${id}`)
         
         // Invalidate user forms cache for this user
@@ -142,6 +172,21 @@ export async function PATCH(
         userFormsCacheKeys.forEach(key => {
           formCache.delete(key)
         })
+        
+        // If form was published, also invalidate analytics cache
+        if (otherUpdates.status === 'published') {
+          console.log('🔄 Invalidating analytics cache after form publication')
+          // Clear any analytics-related caches
+          const analyticsCacheKeys = [
+            `analytics:${user.id}:30d`,
+            `analytics:${user.id}:7d`,
+            `analytics:${user.id}:90d`
+          ]
+          
+          analyticsCacheKeys.forEach(key => {
+            formCache.delete(key)
+          })
+        }
         
         return NextResponse.json({
           success: true,
