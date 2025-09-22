@@ -7,10 +7,8 @@ import { FormBuilderCanvas } from './FormBuilderCanvas'
 import { FormBuilderInspector } from './FormBuilderInspector'
 import { FormBuilderToolbar } from './FormBuilderToolbar'
 import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
-import { FieldComponent } from './FieldComponents'
 import EnhancedFormPreview from './EnhancedFormPreview'
 import { EnhancedAutoSave } from './EnhancedAutoSave'
-import { ResumeDialog } from './ResumeDialog'
 import { Bars3Icon, Cog6ToothIcon } from '@heroicons/react/24/outline'
 
 export function FormBuilderLayout() {
@@ -18,16 +16,10 @@ export function FormBuilderLayout() {
     state, 
     setPreviewMode, 
     onDraftSaved, 
-    onDraftRestored, 
-    showResumeDialog, 
-    setShowResumeDialog, 
-    resumeDraft, 
-    startOver, 
-    pendingDraft 
+    onDraftRestored
   } = useFormBuilder()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [inspectorOpen, setInspectorOpen] = useState(true)
-  const [isThemeMode, setIsThemeMode] = useState(false)
   
   // Auto-collapse side panels on small screens
   // This keeps desktop behavior unchanged while improving mobile usability
@@ -39,12 +31,11 @@ export function FormBuilderLayout() {
       })()
     }}>
       {/* Modern Toolbar */}
-      <FormBuilderToolbar 
+      <FormBuilderToolbar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         inspectorOpen={inspectorOpen}
         setInspectorOpen={setInspectorOpen}
-        onThemeModeChange={setIsThemeMode}
       />
 
       {/* Main Content Area */}
@@ -106,7 +97,7 @@ export function FormBuilderLayout() {
           </div>
 
           {/* Canvas content */}
-          <FormBuilderCanvas isThemeMode={isThemeMode} />
+          <FormBuilderCanvas isThemeMode={false} />
         </div>
 
         {/* Right Inspector - Field/Form settings */}
@@ -129,7 +120,7 @@ export function FormBuilderLayout() {
                 <ArrowRightIcon className="h-3.5 w-3.5" />
               </button>
               <div className="relative z-50">
-                <FormBuilderInspector isThemeMode={isThemeMode} />
+                <FormBuilderInspector isThemeMode={false} />
               </div>
             </>
           )}
@@ -166,17 +157,6 @@ export function FormBuilderLayout() {
           }}
           onDraftSaved={onDraftSaved}
           onDraftRestored={onDraftRestored}
-        />
-      )}
-
-      {/* Resume Dialog */}
-      {showResumeDialog && pendingDraft && (
-        <ResumeDialog
-          draft={pendingDraft.data}
-          onResume={resumeDraft}
-          onStartOver={startOver}
-          onCancel={() => setShowResumeDialog(false)}
-          isOpen={showResumeDialog}
         />
       )}
     </div>

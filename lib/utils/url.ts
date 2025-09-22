@@ -8,9 +8,14 @@ export function getBaseUrl(): string {
     return process.env.NEXT_PUBLIC_APP_URL || 'https://stripeform.com'
   }
   
-  // In client-side, prefer environment variable over window.location.origin
+  // In client-side, check if we're on localhost
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return window.location.origin
+  }
+  
+  // For production, prefer environment variable over window.location.origin
   // This ensures production URLs are used even in development previews
-  return process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+  return process.env.NEXT_PUBLIC_APP_URL || 'https://stripeform.com'
 }
 
 /**

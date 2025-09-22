@@ -52,15 +52,32 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50')
         const role = searchParams.get('role')
         
-        const users = await dbService.getUsers({
-          page,
-          limit,
-          role: role as 'user' | 'admin' | 'super_admin' | undefined
-        })
+        const allUsers = await dbService.getUsers()
+        
+        // Filter by role if specified
+        let filteredUsers = allUsers
+        if (role) {
+          filteredUsers = allUsers.filter(user => user.role === role)
+        }
+        
+        // Calculate pagination
+        const totalUsers = filteredUsers.length
+        const totalPages = Math.ceil(totalUsers / limit)
+        const startIndex = (page - 1) * limit
+        const endIndex = startIndex + limit
+        const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
 
         return NextResponse.json({
           success: true,
-          data: users
+          data: paginatedUsers,
+          pagination: {
+            page,
+            limit,
+            totalUsers,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1
+          }
         })
       } catch (error) {
         if (error instanceof AuthenticationError || error instanceof AuthorizationError) {

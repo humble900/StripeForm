@@ -17,6 +17,7 @@ import {
 import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
 import { useNotifications } from '@/components/providers/NotificationProvider'
 import { useAuth } from '@/components/providers/AuthProvider'
+import { getPublishedFormUrl } from '@/lib/utils/url'
 
 interface EnhancedPublishButtonProps {
   onPublish: () => Promise<void>
@@ -50,9 +51,8 @@ export function EnhancedPublishButton({
   // Build a robust share URL even before server returns publishedUrl
   const getEffectiveShareUrl = () => {
     if (publishedUrl && publishedUrl.trim().length > 0) return publishedUrl
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
     const slugOrId = state.current_form?.slug || state.current_form?.id || ''
-    return `${origin}/forms/${slugOrId}`
+    return getPublishedFormUrl(slugOrId, state.current_form?.slug)
   }
 
   // Close dropdown when clicking outside

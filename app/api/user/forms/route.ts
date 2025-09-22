@@ -5,62 +5,38 @@ import { withErrorHandling, AuthenticationError } from '@/lib/error-handler'
 
 // Helper function to get user from request
 async function getUserFromRequest(request: NextRequest) {
-  // Prefer cookie-based auth (JWT set by our auth routes)
+  // Check for cookie-based authentication first
   const cookieToken = request.cookies.get('auth-token')?.value
   if (cookieToken) {
-    return { id: cookieToken, email: 'user@example.com' }
-  }
-  // Fallback: Authorization header with Bearer userId (fingerprint or uid)
-  const authHeader = request.headers.get('authorization')
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.replace('Bearer ', '')
-    if (token && token !== 'anonymous') {
-      return { id: token, email: 'user@example.com' }
+    // For now, we'll use a simple approach - in production you'd verify the JWT
+    try {
+      const userData = JSON.parse(cookieToken)
+      return { id: userData.userId || userData.id, email: userData.email }
+    } catch {
+      // Fallback to header-based auth
     }
   }
-  throw new AuthenticationError('Authentication required')
+  
+  // Check Authorization header
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new AuthenticationError('Authentication required')
+  }
+  
+  const token = authHeader.replace('Bearer ', '')
+  
+  // Handle different token formats
+  if (token === 'anonymous') {
+    // For anonymous users, we need to get their fingerprint
+    const fingerprint = request.headers.get('x-fingerprint') || 'anonymous'
+    return { id: fingerprint, email: 'anonymous@example.com' }
+  }
+  
+  // For authenticated users, the token might be their user ID
+  return { id: token, email: 'user@example.com' }
 }
 
 // GET /api/user/forms - Get user's forms
-export async function GET(request: NextRequest) {
-  return withRateLimit(request, apiRateLimit,
-    withErrorHandling(async (request: NextRequest) => {
-      try {
-        const user = await getUserFromRequest(request)
-        const { searchParams } = new URL(request.url)
-        const summary = searchParams.get('summary') === 'true'
-        
-        console.log('📊 GET /api/user/forms - User:', user.id, 'Summary:', summary)
-        
-        // Get user's forms from database using optimized method
-        const forms = summary 
-          ? await dbService.getUserFormsSummary(user.id)
-          : await dbService.getUserForms(user.id)
-        
-        console.log('📊 Retrieved forms count:', forms.length)
-        
-        // If summary is requested, return the optimized data directly
-        if (summary) {
-          return NextResponse.json({
-            success: true,
-            data: forms
-          })
-        }
-        
-        // Return full form data
-        return NextResponse.json({
-          success: true,
-          data: forms
-        })
-        
-      } catch (error) {
-        console.error('❌ GET /api/user/forms error:', error)
-        throw error
-      }
-    })
-  )
-}
-
 // POST /api/user/forms - Create a new form
 export async function POST(request: NextRequest) {
   return withRateLimit(request, apiRateLimit,
@@ -69,25 +45,18 @@ export async function POST(request: NextRequest) {
         const user = await getUserFromRequest(request)
         const body = await request.json()
         
-        // Ensure we have a title
-        const title: string = (body.title && String(body.title).trim().length > 0)
-          ? String(body.title)
-          : 'Untitled Form'
-
-        // Generate unique slug with timestamp and random suffix
-        const baseSlug = title.toLowerCase()
+        // Generate unique slug
+        const baseSlug = body.title.toLowerCase()
           .replace(/[^a-z0-9\s-]/g, '')
           .replace(/\s+/g, '-')
-          .substring(0, 40) // Leave room for timestamp and random
+          .substring(0, 50)
         
         const timestamp = Date.now().toString(36)
-        const random = Math.random().toString(36).substring(2, 8) // Add random component
-        const slug = `${baseSlug}-${timestamp}${random}`
+        const slug = `${baseSlug}-${timestamp}`
         
         // Create the form
         const form = await dbService.createForm({
           ...body,
-          title,
           slug,
           userId: user.id,
           status: 'draft',
@@ -120,4 +89,34 @@ export async function POST(request: NextRequest) {
   )
 }
 
+export async function GET(request: NextRequest) {
+  return withRateLimit(request, apiRateLimit,
+    withErrorHandling(async (request: NextRequest) => {
+      try {
+        const user = await getUserFromRequest(request)
+        
+        const forms = await dbService.getUserForms(user.id)
+        
+        return NextResponse.json({
+          success: true,
+          data: forms
+        })
+        
+      } catch (error) {
+        if (error instanceof AuthenticationError) {
+          return NextResponse.json({
+            success: false,
+            message: error.message
+          }, { status: error.statusCode })
+        }
+        
+        console.error('Get user forms error:', error)
+        return NextResponse.json({
+          success: false,
+          message: 'Internal server error'
+        }, { status: 500 })
+      }
+    })
+  )
+}
 

@@ -50,11 +50,18 @@ export async function POST(request: NextRequest) {
         }
         
         // Update subscription
-        const updatedUser = await dbService.updateUserSubscription(user.id, {
+        const updatedUser = await dbService.updateUser(user.id, {
           subscriptionTier: subscriptionTier || 'pro',
           subscriptionStatus: subscriptionStatus || 'active',
           subscriptionExpiresAt: subscriptionExpiresAt ? new Date(subscriptionExpiresAt) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
         })
+        
+        if (!updatedUser) {
+          return NextResponse.json({
+            success: false,
+            error: 'Failed to update user subscription'
+          }, { status: 500 })
+        }
         
         return NextResponse.json({
           success: true,

@@ -1,7 +1,8 @@
 'use client'
 
-import { createContext, useContext, useReducer, ReactNode, useEffect, useCallback, useState, useRef } from 'react'
+import { createContext, useContext, useReducer, ReactNode, useEffect, useCallback, useRef } from 'react'
 import { Form, FormField, FormBuilderState } from '@/types'
+import { useNotifications } from '@/components/providers/NotificationProvider'
 
 type FormBuilderAction =
   | { type: 'SET_CURRENT_FORM'; payload: Form | null }
@@ -10,6 +11,7 @@ type FormBuilderAction =
   | { type: 'ADD_FIELD'; payload: FormField }
   | { type: 'UPDATE_FIELD'; payload: { fieldId: string; updates: Partial<FormField> } }
   | { type: 'UPDATE_FORM'; payload: Partial<Form> }
+  | { type: 'UPDATE_USER_ID'; payload: string }
   | { type: 'DELETE_FIELD'; payload: string }
   | { type: 'REORDER_FIELDS'; payload: { sourceIndex: number; destinationIndex: number } }
   | { type: 'SET_PREVIEW_MODE'; payload: boolean }
@@ -59,18 +61,14 @@ const initialState: FormBuilderState = {
 function formBuilderReducer(state: FormBuilderState, action: FormBuilderAction): FormBuilderState {
   switch (action.type) {
     case 'SET_CURRENT_FORM':
-      // Only reset stacks and selection if it's truly a new form
-      const isNewForm = !state.current_form || 
-                       state.current_form.id !== action.payload?.id ||
-                       state.current_form.id === 'default-form'
-      
+
       return {
         ...state,
         current_form: action.payload,
-        selected_field: isNewForm ? null : state.selected_field,
+        selected_field: null,
         has_unsaved_changes: false,
-        undo_stack: isNewForm ? [] : state.undo_stack,
-        redo_stack: isNewForm ? [] : state.redo_stack,
+        undo_stack: [],
+        redo_stack: [],
       }
 
     case 'LOAD_FORM':
@@ -139,6 +137,20 @@ function formBuilderReducer(state: FormBuilderState, action: FormBuilderAction):
       return {
         ...state,
         current_form: updatedFormProperties,
+        has_unsaved_changes: true,
+      }
+
+    case 'UPDATE_USER_ID':
+      if (!state.current_form) return state
+      
+      console.log('🔄 UPDATE_USER_ID action:', action.payload)
+      
+      return {
+        ...state,
+        current_form: {
+          ...state.current_form,
+          user_id: action.payload,
+        },
         has_unsaved_changes: true,
       }
 
@@ -251,6 +263,7 @@ interface FormBuilderContextType {
   addField: (field: FormField) => void
   updateField: (fieldId: string, updates: Partial<FormField>) => void
   updateForm: (updates: Partial<Form>) => void
+  updateUserId: (userId: string) => void
   deleteField: (fieldId: string) => void
   reorderFields: (sourceIndex: number, destinationIndex: number) => void
   selectField: (field: FormField | null) => void
@@ -261,24 +274,17 @@ interface FormBuilderContextType {
   canUndo: boolean
   canRedo: boolean
   saveForm: () => Promise<{ id: string } | undefined>
-  // Enhanced autosave and resume functionality
+  // Enhanced autosave functionality
   onDraftSaved: (draftId: string) => void
   onDraftRestored: (draft: any) => void
-  showResumeDialog: boolean
-  setShowResumeDialog: (show: boolean) => void
-  resumeDraft: () => void
-  startOver: () => void
-  pendingDraft: any | null
 }
 
 const FormBuilderContext = createContext<FormBuilderContextType | undefined>(undefined)
 
 export function FormBuilderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(formBuilderReducer, initialState)
-  const [showResumeDialog, setShowResumeDialog] = useState(false)
-  const [pendingDraft, setPendingDraft] = useState<any | null>(null)
+  const { addNotification } = useNotifications()
   const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const AUTOSAVE_INTERVAL_MS = 1000
 
   // Auto-save functionality
   const saveForm = useCallback(async () => {
@@ -302,52 +308,6 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
     try {
       const form = state.current_form
       
-      // Get brand kit from localStorage if available
-      let brandKitToSave = form.brandKit
-      try {
-        if (typeof window !== 'undefined') {
-          const savedBrandKit = localStorage.getItem('stripeform-brand-kit')
-          if (savedBrandKit && !form.brandKit) {
-            const parsedBrandKit = JSON.parse(savedBrandKit)
-            // Convert complex brand kit to simple form-compatible structure
-            brandKitToSave = {
-              logo: parsedBrandKit.logo?.current?.type === 'image' && parsedBrandKit.logo?.main?.light ? {
-                url: parsedBrandKit.logo.main.light.url,
-                alt: parsedBrandKit.logo.main.light.name || parsedBrandKit.logo.main.light.alt,
-                width: parsedBrandKit.logo.main.light.width,
-                height: parsedBrandKit.logo.main.light.height
-              } : parsedBrandKit.logo?.current?.type === 'image' && parsedBrandKit.logo?.current?.file ? {
-                url: parsedBrandKit.logo.current.file,
-                alt: 'Brand Logo',
-                width: 100,
-                height: 100
-              } : parsedBrandKit.customTextLogo ? {
-                url: '', // Text logos don't have URL
-                alt: parsedBrandKit.customTextLogo.text
-              } : undefined,
-              textLogo: parsedBrandKit.customTextLogo ? {
-                text: parsedBrandKit.customTextLogo.text,
-                fontSize: parsedBrandKit.customTextLogo.fontSize,
-                color: parsedBrandKit.customTextLogo.color,
-                fontFamily: parsedBrandKit.customTextLogo.fontFamily,
-                fontWeight: parsedBrandKit.customTextLogo.fontWeight
-              } : undefined,
-              colors: {
-                primary: parsedBrandKit.colors?.buttonPrimary?.hex || '#3b82f6',
-                secondary: parsedBrandKit.colors?.buttonSecondary?.hex || '#6b7280',
-                accent: parsedBrandKit.colors?.focus?.hex || '#3b82f6'
-              },
-              fonts: {
-                primary: parsedBrandKit.typography?.fontFamily?.primary || 'Inter',
-                secondary: parsedBrandKit.typography?.fontFamily?.secondary || 'Inter'
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.log('Failed to apply brand kit from localStorage:', error)
-      }
-
       // Prepare form data for API
       const formData = {
         title: form.title,
@@ -358,7 +318,6 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
         })),
         settings: form.settings,
         theme: form.theme,
-        brandKit: brandKitToSave,
         userId: form.user_id
       }
       
@@ -391,9 +350,15 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
         savedForm = result.data
       } else {
         // Create new form
-        const isMinimallyValid = (form.title && form.title.trim().length > 0) || (form.fields && form.fields.length > 0)
+        const isMinimallyValid = (form.title && form.title.trim().length > 0) && (form.fields && form.fields.length > 0)
         if (!isMinimallyValid) {
-          console.log('⏭️ Skipping server create: form not minimally valid (no title and no fields)')
+          console.log('⏭️ Skipping server create: form not minimally valid (needs title and at least one field)')
+          addNotification({
+            type: 'warning',
+            title: 'Cannot Save Form',
+            message: 'Please add a title and at least one field to your form before saving.',
+            duration: 5000
+          })
           return
         }
         const response = await fetch('/api/user/forms', {
@@ -414,20 +379,15 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
         savedForm = result.data
       }
       
-      // Update the form with saved data - use UPDATE_FORM to preserve state
-      const formUpdates = {
+      // Update the form with saved data
+      const updatedForm = {
+        ...form,
         id: savedForm.id,
         updated_at: savedForm.updatedAt || new Date().toISOString()
       }
       
-      dispatch({ type: 'UPDATE_FORM', payload: formUpdates })
+      dispatch({ type: 'SET_CURRENT_FORM', payload: updatedForm })
       dispatch({ type: 'SET_UNSAVED_CHANGES', payload: false })
-      
-      // Trigger dashboard refresh for form updates
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('form-updated', 'true')
-        window.dispatchEvent(new CustomEvent('formUpdated'))
-      }
       
       console.log('✅ Form auto-saved successfully:', savedForm.id)
       return { id: savedForm.id }
@@ -447,121 +407,16 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
     }
   }, [state.current_form?.id, state.is_saving]) // Only depend on form ID and saving state
 
-  // Throttled autosave to localStorage for recovery
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!state.current_form) return
-
-    const key = `stripeform-autosave-form-${state.current_form.id}`
-    const write = () => {
-      try {
-        const payload = { form: state.current_form, savedAt: Date.now() }
-        localStorage.setItem(key, JSON.stringify(payload))
-      } catch {}
-    }
-
-    write()
-    if (autosaveTimerRef.current) clearInterval(autosaveTimerRef.current as any)
-    autosaveTimerRef.current = setInterval(write, AUTOSAVE_INTERVAL_MS) as any
-
-    return () => {
-      if (autosaveTimerRef.current) {
-        clearInterval(autosaveTimerRef.current as any)
-        autosaveTimerRef.current = null
-      }
-    }
-  }, [state.current_form])
-
-  // Restore autosaved draft on first load of a form if newer
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!state.current_form?.id) return
-    try {
-      const key = `stripeform-autosave-form-${state.current_form.id}`
-      const raw = localStorage.getItem(key)
-      if (!raw) return
-      const saved = JSON.parse(raw)
-      const savedForm = saved?.form
-      const savedAt = Number(saved?.savedAt || 0)
-      const currentUpdatedAt = (state.current_form as any)?.updated_at ? new Date((state.current_form as any).updated_at).getTime() : 0
-      if (savedForm && savedAt > currentUpdatedAt) {
-        dispatch({ type: 'LOAD_FORM', payload: savedForm })
-      }
-    } catch {}
-    // Only once per form
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.current_form?.id])
-
   // Draft management methods
   const onDraftSaved = useCallback((draftId: string) => {
     console.log('✅ Draft saved with ID:', draftId)
   }, [])
 
   const onDraftRestored = useCallback((draft: any) => {
-    console.log('📄 Draft found:', draft)
-    setPendingDraft(draft)
-    setShowResumeDialog(true)
+    console.log('📄 Draft found but resume dialog disabled:', draft)
+    // Resume dialog is disabled - just log that a draft was found
+    // Users can still manually restore if needed through other means
   }, [])
-
-  const resumeDraft = useCallback(() => {
-    if (!pendingDraft) return
-
-    try {
-      const draftData = pendingDraft.source === 'server' 
-        ? pendingDraft.data.draftData 
-        : pendingDraft.data
-
-      const restoredForm: Form = {
-        id: state.current_form?.id || 'default-form',
-        title: draftData.title || '',
-        description: draftData.description || '',
-        fields: draftData.fields || [],
-        settings: draftData.settings || {},
-        theme: draftData.theme || {},
-        brandKit: draftData.brandKit || {},
-        created_at: state.current_form?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user_id: state.current_form?.user_id || 'anonymous',
-        isPublished: false,
-        response_count: 0,
-      }
-
-      dispatch({ type: 'SET_CURRENT_FORM', payload: restoredForm })
-      setShowResumeDialog(false)
-      setPendingDraft(null)
-      
-      console.log('✅ Draft resumed successfully')
-    } catch (error) {
-      console.error('❌ Failed to resume draft:', error)
-    }
-  }, [pendingDraft, state.current_form])
-
-  const startOver = useCallback(async () => {
-    if (!pendingDraft) return
-
-    try {
-      // Delete the draft from server if it exists
-      if (pendingDraft.source === 'server' && pendingDraft.data.id) {
-        await fetch(`/api/drafts/${pendingDraft.data.id}`, {
-          method: 'DELETE'
-        })
-      }
-
-      // Clear localStorage draft
-      localStorage.removeItem('stripeform_unsaved_form')
-      localStorage.removeItem('stripeform_unsaved_form_expiry')
-
-      setShowResumeDialog(false)
-      setPendingDraft(null)
-      
-      console.log('✅ Started over, draft cleared')
-    } catch (error) {
-      console.error('❌ Failed to clear draft:', error)
-      // Still close dialog even if cleanup fails
-      setShowResumeDialog(false)
-      setPendingDraft(null)
-    }
-  }, [pendingDraft])
 
   // Auto-save effect - triggers when there are unsaved changes
   useEffect(() => {
@@ -610,6 +465,10 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'UPDATE_FORM', payload: updates })
   }
 
+  const updateUserId = (userId: string) => {
+    dispatch({ type: 'UPDATE_USER_ID', payload: userId })
+  }
+
   const deleteField = (fieldId: string) => {
     dispatch({ type: 'SAVE_TO_UNDO_STACK' })
     dispatch({ type: 'DELETE_FIELD', payload: fieldId })
@@ -649,6 +508,7 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
     addField,
     updateField,
     updateForm,
+    updateUserId,
     deleteField,
     reorderFields,
     selectField,
@@ -659,15 +519,48 @@ export function FormBuilderProvider({ children }: { children: ReactNode }) {
     canUndo,
     canRedo,
     saveForm,
-    // Enhanced autosave and resume functionality
+    // Enhanced autosave functionality
     onDraftSaved,
     onDraftRestored,
-    showResumeDialog,
-    setShowResumeDialog,
-    resumeDraft,
-    startOver,
-    pendingDraft,
   }
+
+  // Listen for authentication changes and update form user ID
+  useEffect(() => {
+    const handleAuthChange = () => {
+      const authToken = localStorage.getItem('auth-token')
+      if (authToken) {
+        try {
+          const userData = JSON.parse(authToken)
+          const userId = userData.userId || userData.id
+          if (userId && userId !== 'anonymous') {
+            console.log('🔄 FormBuilder: Updating user ID to:', userId)
+            updateUserId(userId)
+          }
+        } catch (error) {
+          console.warn('Failed to parse auth token:', error)
+        }
+      }
+    }
+
+    // Check immediately
+    handleAuthChange()
+
+    // Listen for storage changes (when user logs in/out)
+    window.addEventListener('storage', handleAuthChange)
+    
+    // Listen for custom auth events
+    window.addEventListener('userAuthenticated', handleAuthChange)
+    window.addEventListener('userLoggedOut', () => {
+      console.log('🔄 FormBuilder: User logged out, resetting to anonymous')
+      updateUserId('anonymous')
+    })
+
+    return () => {
+      window.removeEventListener('storage', handleAuthChange)
+      window.removeEventListener('userAuthenticated', handleAuthChange)
+      window.removeEventListener('userLoggedOut', handleAuthChange)
+    }
+  }, [updateUserId])
 
   return (
     <FormBuilderContext.Provider value={value}>

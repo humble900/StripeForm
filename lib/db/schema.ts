@@ -72,6 +72,7 @@ export const forms = pgTable('forms', {
   submissionCount: integer('submission_count').default(0).notNull(),
   viewCount: integer('view_count').default(0).notNull(),
   settings: jsonb('settings').default({}),
+  geoRestrictions: jsonb('geo_restrictions').default({}),
   theme: jsonb('theme').default({}),
   brandKit: jsonb('brand_kit').default({}),
   isPublished: boolean('is_published').default(false).notNull(),

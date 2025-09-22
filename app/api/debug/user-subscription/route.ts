@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Find user by email
-    const users = await dbService.getAllUsers()
+    const users = await dbService.getUsers()
     const user = users.find(u => u.email === email)
     
     if (!user) {

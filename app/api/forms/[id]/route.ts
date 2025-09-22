@@ -3,6 +3,7 @@ import { dbService } from '@/lib/db/service'
 import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
 import { withErrorHandling, NotFoundError } from '@/lib/error-handler'
 import { formCache } from '@/lib/cache'
+import { checkGeoRestrictions, validateGeoRestrictions } from '@/lib/geo-location'
 
 // GET /api/forms/[id] - Get a specific form by ID
 export async function GET(
@@ -17,11 +18,6 @@ export async function GET(
         throw new NotFoundError('Form ID or slug is required')
       }
 
-      const isValidUuid = (uuid: string) => {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-        return uuidRegex.test(uuid)
-      }
-
       // Check cache first
       const cacheKey = `form:${id}`
       const cached = formCache.get(cacheKey)
@@ -30,15 +26,32 @@ export async function GET(
         return NextResponse.json(cached)
       }
 
-      let form = null
-      if (isValidUuid(id)) {
-        form = await dbService.getForm(id)
-      } else {
+      // Try to get form by ID first, then by slug if not found
+      let form = await dbService.getForm(id)
+      
+      // If not found by ID, try by slug
+      if (!form) {
         form = await dbService.getFormBySlug(id)
       }
       
       if (!form) {
         throw new NotFoundError('Form not found')
+      }
+
+      // Check geo-restrictions if form is published
+      if (form.status === 'published' && form.geoRestrictions) {
+        const restrictions = validateGeoRestrictions(form.geoRestrictions)
+        const restrictionResult = await checkGeoRestrictions(request, restrictions)
+        
+        if (!restrictionResult.isAllowed) {
+          return NextResponse.json({
+            success: false,
+            error: 'Access denied',
+            message: restrictionResult.reason || 'Access restricted based on location',
+            code: 'GEO_RESTRICTED',
+            detectedLocation: restrictionResult.detectedLocation
+          }, { status: 403 })
+        }
       }
 
       const response = {
@@ -75,101 +88,11 @@ export async function PUT(
       }
 
       // Extract fields from body if provided
-      const { fields, ...rawUpdates } = body
-
-      // Whitelist allowed columns to prevent invalid keys causing Drizzle errors
-      const allowedKeys = new Set([
-        'title',
-        'description',
-        'slug',
-        'status',
-        'isPublic',
-        'allowAnonymous',
-        'requireCaptcha',
-        'maxSubmissions',
-        'submissionLimit',
-        'submissionCount',
-        'viewCount',
-        'settings',
-        'theme',
-        'brandKit',
-        'isPublished',
-        'publishedUrl',
-        'publishedAt',
-        'expiresAt',
-        'metadata',
-        'updatedAt',
-      ])
-
-      const formUpdates: Record<string, any> = {}
-      Object.keys(rawUpdates || {}).forEach((key) => {
-        if (allowedKeys.has(key)) {
-          formUpdates[key] = rawUpdates[key]
-        }
-      })
+      const { fields, ...formUpdates } = body
       
-      // Handle publishing with comprehensive field updates
-      if (formUpdates.status === 'published') {
-        // Enforce publish limit based on the owning user of the form
-        try {
-          const limitInfo = await dbService.canUserCreateForm(existingForm.userId)
-          if (!limitInfo.canCreate) {
-            return NextResponse.json({
-              success: false,
-              code: 'PUBLISH_LIMIT_REACHED',
-              message: `Free plan allows up to ${limitInfo.limit} published forms. Upgrade to Pro to publish more.`,
-              data: { currentCount: limitInfo.currentCount, limit: limitInfo.limit }
-            }, { status: 403 })
-          }
-        } catch (e) {
-          console.warn('Form publish limit check failed (generic PUT); allowing publish by default:', e)
-        }
-
-        // Comprehensive publishing field updates
-        const now = new Date()
-        
-        // Set publishedAt if not already set
-        if (!existingForm.publishedAt) {
-          formUpdates.publishedAt = now
-        }
-        
-        // Ensure we have a slug
-        if (!existingForm.slug) {
-          const baseSlug = existingForm.title.toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, '')
-            .replace(/\s+/g, '-')
-            .substring(0, 50)
-          
-          const timestamp = Date.now().toString(36)
-          formUpdates.slug = `${baseSlug}-${timestamp}`
-        } else {
-          formUpdates.slug = existingForm.slug // Preserve existing slug
-        }
-        
-        // Ensure all publishing flags are set consistently
-        formUpdates.isPublished = true
-        formUpdates.isPublic = true
-        formUpdates.status = 'published' // Ensure status is explicitly set
-        formUpdates.updatedAt = now
-
-        // Generate absolute publishedUrl using production domain
-        const origin = process.env.NEXT_PUBLIC_APP_URL || (() => {
-          try {
-            return new URL(request.url).origin
-          } catch {
-            return 'https://stripeform.com'
-          }
-        })()
-        formUpdates.publishedUrl = `${origin}/forms/${formUpdates.slug}`
-        
-        console.log('📤 Publishing form with comprehensive updates:', {
-          id: existingForm.id,
-          status: formUpdates.status,
-          isPublished: formUpdates.isPublished,
-          isPublic: formUpdates.isPublic,
-          publishedAt: formUpdates.publishedAt,
-          publishedUrl: formUpdates.publishedUrl
-        })
+      // Set publishedAt when form is being published
+      if (formUpdates.status === 'published' && !existingForm.publishedAt) {
+        formUpdates.publishedAt = new Date()
       }
       
       console.log('📝 Updating form with data:', formUpdates)
@@ -226,6 +149,20 @@ export async function PUT(
         throw new Error('Failed to retrieve updated form')
       }
       
+      // Generate published URL if form is published
+      let publishedUrl = formWithFields.publishedUrl
+      if (formWithFields.status === 'published' && !publishedUrl) {
+        // Use proper domain detection
+        const host = request.headers.get('host') || 'localhost:3000'
+        const protocol = request.headers.get('x-forwarded-proto') || 'http'
+        const baseUrl = host.includes('localhost') ? `${protocol}://${host}` : 'https://stripeform.com'
+        publishedUrl = `${baseUrl}/forms/${formWithFields.slug || formWithFields.id}`
+        
+        // Update the form with the generated URL
+        await dbService.updateForm(id, { publishedUrl })
+        formWithFields.publishedUrl = publishedUrl
+      }
+      
       // Invalidate cache
       formCache.delete(`form:${id}`)
       
@@ -242,7 +179,10 @@ export async function PUT(
 
       return NextResponse.json({
         success: true,
-        data: formWithFields,
+        data: {
+          ...formWithFields,
+          publishedUrl: publishedUrl || formWithFields.publishedUrl
+        },
         message: 'Form updated successfully'
       })
     })

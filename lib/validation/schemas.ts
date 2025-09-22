@@ -19,7 +19,7 @@ export const createFormSchema = z.object({
     options: z.array(z.string()).optional(),
     settings: z.any().optional(),
     conditional_logic: z.any().optional()
-  })).optional(),
+  })).min(1, 'At least one field is required to save a form'),
   settings: z.object({
     allowAnonymous: z.boolean().default(true),
     requireCaptcha: z.boolean().default(false),

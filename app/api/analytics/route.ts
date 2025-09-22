@@ -46,8 +46,8 @@ export async function GET(request: NextRequest) {
           )
         }
 
-        // Get user's forms using optimized summary method
-        const forms = await db.getUserFormsSummary(userId)
+        // Get user's forms using the correct method
+        const forms = await db.getUserForms(userId)
         
         // Get form submissions for analytics
         const submissions = await db.getUserFormSubmissions(userId)

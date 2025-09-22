@@ -90,6 +90,14 @@ const Dashboard = () => {
         ...(options.headers as Record<string, string> | undefined),
       }
       
+      // Add fingerprint header for anonymous users
+      if (!isAuthenticated) {
+        const userTrackingData = await getUserTrackingData()
+        if (userTrackingData?.fingerprint) {
+          headers['x-fingerprint'] = userTrackingData.fingerprint
+        }
+      }
+      
       return fetch(url, {
         ...options,
         headers,
@@ -141,6 +149,61 @@ const Dashboard = () => {
       debugAuthState()
     }
   }, [isAuthenticated, isAnonymous, user, isLoading, debugAuthState])
+
+  // Authentication redirect logic for returning users
+  useEffect(() => {
+    const checkForReturningUser = async () => {
+      // Only check if we're not loading and not authenticated
+      if (isLoading || isAuthenticated) return
+      
+      try {
+        // Check if user has any published forms (indicating they're a returning user)
+        const userTrackingData = await getUserTrackingData()
+        const fingerprint = userTrackingData?.fingerprint
+        
+        if (fingerprint) {
+          // Try to fetch forms for this fingerprint
+          const response = await fetch(`/api/user/forms`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${fingerprint}`,
+              'x-fingerprint': fingerprint
+            },
+            credentials: 'include'
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            const forms = data.data || []
+            const publishedForms = forms.filter((form: any) => form.status === 'published')
+            
+            // If user has published forms but is not authenticated, redirect to login
+            if (publishedForms.length > 0) {
+              console.log('🔄 Dashboard: Returning user with published forms detected, redirecting to login')
+              addNotification({
+                type: 'info',
+                title: 'Welcome Back!',
+                message: 'Please sign in to access your published forms.',
+                duration: 5000
+              })
+              
+              // Redirect to login with return URL
+              const returnUrl = encodeURIComponent(window.location.pathname + window.location.search)
+              window.location.href = `/login?redirect=${returnUrl}`
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Could not check for returning user:', error)
+      }
+    }
+    
+    // Only check after a short delay to avoid interfering with initial load
+    const timeoutId = setTimeout(checkForReturningUser, 2000)
+    
+    return () => clearTimeout(timeoutId)
+  }, [isLoading, isAuthenticated, getUserTrackingData, addNotification])
 
   // Stable fetch function to prevent memory leaks
   const fetchDashboardData = useCallback(async () => {
@@ -272,10 +335,32 @@ const Dashboard = () => {
 
   // Fetch forms and dashboard data
   useEffect(() => {
-    if (isAuthenticated || isAnonymous) {
-      debouncedFetchForms()
+    const fetchWhenReady = async () => {
+      // Wait for authentication state to be properly initialized
+      if (isLoading) return
+      
+      // For anonymous users, ensure we have tracking data before fetching
+      if (isAnonymous && !isAuthenticated) {
+        try {
+          const trackingData = await getUserTrackingData()
+          if (!trackingData?.fingerprint) {
+            console.log('⏳ Dashboard: Waiting for user tracking data...')
+            return
+          }
+        } catch (error) {
+          console.warn('Could not get user tracking data:', error)
+          return
+        }
+      }
+      
+      // Fetch forms when ready
+      if (isAuthenticated || isAnonymous) {
+        debouncedFetchForms()
+      }
     }
-  }, [isAuthenticated, isAnonymous, debouncedFetchForms])
+    
+    fetchWhenReady()
+  }, [isAuthenticated, isAnonymous, isLoading, getUserTrackingData, debouncedFetchForms])
 
   // Listen for form updates and page visibility changes
   useEffect(() => {

@@ -454,7 +454,7 @@ export default function EnhancedFormPreview({
           >
           <form onSubmit={handleSubmit} className="px-0 pt-0 pb-3 space-y-3">
             {/* Header Section (shared preview + published) */}
-            {(form.brandKit?.logo?.url || form.brandKit?.textLogo?.text || (form.theme as any)?.logo?.url || (form.theme as any)?.textLogo?.text || form.title || form.description || form.theme?.header_image_url) && (
+            {(form.brandKit?.logo?.url || (form.theme as any)?.logo?.url || (form.theme as any)?.textLogo?.text || form.title || form.description || form.theme?.header_image_url) && (
               <div 
                 className="relative w-full py-8 px-4"
                 style={{
@@ -478,7 +478,7 @@ export default function EnhancedFormPreview({
                 {/* Header Content Container */}
                 <div className="relative z-10 max-w-4xl mx-auto">
                   {/* Centered logo at top when present */}
-                  {(form.brandKit?.logo?.url || (form.theme as any)?.logo?.url || form.brandKit?.textLogo?.text || (form.theme as any)?.textLogo?.text) && (
+                  {(form.brandKit?.logo?.url || (form.theme as any)?.logo?.url || (form.theme as any)?.textLogo?.text) && (
                     <div className="w-full flex items-center justify-center mb-4">
                       { (form.brandKit?.logo?.url || (form.theme as any)?.logo?.url) ? (
                         <img

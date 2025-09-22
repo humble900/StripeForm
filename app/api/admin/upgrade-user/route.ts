@@ -62,11 +62,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Update user subscription
-        const updatedUser = await dbService.updateUserSubscription(user.id, {
+        const updatedUser = await dbService.updateUser(user.id, {
           subscriptionTier: validatedData.subscriptionTier,
           subscriptionStatus: validatedData.subscriptionStatus,
-          subscriptionExpiresAt: expiresAt ? new Date(expiresAt) : null,
-          stripeCustomerId: validatedData.stripeCustomerId || null
+          subscriptionExpiresAt: expiresAt ? new Date(expiresAt) : undefined,
+          stripeCustomerId: validatedData.stripeCustomerId || undefined
         })
 
         if (!updatedUser) {

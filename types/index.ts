@@ -394,6 +394,7 @@ export interface Form {
   settings: FormSettings
   theme: FormTheme
   brandKit?: BrandKit
+  geoRestrictions?: any // Geo-political restrictions for form access
   created_at: string
   updated_at: string
   user_id: string
@@ -435,30 +436,16 @@ export interface FormSettings {
 }
 
 export interface FormTheme {
-  primary_color: string      // Form body/background color
-  secondary_color: string    // Form boxes/container color  
-  background_color: string   // Page background color
+  primary_color: string
+  secondary_color: string
+  background_color: string
   text_color: string
   font_family: string
   border_radius: number
   header_color?: string
-  background_image_url?: string  // Page background image
-  header_image_url?: string      // Header background image
+  background_image_url?: string
+  header_image_url?: string
   custom_css?: string
-  // Optional branding applied at the theme level
-  logo?: {
-    url: string
-    alt?: string
-    width?: number
-    height?: number
-  }
-  textLogo?: {
-    text?: string
-    fontSize?: string
-    color?: string
-    fontFamily?: string
-    fontWeight?: string | number
-  }
 }
 
 export interface BrandKit {
@@ -467,13 +454,6 @@ export interface BrandKit {
     alt: string
     width?: number
     height?: number
-  }
-  textLogo?: {
-    text: string
-    fontSize: string
-    color: string
-    fontFamily: string
-    fontWeight: string
   }
   favicon?: {
     url: string

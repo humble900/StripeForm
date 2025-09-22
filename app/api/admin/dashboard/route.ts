@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
           totalNotifications
         ] = await Promise.all([
           // Total counts
-          dbService.getAllUsers(),
+          dbService.getUsers(),
           dbService.getForms(),
           dbService.getAllFormSubmissions(),
           dbService.getPaymentIntents(),
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
           dbService.getNotifications()
         ])
         
-        const totalForms = totalFormsData.forms || []
+        const totalForms = totalFormsData || []
         
         // Filter by date for period statistics
         const newUsersThisPeriod = totalUsers.filter(user => 

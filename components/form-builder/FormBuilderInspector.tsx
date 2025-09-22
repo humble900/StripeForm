@@ -6,6 +6,8 @@ import { Form, FormField, FieldType } from '@/types'
 import { ConditionalLogicEditor } from './ConditionalLogicEditor'
 import { CaptchaQuestionField } from './CaptchaQuestionField'
 import { LongTextQuestionField } from './LongTextQuestionField'
+import GeoRestrictionsConfig from './GeoRestrictionsConfig'
+import { getDefaultGeoRestrictions, validateGeoRestrictions } from '@/lib/geo-location'
 import { 
   ChevronDownIcon,
   ChevronUpIcon,
@@ -43,34 +45,32 @@ export function FormBuilderInspector({ isThemeMode = false }: FormBuilderInspect
       <div className="h-full bg-white border-l border-gray-200 flex flex-col">
         <div className="p-3 md:p-4 border-b border-gray-200">
           <h2 className="text-sm md:text-lg font-semibold text-gray-900">
-            {isThemeMode ? 'Theme Editor' : 'Question'}
+            {isThemeMode ? 'Theme Editor' : 'Form Settings'}
           </h2>
           <p className="text-xs md:text-sm text-gray-600 mt-1">
             {isThemeMode 
               ? 'Customize your form\'s appearance and styling'
-              : 'Select a question to edit its properties'
+              : 'Configure form-level settings and restrictions'
             }
           </p>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            {isThemeMode ? (
+        <div className="flex-1 overflow-y-auto p-3 md:p-4">
+          {isThemeMode ? (
+            <div className="text-center text-gray-500">
               <svg className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a4 4 0 004-4V5z" />
               </svg>
-            ) : (
-              <CursorArrowRaysIcon className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-2 md:mb-3 text-gray-300" />
-            )}
-            <p className="text-sm md:font-medium">
-              {isThemeMode ? 'Theme Editor Active' : 'No question selected'}
-            </p>
-            <p className="text-xs md:text-sm">
-              {isThemeMode 
-                ? 'Use the Theme Editor panel to customize colors, fonts, and layout'
-                : 'Click on a question to edit its properties'
-              }
-            </p>
-          </div>
+              <p className="text-sm md:font-medium">Theme Editor Active</p>
+              <p className="text-xs md:text-sm">Use the Theme Editor panel to customize colors, fonts, and layout</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <GeoRestrictionsConfig
+                restrictions={validateGeoRestrictions(state.current_form?.geoRestrictions)}
+                onChange={(restrictions) => updateForm({ geoRestrictions: restrictions })}
+              />
+            </div>
+          )}
         </div>
       </div>
     )

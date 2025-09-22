@@ -31,8 +31,8 @@ export const dbService = {
     phoneNumber?: string | null
     countryCode?: string | null
     avatar?: string | null
-    role?: 'user' | 'admin' | 'super_admin'
-    status?: 'active' | 'inactive' | 'suspended'
+    role?: string
+    status?: string
     emailVerified?: boolean
   }) {
     const [newUser] = await db.insert(users).values({
@@ -42,11 +42,9 @@ export const dbService = {
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
       countryCode: user.countryCode,
-      role: user.role || 'user',
-      status: user.status || 'active',
-      emailVerified: user.emailVerified ?? true, // Default to verified for admin-created users
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      role: (user.role as 'user' | 'admin' | 'super_admin') || 'user',
+      status: (user.status as 'active' | 'inactive' | 'suspended' | 'pending') || 'active',
+      emailVerified: user.emailVerified || true,
     }).returning()
 
     // Create user profile
@@ -69,6 +67,16 @@ export const dbService = {
     return user
   },
 
+  async getUserByEmail(email: string) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      with: {
+        profile: true,
+      },
+    })
+    return user
+  },
+
   async updateUser(userId: string, updates: {
     email?: string
     firstName?: string
@@ -82,8 +90,12 @@ export const dbService = {
     phone?: string
     timezone?: string
     language?: string
-    role?: 'user' | 'admin' | 'super_admin'
-    status?: 'active' | 'inactive' | 'suspended'
+    subscriptionTier?: string
+    subscriptionStatus?: string
+    subscriptionExpiresAt?: Date
+    stripeCustomerId?: string
+    role?: string
+    status?: string
   }) {
     // Separate user and profile updates
     const userData: any = {}
@@ -94,6 +106,10 @@ export const dbService = {
     if (updates.lastName) userData.lastName = updates.lastName
     if (updates.phoneNumber) userData.phoneNumber = updates.phoneNumber
     if (updates.countryCode) userData.countryCode = updates.countryCode
+    if (updates.subscriptionTier) userData.subscriptionTier = updates.subscriptionTier
+    if (updates.subscriptionStatus) userData.subscriptionStatus = updates.subscriptionStatus
+    if (updates.subscriptionExpiresAt) userData.subscriptionExpiresAt = updates.subscriptionExpiresAt
+    if (updates.stripeCustomerId) userData.stripeCustomerId = updates.stripeCustomerId
     if (updates.role) userData.role = updates.role
     if (updates.status) userData.status = updates.status
 
@@ -122,59 +138,6 @@ export const dbService = {
     }
 
     return userResult
-  },
-
-  // Subscription management
-  async updateUserSubscription(userId: string, subscriptionData: {
-    subscriptionTier?: 'free' | 'pro' | 'enterprise'
-    subscriptionStatus?: 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid'
-    subscriptionExpiresAt?: Date | null
-    stripeCustomerId?: string | null
-  }) {
-    try {
-      const [updatedUser] = await db.update(users)
-        .set({
-          ...subscriptionData,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, userId))
-        .returning()
-
-      return updatedUser
-    } catch (error) {
-      console.error('Error updating user subscription:', error)
-      throw error
-    }
-  },
-
-  async getUserByEmail(email: string) {
-    try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.email, email),
-        with: {
-          profile: true,
-        },
-      })
-      return user
-    } catch (error) {
-      console.error('Error fetching user by email:', error)
-      return null
-    }
-  },
-
-  async getUserByStripeCustomerId(stripeCustomerId: string) {
-    try {
-      const user = await db.query.users.findFirst({
-        where: eq(users.stripeCustomerId, stripeCustomerId),
-        with: {
-          profile: true,
-        },
-      })
-      return user
-    } catch (error) {
-      console.error('Error fetching user by Stripe customer ID:', error)
-      return null
-    }
   },
 
   // Forms
@@ -256,116 +219,6 @@ export const dbService = {
     return updatedForm
   },
 
-  /**
-   * Determine if a user can publish another form based on subscription and current published count.
-   * - Pro users with active, non-expired subscriptions have no publish limit.
-   * - All others (including anonymous placeholders) have a limit of 5 published forms.
-   */
-  async canUserCreateForm(userId: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
-    // Default free limit
-    const FREE_LIMIT = 5
-
-    try {
-      // Try to find a real user by ID
-      const user = await db.query.users.findFirst({ where: eq(users.id, userId) })
-
-      // If user exists and is Pro with active subscription and not expired, allow unlimited
-      if (user && (user as any).subscriptionTier === 'pro') {
-        const status = (user as any).subscriptionStatus
-        const expiresAt = (user as any).subscriptionExpiresAt as Date | null
-        const isActive = status === 'active' && (!expiresAt || new Date(expiresAt) > new Date())
-        if (isActive) {
-          return { canCreate: true, currentCount: 0, limit: Number.POSITIVE_INFINITY as unknown as number }
-        }
-      }
-
-      // Count how many published forms the owner already has with atomic query
-      const publishedCountRows = await db
-        .select({ c: count() })
-        .from(forms)
-        .where(and(eq(forms.userId, userId), eq(forms.status, 'published')))
-
-      const currentCount = (publishedCountRows?.[0]?.c as number) || 0
-      const canCreate = currentCount < FREE_LIMIT
-
-      console.log('📊 Form limit check for user:', {
-        userId,
-        currentCount,
-        limit: FREE_LIMIT,
-        canCreate
-      })
-
-      return { canCreate, currentCount, limit: FREE_LIMIT }
-    } catch (error) {
-      console.error('❌ Error checking user form limits:', error)
-      // Fail safe - allow creation if we can't check limits
-      return { canCreate: true, currentCount: 0, limit: FREE_LIMIT }
-    }
-  },
-
-  /**
-   * Migrate all data associated with an anonymous fingerprint to an authenticated user ID.
-   * Currently migrates: forms, drafts, submissions, and tracking. Anonymous record is preserved but updated.
-   */
-  async migrateAnonymousToAuthenticated(fingerprint: string, userId: string) {
-    // Move forms ownership
-    const migratedForms = await db.update(forms)
-      .set({ userId, updatedAt: new Date() })
-      .where(eq(forms.userId, fingerprint))
-      .returning()
-
-    // Move drafts ownership
-    await db.update(formDrafts)
-      .set({ userId, updatedAt: new Date() })
-      .where(eq(formDrafts.userId, fingerprint))
-
-    // Move submissions userId when present
-    await db.update(formSubmissions)
-      .set({ userId, updatedAt: new Date() })
-      .where(eq(formSubmissions.userId as any, fingerprint as any))
-
-    // Update anonymousUsers row to reflect lastSeen and note migration in sessionData
-    const anon = await db.query.anonymousUsers.findFirst({ where: eq(anonymousUsers.fingerprint, fingerprint) })
-    if (anon) {
-      const sessionData = { ...(anon as any).sessionData, migrated_to_user_id: userId, migrated_at: new Date().toISOString() }
-      await db.update(anonymousUsers)
-        .set({ sessionData, updatedAt: new Date() })
-        .where(eq(anonymousUsers.fingerprint, fingerprint))
-    }
-
-    // Invalidate cache for both old and new user IDs to ensure fresh data
-    try {
-      const { formCache } = await import('@/lib/cache')
-      
-      // Clear cache for the old fingerprint (anonymous user)
-      const oldCacheKeys = [
-        `user-forms:${fingerprint}:all:50:0`,
-        `user-forms:${fingerprint}:published:50:0`,
-        `user-forms:${fingerprint}:draft:50:0`
-      ]
-      oldCacheKeys.forEach(key => formCache.delete(key))
-      
-      // Clear cache for the new user ID
-      const newCacheKeys = [
-        `user-forms:${userId}:all:50:0`,
-        `user-forms:${userId}:published:50:0`,
-        `user-forms:${userId}:draft:50:0`
-      ]
-      newCacheKeys.forEach(key => formCache.delete(key))
-      
-      // Clear individual form caches for migrated forms
-      migratedForms.forEach(form => {
-        formCache.delete(`form:${form.id}`)
-      })
-      
-      console.log('✅ Cache invalidated after migration:', { fingerprint, userId, migratedFormsCount: migratedForms.length })
-    } catch (cacheError) {
-      console.warn('⚠️ Cache invalidation failed during migration:', cacheError)
-    }
-
-    return { success: true, migratedFormsCount: migratedForms.length }
-  },
-
   async deleteForm(formId: string) {
     await db.delete(forms).where(eq(forms.id, formId))
   },
@@ -388,32 +241,6 @@ export const dbService = {
     return userForms.map(form => ({
       ...form,
       submissions: form.submissions ? form.submissions.slice(0, 10) : []
-    }))
-  },
-
-  async getUserFormsSummary(userId: string) {
-    // Return only essential fields for dashboard performance
-    const rows = await db.select({
-      id: forms.id,
-      userId: forms.userId,
-      title: forms.title,
-      slug: forms.slug,
-      status: forms.status,
-      isPublished: forms.isPublished,
-      publishedUrl: forms.publishedUrl,
-      publishedAt: forms.publishedAt,
-      createdAt: forms.createdAt,
-      updatedAt: forms.updatedAt,
-      submissionCount: forms.submissionCount,
-      viewCount: forms.viewCount,
-    }).from(forms).where(eq(forms.userId, userId)).orderBy(desc(forms.updatedAt))
-
-    // Ensure dates are serialized and values are plain JSON
-    return rows.map((r) => ({
-      ...r,
-      createdAt: r.createdAt ? new Date(r.createdAt as any) : null,
-      updatedAt: r.updatedAt ? new Date(r.updatedAt as any) : null,
-      publishedAt: r.publishedAt ? new Date(r.publishedAt as any) : null,
     }))
   },
 
@@ -590,66 +417,73 @@ export const dbService = {
     return updatedUser
   },
 
-  async canAnonymousUserCreateForm(fingerprint: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
+  async deleteUser(userId: string) {
     try {
-      // Ensure anonymous user exists
-      const anonymousUser = await this.getAnonymousUser(fingerprint)
-      if (!anonymousUser) {
-        await this.createAnonymousUser({ fingerprint })
-      }
-      
-      // Count published forms by querying the forms table (same as authenticated users)
-      const publishedCountRows = await db
-        .select({ c: count() })
-        .from(forms)
-        .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
-
-      const currentCount = (publishedCountRows?.[0]?.c as number) || 0
-      const limit = 5 // Anonymous users limited to 5 forms
-      const canCreate = currentCount < limit
-      
-      console.log('📊 Form limit check for anonymous user:', {
-        fingerprint,
-        currentCount,
-        limit,
-        canCreate
-      })
-      
-      return {
-        canCreate,
-        currentCount,
-        limit
-      }
+      // Delete user (cascade will handle related data)
+      await db.delete(users).where(eq(users.id, userId))
+      return true
     } catch (error) {
-      console.error('❌ Error checking anonymous user form limits:', error)
-      // Fail safe - allow creation if we can't check limits
-      return { canCreate: true, currentCount: 0, limit: 5 }
+      console.error(`Error deleting user ${userId}:`, error)
+      throw error
     }
   },
 
-  
-
-  async getAnonymousUserFormCount(fingerprint: string): Promise<{ currentCount: number; limit: number; remaining: number }> {
-    // Ensure anonymous user exists
+  async canAnonymousUserCreateForm(fingerprint: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
     const anonymousUser = await this.getAnonymousUser(fingerprint)
     if (!anonymousUser) {
       await this.createAnonymousUser({ fingerprint })
+      return { canCreate: true, currentCount: 0, limit: 5 }
     }
     
-    // Count published forms by querying the forms table (same as authenticated users)
-    const publishedCountRows = await db
-      .select({ c: count() })
-      .from(forms)
-      .where(and(eq(forms.userId, fingerprint), eq(forms.status, 'published')))
+    const currentCount = anonymousUser.formCount || 0
+    const limit = 5 // Anonymous users limited to 5 forms
+    
+    return {
+      canCreate: currentCount < limit,
+      currentCount,
+      limit
+    }
+  },
 
-    const currentCount = (publishedCountRows?.[0]?.c as number) || 0
+  async canUserCreateForm(userId: string): Promise<{ canCreate: boolean; currentCount: number; limit: number }> {
+    // Get user's published forms count
+    const userForms = await db.select().from(forms).where(eq(forms.userId, userId))
+    const publishedForms = userForms.filter(form => form.status === 'published')
+    
+    const currentCount = publishedForms.length
+    const limit = 5 // Free users limited to 5 published forms
+    
+    return {
+      canCreate: currentCount < limit,
+      currentCount,
+      limit
+    }
+  },
+
+  async getAnonymousUserFormCount(fingerprint: string): Promise<{ currentCount: number; limit: number; remaining: number }> {
+    const anonymousUser = await this.getAnonymousUser(fingerprint)
+    if (!anonymousUser) {
+      return { currentCount: 0, limit: 5, remaining: 5 }
+    }
+    
+    const currentCount = anonymousUser.formCount || 0
     const limit = 5
     const remaining = Math.max(0, limit - currentCount)
     
     return { currentCount, limit, remaining }
   },
 
-  // incrementAnonymousUserFormCount removed - form counting is now handled automatically by querying the forms table
+  async incrementAnonymousUserFormCount(fingerprint: string) {
+    const [updatedUser] = await db.update(anonymousUsers)
+      .set({ 
+        formCount: sql`${anonymousUsers.formCount} + 1`,
+        lastSeen: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(anonymousUsers.fingerprint, fingerprint))
+      .returning()
+    return updatedUser
+  },
 
   // Payment Intents
   async createPaymentIntent(paymentData: {
@@ -745,70 +579,81 @@ export const dbService = {
     return mapping?.supabaseUuid || null
   },
 
-  
-
-  // Admin methods
-  async getUsers(options: {
-    page?: number
-    limit?: number
-    role?: 'user' | 'admin' | 'super_admin'
-  } = {}) {
+  // Migrate anonymous user to authenticated user
+  async migrateAnonymousToAuthenticated(fingerprint: string, firebaseUid: string) {
     try {
-      const { page = 1, limit = 50, role } = options
-      const offset = (page - 1) * limit
-
-      let query = db.query.users.findMany({
-        with: {
-          profile: true,
-        },
-        orderBy: [desc(users.createdAt)],
-        limit,
-        offset
+      console.log('🔄 Starting migration from anonymous to authenticated user...')
+      
+      // Get anonymous user data
+      const anonymousUser = await this.getAnonymousUser(fingerprint)
+      if (!anonymousUser) {
+        console.log('⚠️ No anonymous user found for migration')
+        return null
+      }
+      
+      // Create authenticated user with Firebase UID
+      const newUser = {
+        id: firebaseUid,
+        email: '', // Will be set by Firebase auth
+        firstName: null,
+        lastName: null,
+      }
+      
+      const createdUser = await this.createUser(newUser)
+      console.log('✅ Authenticated user created:', createdUser)
+      
+      // Migrate forms from anonymous to authenticated user
+      const formsToMigrate = await db.query.forms.findMany({
+        where: eq(forms.userId, fingerprint),
       })
-
-      // Apply role filter if specified
-      if (role) {
-        query = db.query.users.findMany({
-          with: {
-            profile: true,
-          },
-          where: eq(users.role, role),
-          orderBy: [desc(users.createdAt)],
-          limit,
-          offset
-        })
-      }
-
-      const allUsers = await query
       
-      // Get total count for pagination
-      const totalCount = await db.select({ count: count() }).from(users)
-      
-      return {
-        users: allUsers,
-        pagination: {
-          page,
-          limit,
-          total: totalCount[0]?.count || 0,
-          totalPages: Math.ceil((totalCount[0]?.count || 0) / limit)
-        }
+      if (formsToMigrate.length > 0) {
+        console.log(`🔄 Migrating ${formsToMigrate.length} forms to authenticated user...`)
+        
+        await db.update(forms)
+          .set({ 
+            userId: firebaseUid,
+            updatedAt: new Date(),
+          })
+          .where(eq(forms.userId, fingerprint))
+        
+        console.log('✅ Forms successfully migrated to authenticated user')
       }
+      
+      // Migrate form submissions
+      const submissionsToMigrate = await db.query.formSubmissions.findMany({
+        where: eq(formSubmissions.userId, fingerprint),
+      })
+      
+      if (submissionsToMigrate.length > 0) {
+        console.log(`🔄 Migrating ${submissionsToMigrate.length} submissions to authenticated user...`)
+        
+        await db.update(formSubmissions)
+          .set({ 
+            userId: firebaseUid,
+            updatedAt: new Date(),
+          })
+          .where(eq(formSubmissions.userId, fingerprint))
+        
+        console.log('✅ Submissions successfully migrated to authenticated user')
+      }
+      
+      // Archive the anonymous user record (don't delete for audit purposes)
+      await this.updateAnonymousUser(fingerprint, {
+        // Add migration tracking fields if needed
+      })
+      
+      console.log('✅ Anonymous user successfully migrated to authenticated user')
+      return createdUser
+      
     } catch (error) {
-      console.warn('Users query failed, returning empty array:', error)
-      return {
-        users: [],
-        pagination: {
-          page: 1,
-          limit: 50,
-          total: 0,
-          totalPages: 0
-        }
-      }
+      console.error('❌ Error during migration:', error)
+      throw error
     }
   },
 
-  // Get all users for admin statistics (no pagination)
-  async getAllUsers() {
+  // Admin methods
+  async getUsers() {
     try {
       const allUsers = await db.query.users.findMany({
         with: {
@@ -823,31 +668,9 @@ export const dbService = {
     }
   },
 
-  async getForms(options?: {
-    page?: number
-    limit?: number
-    status?: 'draft' | 'published' | 'archived'
-    userId?: string
-  }) {
+  async getForms() {
     try {
-      const page = options?.page || 1
-      const limit = options?.limit || 50
-      const offset = (page - 1) * limit
-
-      // Build where conditions
-      const whereConditions = []
-      if (options?.status) {
-        whereConditions.push(eq(forms.status, options.status))
-      }
-      if (options?.userId) {
-        whereConditions.push(eq(forms.userId, options.userId))
-      }
-
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined
-
-      // Get forms with pagination
-      const formsData = await db.query.forms.findMany({
-        where: whereClause,
+      const allForms = await db.query.forms.findMany({
         with: {
           user: true,
           fields: {
@@ -855,37 +678,11 @@ export const dbService = {
           },
         },
         orderBy: [desc(forms.createdAt)],
-        limit,
-        offset
       })
-
-      // Get total count for pagination
-      const totalCount = await db.select({ count: count() })
-        .from(forms)
-        .where(whereClause)
-
-      const totalPages = Math.ceil((totalCount[0]?.count || 0) / limit)
-
-      return {
-        forms: formsData,
-        pagination: {
-          page,
-          limit,
-          totalCount: totalCount[0]?.count || 0,
-          totalPages
-        }
-      }
+      return allForms
     } catch (error) {
       console.warn('Forms query failed, returning empty array:', error)
-      return {
-        forms: [],
-        pagination: {
-          page: 1,
-          limit: 50,
-          totalCount: 0,
-          totalPages: 0
-        }
-      }
+      return []
     }
   },
 
@@ -1492,4 +1289,3 @@ export const dbService = {
     }
   },
 }
-

@@ -220,7 +220,7 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
       // Calculate expiration date
       const expiresAt = new Date((subscription as any).current_period_end * 1000)
       
-      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+      await dbService.updateUser(subscription.metadata.user_id, {
         subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
         subscriptionStatus: subscription.status as 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid',
         subscriptionExpiresAt: expiresAt,
@@ -252,7 +252,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       // Calculate expiration date
       const expiresAt = new Date((subscription as any).current_period_end * 1000)
       
-      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+      await dbService.updateUser(subscription.metadata.user_id, {
         subscriptionTier: subscriptionTier as 'free' | 'pro' | 'enterprise',
         subscriptionStatus: subscription.status as 'active' | 'inactive' | 'canceled' | 'past_due' | 'unpaid',
         subscriptionExpiresAt: expiresAt,
@@ -272,10 +272,10 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     if (subscription.metadata?.user_id) {
       const { dbService } = await import('@/lib/db/service')
       
-      await dbService.updateUserSubscription(subscription.metadata.user_id, {
+      await dbService.updateUser(subscription.metadata.user_id, {
         subscriptionTier: 'free',
         subscriptionStatus: 'canceled',
-        subscriptionExpiresAt: null
+        subscriptionExpiresAt: undefined
       })
       
       console.log(`Subscription deleted for user ${subscription.metadata.user_id}`)

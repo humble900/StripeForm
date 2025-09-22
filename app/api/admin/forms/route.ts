@@ -35,17 +35,30 @@ export async function GET(request: NextRequest) {
         const status = searchParams.get('status')
         const userId = searchParams.get('userId')
         
-        // Get forms with pagination and filtering
-        const forms = await dbService.getForms({
-          page,
-          limit,
-          status: status as 'draft' | 'published' | 'archived' | undefined,
-          userId: userId || undefined
-        })
+        // Get forms with pagination and filtering 
+        const allForms = await dbService.getForms()
+        
+        // Apply filtering and pagination manually
+        let forms = allForms
+        
+        // Filter by status if provided
+        if (status) {
+          forms = forms.filter(form => form.status === status)
+        }
+        
+        // Filter by userId if provided
+        if (userId) {
+          forms = forms.filter(form => form.userId === userId)
+        }
+        
+        // Apply pagination
+        const startIndex = page * limit
+        const endIndex = startIndex + limit
+        forms = forms.slice(startIndex, endIndex)
 
         // Get user information for each form
         const formsWithUserInfo = await Promise.all(
-          forms.forms.map(async (form) => {
+          forms.map(async (form) => {
             try {
               const user = await dbService.getUser(form.userId)
               return {
@@ -67,7 +80,12 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             forms: formsWithUserInfo,
-            pagination: forms.pagination
+            pagination: {
+              page,
+              limit,
+              total: allForms.length,
+              totalPages: Math.ceil(allForms.length / limit)
+            }
           }
         })
       } catch (error) {
