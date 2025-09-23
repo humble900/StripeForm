@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbService } from '@/lib/db/service'
-import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
+import { withRateLimit, userFormsRateLimit, apiRateLimit } from '@/lib/rate-limit'
 import { withErrorHandling, AuthenticationError } from '@/lib/error-handler'
 
 // Helper function to get user from request
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  return withRateLimit(request, apiRateLimit,
+  return withRateLimit(request, userFormsRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       try {
         let user: { id: string; email?: string } | null = null

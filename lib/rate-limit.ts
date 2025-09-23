@@ -126,6 +126,25 @@ export const apiRateLimit = rateLimit({
   message: 'API rate limit exceeded, please try again later.'
 })
 
+// More specific limiter for user forms dashboard fetches
+export const userFormsRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 120, // 120 requests per minute per user/session/path
+  message: 'Too many dashboard requests, please slow down.',
+  keyGenerator: (request: NextRequest) => {
+    // Prefer stable client identifiers over shared IP
+    const fingerprint = request.headers.get('x-fingerprint')
+    const auth = request.headers.get('authorization')
+    const cookie = request.cookies.get('auth-token')?.value
+    const forwarded = request.headers.get('x-forwarded-for')
+    const ip = forwarded ? forwarded.split(',')[0].trim() : 'anonymous'
+    const path = request.nextUrl?.pathname || '/'
+
+    const base = fingerprint || auth || cookie || ip
+    return `${base}|${path}`
+  }
+})
+
 export const stripeWebhookRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 100, // 100 webhook calls per minute
