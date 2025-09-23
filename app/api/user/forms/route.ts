@@ -93,7 +93,13 @@ export async function GET(request: NextRequest) {
   return withRateLimit(request, apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       try {
-        const user = await getUserFromRequest(request)
+        let user: { id: string; email?: string } | null = null
+        try {
+          user = await getUserFromRequest(request)
+        } catch (authErr) {
+          // If unauthenticated, return empty forms array instead of error
+          return NextResponse.json({ success: true, data: [] })
+        }
         
         const forms = await dbService.getUserForms(user.id)
         
