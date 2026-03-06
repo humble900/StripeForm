@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PhoneInput } from '@/components/ui/PhoneInput'
 import { mapAuthError } from '@/lib/utils/auth-errors'
+import { getRedirectResult } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
 
 function RegisterPageInner() {
   const [showPassword, setShowPassword] = useState(false)
@@ -29,7 +31,27 @@ function RegisterPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams?.get('redirect') || '/dashboard'
-  const { signInWithGoogle, signInWithGithub } = useAuth()
+  const { signUp, signInWithGoogle, signInWithGithub } = useAuth()
+
+  // Catch OAuth redirect results (like "account-exists-with-different-credential")
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          setSuccess('Account created successfully! Redirecting...')
+          setTimeout(() => {
+            router.push(redirectTo)
+          }, 500)
+        }
+      } catch (error: any) {
+        console.error('Redirect sign-in error:', error)
+        const mappedError = mapAuthError(error, 'global')
+        setErrors({ [mappedError.field]: mappedError.message })
+      }
+    }
+    checkRedirect()
+  }, [router, redirectTo])
 
   // Auto-detect country based on IP
   useEffect(() => {
@@ -98,42 +120,9 @@ function RegisterPageInner() {
     setIsLoading(true)
 
     try {
-
-
-      // Split name into firstName and lastName
-      const nameParts = name.trim().split(' ')
-      const firstName = nameParts[0] || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
-
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          firstName,
-          lastName,
-          phoneNumber,
-          countryCode
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create account')
-      }
-
+      await signUp(email, password, name, phoneNumber, countryCode)
 
       setSuccess('Account created successfully! Redirecting to dashboard...')
-
-      // Store the token and redirect
-      if (data.token) {
-        localStorage.setItem('auth-token', data.token)
-        localStorage.setItem('user', JSON.stringify(data.user))
-      }
 
       setTimeout(() => {
         router.push(redirectTo)
