@@ -709,9 +709,9 @@ export function FormBuilderToolbar({
             <div className="relative">
               <button
                 onClick={() => setShowAddQuestion(!showAddQuestion)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#6C5CE7] to-[#a78bfa] hover:from-[#5A4BD1] hover:to-[#9472f5] text-white transition-all shadow-sm shadow-[#6C5CE7]/20"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors text-xs font-medium border border-[#6C5CE7]/10"
               >
-                <PlusIcon className="h-3.5 w-3.5" />
+                <PlusIcon className="w-4 h-4" />
                 <span>Add question</span>
               </button>
 
@@ -720,6 +720,12 @@ export function FormBuilderToolbar({
                   <div className="fixed inset-0 z-40" onClick={() => setShowAddQuestion(false)} />
                   <div className="absolute top-full left-0 mt-2 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/80 p-2 z-50 w-64 max-h-[420px] overflow-y-auto sidebar-scroll">
                     {[
+                      {
+                        cat: 'Structure', color: '#00B894', items: [
+                          { type: 'cover_slide', label: 'Welcome Screen' },
+                          { type: 'end_page', label: 'Ending Screen' },
+                        ]
+                      },
                       {
                         cat: 'Text', color: '#6C5CE7', items: [
                           { type: 'short_text', label: 'Short Text' },
@@ -784,6 +790,7 @@ export function FormBuilderToolbar({
                                 type: item.type as any,
                                 label: item.label,
                                 required: false,
+                                order: item.type === 'cover_slide' ? -1 : item.type === 'end_page' ? 999 : undefined,
                                 options: ['multiple_choice', 'dropdown', 'checkbox', 'radio'].includes(item.type) ? ['Choice 1', 'Choice 2', 'Choice 3'] : undefined,
                                 settings: {},
                               }

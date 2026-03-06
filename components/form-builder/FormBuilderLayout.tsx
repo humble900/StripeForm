@@ -224,14 +224,7 @@ export function FormBuilderLayout() {
         {/* ---- CANVAS (full bleed with dot grid) ---- */}
         <div className="flex-1 flex flex-col relative builder-canvas-bg overflow-hidden">
           {/* Mobile/tablet controls — visible below lg (1024px) */}
-          <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-gray-200/60 bg-white/60">
-            <button
-              className="builder-pill builder-pill-ghost"
-              onClick={() => setActiveCategory(activeCategory ? null : 'text')}
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Fields
-            </button>
+          <div className="lg:hidden flex items-center justify-end px-3 py-2 border-b border-gray-200/60 bg-white/60">
             <button
               className="builder-pill builder-pill-ghost"
               onClick={() => setInspectorOpen(!inspectorOpen)}

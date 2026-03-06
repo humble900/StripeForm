@@ -12,7 +12,7 @@ export async function GET(
   return withRateLimit(request, apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       const { id } = await params
-      
+
       if (!id) {
         throw new NotFoundError('Form ID or slug is required')
       }
@@ -20,19 +20,19 @@ export async function GET(
       // Check cache first
       const cacheKey = `form:${id}`
       const cached = formCache.get(cacheKey)
-      
+
       if (cached) {
         return NextResponse.json(cached)
       }
 
       // Try to get form by ID first, then by slug if not found
       let form = await dbService.getForm(id)
-      
+
       // If not found by ID, try by slug
       if (!form) {
         form = await dbService.getFormBySlug(id)
       }
-      
+
       if (!form) {
         throw new NotFoundError('Form not found')
       }
@@ -44,7 +44,7 @@ export async function GET(
 
       // Cache for 2 minutes (forms don't change that often)
       formCache.set(cacheKey, response, 2 * 60 * 1000)
-      
+
       return NextResponse.json(response)
     })
   )
@@ -59,7 +59,7 @@ export async function PUT(
     withErrorHandling(async (request: NextRequest) => {
       const { id } = await params
       const body = await request.json()
-      
+
       if (!id) {
         throw new NotFoundError('Form ID is required')
       }
@@ -72,7 +72,20 @@ export async function PUT(
 
       // Extract fields from body if provided
       const { fields, ...formUpdates } = body
-      
+
+      // Parse string dates into actual Date objects for Drizzle ORM
+      const dateFields = ['publishedAt', 'updatedAt', 'expiresAt', 'createdAt']
+      for (const field of dateFields) {
+        if (typeof formUpdates[field] === 'string') {
+          const parsed = new Date(formUpdates[field])
+          if (!isNaN(parsed.getTime())) {
+            formUpdates[field] = parsed
+          } else {
+            delete formUpdates[field]
+          }
+        }
+      }
+
       // Enforce publish limits and set publishedAt when form is being published
       if (formUpdates.status === 'published' && !existingForm.publishedAt) {
         // Determine user and role/subscription
@@ -86,7 +99,7 @@ export async function PUT(
           const subStatus = (owner as any)?.subscriptionStatus || 'inactive'
           isAdmin = role === 'admin' || role === 'super_admin'
           isPro = tier === 'pro' && (subStatus === 'active')
-        } catch {}
+        } catch { }
 
         if (!isAdmin && !isPro) {
           // For free/authenticated users: limit to 5 published forms
@@ -102,28 +115,28 @@ export async function PUT(
 
         formUpdates.publishedAt = new Date()
       }
-      
+
       console.log('📝 Updating form with data:', formUpdates)
-      
+
       // Update the form properties
       const updatedForm = await dbService.updateForm(id, formUpdates)
-      
+
       console.log('✅ Form updated successfully:', updatedForm)
-      
+
       // If fields are provided, update them
       if (fields && Array.isArray(fields)) {
         // Get existing fields
         const existingFields = await dbService.getFormFields(id)
         const existingFieldIds = existingFields.map(f => f.id)
-        
+
         // Delete fields that are no longer in the new fields array
         const newFieldIds = fields.filter(f => f.id && f.id !== '').map(f => f.id)
         const fieldsToDelete = existingFieldIds.filter(id => !newFieldIds.includes(id))
-        
+
         for (const fieldId of fieldsToDelete) {
           await dbService.deleteFormField(fieldId)
         }
-        
+
         // Update or create fields
         for (let i = 0; i < fields.length; i++) {
           const field = fields[i]
@@ -139,7 +152,7 @@ export async function PUT(
             settings: field.settings || {},
             conditionalLogic: field.conditional_logic || null
           }
-          
+
           if (field.id && existingFieldIds.includes(field.id)) {
             // Update existing field
             await dbService.updateFormField(field.id, fieldData)
@@ -149,14 +162,14 @@ export async function PUT(
           }
         }
       }
-      
+
       // Get the updated form with fields
       const formWithFields = await dbService.getForm(id)
-      
+
       if (!formWithFields) {
         throw new Error('Failed to retrieve updated form')
       }
-      
+
       // Generate published URL if form is published
       let publishedUrl = formWithFields.publishedUrl
       if (formWithFields.status === 'published' && !publishedUrl) {
@@ -165,22 +178,22 @@ export async function PUT(
         const protocol = request.headers.get('x-forwarded-proto') || 'http'
         const baseUrl = host.includes('localhost') ? `${protocol}://${host}` : 'https://stripeform.com'
         publishedUrl = `${baseUrl}/forms/${formWithFields.slug || formWithFields.id}`
-        
+
         // Update the form with the generated URL
         await dbService.updateForm(id, { publishedUrl })
         formWithFields.publishedUrl = publishedUrl
       }
-      
+
       // Invalidate cache
       formCache.delete(`form:${id}`)
-      
+
       // Invalidate user forms cache for this user
       const userFormsCacheKeys = [
         `user-forms:${formWithFields.userId}:all:50:0`,
         `user-forms:${formWithFields.userId}:published:50:0`,
         `user-forms:${formWithFields.userId}:draft:50:0`
       ]
-      
+
       userFormsCacheKeys.forEach(key => {
         formCache.delete(key)
       })
@@ -205,7 +218,7 @@ export async function DELETE(
   return withRateLimit(request, apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       const { id } = await params
-      
+
       if (!id) {
         throw new NotFoundError('Form ID is required')
       }
@@ -218,7 +231,7 @@ export async function DELETE(
 
       // Delete the form
       await dbService.deleteForm(id)
-      
+
       // Invalidate cache
       formCache.delete(`form:${id}`)
 
