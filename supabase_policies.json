@@ -1,0 +1,1113 @@
+[
+  {
+    "schemaname": "api",
+    "tablename": "form_templates",
+    "policyname": "Admins can manage all form templates",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "users",
+    "policyname": "Admins can update all users",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users users_1\n  WHERE ((users_1.id = (auth.uid())::text) AND (users_1.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "users",
+    "policyname": "Admins can view all users",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users users_1\n  WHERE ((users_1.id = (auth.uid())::text) AND (users_1.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "users",
+    "policyname": "Users can delete own profile",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "users",
+    "policyname": "Users can update own profile",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "users",
+    "policyname": "Users can view own profile",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_profiles",
+    "policyname": "Users can delete own profile details",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_profiles",
+    "policyname": "Users can insert own profile details",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_profiles",
+    "policyname": "Users can update own profile details",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_profiles",
+    "policyname": "Users can view own profile details",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_fields",
+    "policyname": "Admins can view all form fields",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_fields",
+    "policyname": "Users can delete own form fields",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_fields",
+    "policyname": "Users can insert own form fields",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_fields",
+    "policyname": "Users can update own form fields",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_fields",
+    "policyname": "Users can view own form fields",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "anonymous_users",
+    "policyname": "Admins can view all anonymous users",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "anonymous_users",
+    "policyname": "Allow anonymous user tracking",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Admins can view all form fields",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Users can insert own form fields",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "(form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE (forms.user_id = (auth.uid())::text)))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Users can manage form fields",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "(form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE ((forms.user_id = (auth.jwt() ->> 'user_id'::text)) OR (forms.user_id = (auth.uid())::text))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Users can update own form fields",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE (forms.user_id = (auth.uid())::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Users can view form fields",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE ((forms.user_id = (auth.jwt() ->> 'user_id'::text)) OR (forms.user_id = (auth.uid())::text))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_fields",
+    "policyname": "Users can view own form fields",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE (forms.user_id = (auth.uid())::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "users",
+    "policyname": "Admins can update all users",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users users_1\n  WHERE ((users_1.id = (auth.uid())::text) AND (users_1.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "users",
+    "policyname": "Admins can view all users",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users users_1\n  WHERE ((users_1.id = (auth.uid())::text) AND (users_1.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "users",
+    "policyname": "Users can update own profile",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((id = (auth.jwt() ->> 'user_id'::text)) OR (id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "users",
+    "policyname": "Users can view own profile",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((id = (auth.jwt() ->> 'user_id'::text)) OR (id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "system_analytics",
+    "policyname": "Admins can view analytics",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.jwt() ->> 'user_id'::text)) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Allow auth mapping insertion",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Users can update own auth mapping",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Users can view own auth mapping",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_profiles",
+    "policyname": "Users can insert own profile details",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_profiles",
+    "policyname": "Users can manage own profile data",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_profiles",
+    "policyname": "Users can update own profile details",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_profiles",
+    "policyname": "Users can view own profile data",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_profiles",
+    "policyname": "Users can view own profile details",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_templates",
+    "policyname": "Admins can manage all form templates",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_templates",
+    "policyname": "Admins can manage templates",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.jwt() ->> 'user_id'::text)) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_templates",
+    "policyname": "Anyone can view form templates",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_templates",
+    "policyname": "Anyone can view templates",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_tracking",
+    "policyname": "Allow tracking data insertion",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_tracking",
+    "policyname": "Users can delete own tracking data",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM api.anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_tracking",
+    "policyname": "Users can update own tracking data",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM api.anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "user_tracking",
+    "policyname": "Users can view own tracking data",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM api.anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Admins can view all forms",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Users can create forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "(user_id = (auth.jwt() ->> 'user_id'::text))"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Users can delete own forms",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Users can insert own forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Users can update own forms",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "forms",
+    "policyname": "Users can view own forms",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "support_tickets",
+    "policyname": "Users can create tickets",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "support_tickets",
+    "policyname": "Users can view own tickets",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications",
+    "policyname": "Users can manage own notifications",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "notifications",
+    "policyname": "Users can view own notifications",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "faqs",
+    "policyname": "Admins can manage faqs",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.jwt() ->> 'user_id'::text)) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "faqs",
+    "policyname": "Anyone can view published faqs",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(is_published = true)",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "anonymous_users",
+    "policyname": "Admins can view all anonymous users",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "anonymous_users",
+    "policyname": "Allow anonymous user tracking",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "anonymous_users",
+    "policyname": "Service can manage anonymous users",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Admins can view all forms",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Anonymous users can create forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Anonymous users can view forms by fingerprint",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Users can create forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "(user_id = (auth.jwt() ->> 'user_id'::text))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Users can delete own forms",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Users can insert own forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Users can update own forms",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "forms",
+    "policyname": "Users can view own forms",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_submissions",
+    "policyname": "Admins can view all form submissions",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_submissions",
+    "policyname": "Anyone can submit forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_submissions",
+    "policyname": "Anyone can submit to forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_submissions",
+    "policyname": "Users can view form submissions",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.jwt() ->> 'user_id'::text)) OR (user_id = (auth.uid())::text) OR (form_id IN ( SELECT forms.id\n   FROM forms\n  WHERE ((forms.user_id = (auth.jwt() ->> 'user_id'::text)) OR (forms.user_id = (auth.uid())::text)))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Allow auth mapping insertion",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Users can update own auth mapping",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "firebase_auth_mapping",
+    "policyname": "Users can view own auth mapping",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_drafts",
+    "policyname": "Users can delete own drafts",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.uid())::text) OR (session_id = ((current_setting('request.jwt.claims'::text, true))::json ->> 'session_id'::text)) OR (fingerprint = ((current_setting('request.jwt.claims'::text, true))::json ->> 'fingerprint'::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_drafts",
+    "policyname": "Users can insert own drafts",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((user_id = (auth.uid())::text) OR (session_id = ((current_setting('request.jwt.claims'::text, true))::json ->> 'session_id'::text)) OR (fingerprint = ((current_setting('request.jwt.claims'::text, true))::json ->> 'fingerprint'::text)))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_drafts",
+    "policyname": "Users can update own drafts",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.uid())::text) OR (session_id = ((current_setting('request.jwt.claims'::text, true))::json ->> 'session_id'::text)) OR (fingerprint = ((current_setting('request.jwt.claims'::text, true))::json ->> 'fingerprint'::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "form_drafts",
+    "policyname": "Users can view own drafts",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((user_id = (auth.uid())::text) OR (session_id = ((current_setting('request.jwt.claims'::text, true))::json ->> 'session_id'::text)) OR (fingerprint = ((current_setting('request.jwt.claims'::text, true))::json ->> 'fingerprint'::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "payment_intents",
+    "policyname": "Admins can view all payment intents",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "payment_intents",
+    "policyname": "Users can create payments",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "(user_id = (auth.jwt() ->> 'user_id'::text))"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "payment_intents",
+    "policyname": "Users can view own payments",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Allow tracking data insertion",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Service can manage user tracking",
+    "cmd": "ALL",
+    "roles": [
+      "public"
+    ],
+    "qual": "true",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Users can delete own tracking data",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Users can update own tracking data",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Users can view own tracking",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (firebase_uid = (auth.uid())::text))",
+    "with_check": null
+  },
+  {
+    "schemaname": "public",
+    "tablename": "user_tracking",
+    "policyname": "Users can view own tracking data",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((firebase_uid = (auth.jwt() ->> 'user_id'::text)) OR (supabase_user_id = auth.uid()) OR (fingerprint IN ( SELECT anonymous_users.fingerprint\n   FROM anonymous_users\n  WHERE (anonymous_users.fingerprint = user_tracking.fingerprint))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Admins can view all form submissions",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Anyone can submit forms",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "true"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Users can delete own form submissions",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Users can insert own form submissions",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Users can update own form submissions",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Users can view form submissions",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((form_id IN ( SELECT forms.id\n   FROM api.forms\n  WHERE (forms.user_id = (auth.jwt() ->> 'user_id'::text)))) OR (submitted_by = (auth.jwt() ->> 'user_id'::text)))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "form_submissions",
+    "policyname": "Users can view own form submissions",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Admins can view all payment intents",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(EXISTS ( SELECT 1\n   FROM api.users\n  WHERE ((users.id = (auth.uid())::text) AND (users.role = ANY (ARRAY['admin'::user_role, 'super_admin'::user_role])))))",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can create payments",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "(user_id = (auth.jwt() ->> 'user_id'::text))"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can delete own payment intents",
+    "cmd": "DELETE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can insert own payment intents",
+    "cmd": "INSERT",
+    "roles": [
+      "public"
+    ],
+    "qual": null,
+    "with_check": "((auth.uid())::text = user_id)"
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can update own payment intents",
+    "cmd": "UPDATE",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can view own payment intents",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "((auth.uid())::text = user_id)",
+    "with_check": null
+  },
+  {
+    "schemaname": "api",
+    "tablename": "payment_intents",
+    "policyname": "Users can view own payments",
+    "cmd": "SELECT",
+    "roles": [
+      "public"
+    ],
+    "qual": "(user_id = (auth.jwt() ->> 'user_id'::text))",
+    "with_check": null
+  }
+]

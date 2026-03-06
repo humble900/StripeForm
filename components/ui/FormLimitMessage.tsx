@@ -11,9 +11,9 @@ interface FormLimitMessageProps {
   isAuthenticated?: boolean
 }
 
-export function FormLimitMessage({ 
-  currentFormCount, 
-  formLimit, 
+export function FormLimitMessage({
+  currentFormCount,
+  formLimit,
   onUpgrade,
   onDismiss,
   isAuthenticated = false
@@ -36,7 +36,7 @@ export function FormLimitMessage({
               <Crown className="w-4 h-4 text-white" />
             </div>
           </div>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-sm font-semibold text-amber-800">
@@ -46,31 +46,31 @@ export function FormLimitMessage({
                 {currentFormCount}/{formLimit} forms
               </span>
             </div>
-            
+
             <p className="text-sm text-amber-700 mb-3">
-              {isAuthenticated 
+              {isAuthenticated
                 ? `You've published ${currentFormCount} forms on your free plan. You can still create and save drafts, but to publish more forms, upgrade to Pro for unlimited publishing.`
                 : `You've published ${currentFormCount} forms as a guest user. Create an account and upgrade to Pro to continue publishing more forms.`
               }
             </p>
-            
+
             <div className="flex items-center space-x-3">
               <button
                 onClick={onUpgrade}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 <Crown className="w-3.5 h-3.5" />
                 <span>{isAuthenticated ? 'Upgrade to Pro' : 'Sign Up & Upgrade'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
-              
+
               <span className="text-xs text-amber-600">
                 $5/month • 14-day free trial
               </span>
             </div>
           </div>
         </div>
-        
+
         {onDismiss && (
           <button
             onClick={handleDismiss}

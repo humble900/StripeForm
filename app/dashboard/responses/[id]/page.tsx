@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useNotifications } from '@/components/providers/NotificationProvider'
+import { useUserType } from '@/hooks/useUserType'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -44,8 +45,9 @@ const FormResponsesPage = () => {
   const router = useRouter()
   const params = useParams()
   const formId = params?.id as string
-  const { user, isAuthenticated, getUserTrackingData } = useAuth()
+  const { getUserTrackingData } = useAuth()
   const { addNotification } = useNotifications()
+  const { firebaseUser, userId } = useUserType()
 
   const [form, setForm] = useState<Form | null>(null)
   const [responses, setResponses] = useState<FormSubmission[]>([])
@@ -61,16 +63,16 @@ const FormResponsesPage = () => {
     const userTrackingData = await getUserTrackingData()
     // For authenticated users, always use the user ID (Firebase UID)
     // For anonymous users, use the fingerprint
-    const userId = isAuthenticated ? user?.id : (userTrackingData?.fingerprint || user?.id)
-    
-    if (!userId) {
+    const requestUserId = firebaseUser?.uid || userTrackingData?.fingerprint
+
+    if (!requestUserId) {
       throw new Error('No user ID available for authentication')
     }
 
     return fetch(url, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${userId}`,
+        'Authorization': `Bearer ${requestUserId}`,
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -118,7 +120,7 @@ const FormResponsesPage = () => {
     if (formId) {
       fetchFormAndResponses()
     }
-  }, [formId, getUserTrackingData, user])
+  }, [formId, getUserTrackingData, firebaseUser])
 
   // Real-time subscription for new submissions on this form
   useEffect(() => {
@@ -156,7 +158,7 @@ const FormResponsesPage = () => {
   const exportResponses = async (format: 'json' | 'csv') => {
     try {
       setExporting(true)
-      
+
       const response = await makeAuthenticatedRequest(
         `/api/user/forms/${formId}/export?format=${format}`
       )
@@ -197,7 +199,7 @@ const FormResponsesPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+      <div className="min-h-screen bg-blue-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
@@ -214,7 +216,7 @@ const FormResponsesPage = () => {
 
   if (!form) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Form Not Found</h1>
           <Button onClick={() => router.push('/dashboard')}>
@@ -228,158 +230,158 @@ const FormResponsesPage = () => {
 
   return (
     <TooltipProvider>
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/dashboard')}
-              className="bg-white/80 backdrop-blur-sm h-7 px-2 text-xs"
-            >
-              <ArrowLeftIcon className="h-3 w-3 mr-1" />
-              Back to dashboard
-            </Button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">{form.title}</h1>
-              <p className="text-gray-500 mt-0.5 text-xs">{responses.length} responses</p>
+      <div className="min-h-screen bg-blue-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard')}
+                className="bg-white/80 backdrop-blur-sm h-7 px-2 text-xs"
+              >
+                <ArrowLeftIcon className="h-3 w-3 mr-1" />
+                Back to dashboard
+              </Button>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">{form.title}</h1>
+                <p className="text-gray-500 mt-0.5 text-xs">{responses.length} responses</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Form Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-white/30">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <ClipboardDocumentListIcon className="h-6 w-6 text-blue-600" />
-                <div className="ml-3">
-                  <p className="text-lg font-bold text-gray-900">{responses.length}</p>
-                  <p className="text-gray-500 text-xs">Total Responses</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-white/30">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <CalendarIcon className="h-6 w-6 text-green-600" />
-                <div className="ml-3">
-                  <p className="text-lg font-bold text-gray-900">
-                    {responses.length > 0 ? formatDate(responses[0].submittedAt) : 'N/A'}
-                  </p>
-                  <p className="text-gray-500 text-xs">Latest Response</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/80 backdrop-blur-sm border-white/30">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <EyeIcon className="h-6 w-6 text-purple-600" />
-                <div className="ml-3">
-                  <p className="text-lg font-bold text-gray-900">{form.status}</p>
-                  <p className="text-gray-500 text-xs">Form Status</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Responses - search/filter + list */}
-        <div className="bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm">
-          <div className="px-4 py-3 border-b border-gray-100 flex items-center">
-            <ClipboardDocumentListIcon className="h-4 w-4 mr-2 text-gray-600" />
-            <h2 className="text-sm font-medium text-gray-900 mr-auto">Form Responses</h2>
-            <div className="flex items-center gap-2 relative">
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="h-7 px-2 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white/90 w-32"
-              />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="h-7 px-2 rounded-md border border-gray-200 text-xs bg-white/90"
-              >
-                <option value="all">All</option>
-                <option value="complete">Complete</option>
-                <option value="partial">Partial</option>
-              </select>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    onClick={() => setExportMenuOpen(v => !v)}
-                    disabled={responses.length === 0 || exporting}
-                    className="bg-white/90 border-gray-200 h-7 w-7 p-0"
-                  >
-                    <ArrowDownTrayIcon className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Export responses</p>
-                </TooltipContent>
-              </Tooltip>
-              
-              {exportMenuOpen && (
-                <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-md shadow-lg w-32">
-                  <button
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs border-b border-gray-100"
-                    onClick={async () => { setExportMenuOpen(false); await exportResponses('csv') }}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <TableCellsIcon className="h-3 w-3 text-gray-500" />
-                      <span>CSV</span>
-              </div>
-                  </button>
-                  <button
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs"
-                    onClick={async () => { setExportMenuOpen(false); await exportResponses('json') }}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <DocumentArrowDownIcon className="h-3 w-3 text-gray-500" />
-                      <span>JSON</span>
-                    </div>
-                  </button>
-                          </div>
-              )}
-                      </div>
-                    </div>
-          {responses.length === 0 ? (
-            <div className="text-center py-8">
-              <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-sm font-medium text-gray-900 mb-1">No responses yet</h3>
-              <p className="text-xs text-gray-500">This form hasn't received any responses.</p>
+          {/* Form Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-white/30">
+              <CardContent className="p-4">
+                <div className="flex items-center">
+                  <ClipboardDocumentListIcon className="h-6 w-6 text-blue-600" />
+                  <div className="ml-3">
+                    <p className="text-lg font-bold text-gray-900">{responses.length}</p>
+                    <p className="text-gray-500 text-xs">Total Responses</p>
                   </div>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {responses
-                .map((r) => ({
-                  r,
-                  isComplete: !!r.submittedAt,
-                }))
-                .filter(({ r, isComplete }) => {
-                  if (filterStatus === 'complete' && !isComplete) return false
-                  if (filterStatus === 'partial' && isComplete) return false
-                  if (!searchQuery.trim()) return true
-                  const hay = JSON.stringify(r.data || {}).toLowerCase()
-                  return hay.includes(searchQuery.toLowerCase())
-                })
-                .map(({ r }, index) => (
-                  <ExpandableRow key={r.id} index={index} response={r} fields={fields} />
-                ))}
-            </ul>
-          )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-white/30">
+              <CardContent className="p-4">
+                <div className="flex items-center">
+                  <CalendarIcon className="h-6 w-6 text-green-600" />
+                  <div className="ml-3">
+                    <p className="text-lg font-bold text-gray-900">
+                      {responses.length > 0 ? formatDate(responses[0].submittedAt) : 'N/A'}
+                    </p>
+                    <p className="text-gray-500 text-xs">Latest Response</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/80 backdrop-blur-sm border-white/30">
+              <CardContent className="p-4">
+                <div className="flex items-center">
+                  <EyeIcon className="h-6 w-6 text-purple-600" />
+                  <div className="ml-3">
+                    <p className="text-lg font-bold text-gray-900">{form.status}</p>
+                    <p className="text-gray-500 text-xs">Form Status</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Responses - search/filter + list */}
+          <div className="bg-white/80 backdrop-blur-sm border border-white/30 rounded-lg shadow-sm">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center">
+              <ClipboardDocumentListIcon className="h-4 w-4 mr-2 text-gray-600" />
+              <h2 className="text-sm font-medium text-gray-900 mr-auto">Form Responses</h2>
+              <div className="flex items-center gap-2 relative">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search..."
+                  className="h-7 px-2 rounded-md border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white/90 w-32"
+                />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="h-7 px-2 rounded-md border border-gray-200 text-xs bg-white/90"
+                >
+                  <option value="all">All</option>
+                  <option value="complete">Complete</option>
+                  <option value="partial">Partial</option>
+                </select>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      onClick={() => setExportMenuOpen(v => !v)}
+                      disabled={responses.length === 0 || exporting}
+                      className="bg-white/90 border-gray-200 h-7 w-7 p-0"
+                    >
+                      <ArrowDownTrayIcon className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Export responses</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {exportMenuOpen && (
+                  <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-md shadow-lg w-32">
+                    <button
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs border-b border-gray-100"
+                      onClick={async () => { setExportMenuOpen(false); await exportResponses('csv') }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <TableCellsIcon className="h-3 w-3 text-gray-500" />
+                        <span>CSV</span>
+                      </div>
+                    </button>
+                    <button
+                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-xs"
+                      onClick={async () => { setExportMenuOpen(false); await exportResponses('json') }}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <DocumentArrowDownIcon className="h-3 w-3 text-gray-500" />
+                        <span>JSON</span>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
-        {/* drafts removed per requirements */}
+            </div>
+            {responses.length === 0 ? (
+              <div className="text-center py-8">
+                <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                <h3 className="text-sm font-medium text-gray-900 mb-1">No responses yet</h3>
+                <p className="text-xs text-gray-500">This form hasn't received any responses.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {responses
+                  .map((r) => ({
+                    r,
+                    isComplete: !!r.submittedAt,
+                  }))
+                  .filter(({ r, isComplete }) => {
+                    if (filterStatus === 'complete' && !isComplete) return false
+                    if (filterStatus === 'partial' && isComplete) return false
+                    if (!searchQuery.trim()) return true
+                    const hay = JSON.stringify(r.data || {}).toLowerCase()
+                    return hay.includes(searchQuery.toLowerCase())
+                  })
+                  .map(({ r }, index) => (
+                    <ExpandableRow key={r.id} index={index} response={r} fields={fields} />
+                  ))}
+              </ul>
+            )}
+          </div>
+          {/* drafts removed per requirements */}
+        </div>
       </div>
-    </div>
     </TooltipProvider>
   )
 }
@@ -411,7 +413,7 @@ function ExpandableRow({ response, index, fields }: { response: any, index: numb
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
               {isComplete ? 'Complete' : 'Partial'}
             </span>
-            <svg className={`h-3 w-3 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd"/></svg>
+            <svg className={`h-3 w-3 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" /></svg>
           </div>
         </div>
       </button>

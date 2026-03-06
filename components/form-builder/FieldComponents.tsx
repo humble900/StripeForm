@@ -3,9 +3,9 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { FormField, FieldType } from '@/types'
 import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
-import { 
-  CheckIcon, 
-  XMarkIcon, 
+import {
+  CheckIcon,
+  XMarkIcon,
   StarIcon,
   HeartIcon,
   HandThumbUpIcon,
@@ -61,12 +61,52 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
   const [activeMatrixCol, setActiveMatrixCol] = useState<number | null>(null)
 
   // Unified input styling per design spec
-  const baseInputClasses = 'w-full h-[50px] px-4 border rounded-[12px] transition-all duration-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/40 focus:border-indigo-500 dark:bg-[#1E1E1E] dark:text-gray-100 dark:placeholder:text-gray-500 dark:border-[#333]'
+  const baseInputClasses = 'w-full h-[46px] px-4 border rounded-[14px] transition-all duration-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] dark:bg-[#1E1E1E] dark:text-gray-100 dark:placeholder:text-gray-500 dark:border-[#333] text-sm'
   const neutralBorderClass = 'border-gray-200 dark:border-[#333]'
 
   useEffect(() => {
     setLocalValue(value || '')
   }, [value])
+
+  // ── Keyboard Shortcuts (Typeform-style) ──
+  // Y/N for Yes/No, A-Z for Multiple Choice, 1-9 for Rating/NPS
+  useEffect(() => {
+    if (isPreview || disabled) return
+    const handler = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+
+      const key = e.key.toLowerCase()
+      const fieldType = field.type
+
+      if (fieldType === 'yes_no') {
+        if (key === 'y') { handleChange('yes'); e.preventDefault() }
+        else if (key === 'n') { handleChange('no'); e.preventDefault() }
+      }
+
+      if ((fieldType === 'multiple_choice' || fieldType === 'radio' || fieldType === 'dropdown') && field.options?.length) {
+        const idx = key.charCodeAt(0) - 97 // a=0, b=1, c=2...
+        if (idx >= 0 && idx < field.options.length) {
+          handleChange(field.options[idx])
+          e.preventDefault()
+        }
+      }
+
+      if ((fieldType === 'star_rating' || fieldType === 'rating') && key >= '1' && key <= '9') {
+        const max = (field.settings as any)?.maxRating || 5
+        const num = parseInt(key)
+        if (num <= max) { handleChange(num); e.preventDefault() }
+      }
+
+      if ((fieldType === 'nps' || fieldType === 'nps_score') && key >= '0' && key <= '9') {
+        handleChange(parseInt(key))
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [field.type, field.options, isPreview, disabled])
 
   const handleChange = (newValue: any) => {
     setLocalValue(newValue)
@@ -95,11 +135,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       case 'ranking': return <ListBulletIcon className="w-5 h-5" />
       case 'yes_no': return <HandRaisedIcon className="w-5 h-5" />
       case 'captcha': return <ShieldCheckIcon className="w-5 h-5" />
+      case 'statement': return <ChatBubbleLeftRightIcon className="w-5 h-5" />
+      case 'legal': return <ShieldCheckIcon className="w-5 h-5" />
+      case 'contact_info': return <UserIcon className="w-5 h-5" />
       default: return null
     }
   }
 
-  function RegionAuto({ country, value, onChange, inputCls, required }: { country?: string; value: string; onChange: (v: string)=>void; inputCls: string; required: boolean }) {
+  function RegionAuto({ country, value, onChange, inputCls, required }: { country?: string; value: string; onChange: (v: string) => void; inputCls: string; required: boolean }) {
     const [options, setOptions] = useState<{ name: string; shortCode?: string }[] | null>(null)
     useEffect(() => {
       if (!country) { setOptions(null); return }
@@ -107,7 +150,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
     }, [country])
     if (options && options.length > 0) {
       return (
-        <select id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} required={required}>
+        <select id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} required={required}>
           <option value="">Select region</option>
           {options.map((r) => (
             <option key={r.shortCode || r.name} value={r.name}>{r.name}</option>
@@ -116,28 +159,12 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       )
     }
     return (
-      <input id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e)=>onChange(e.target.value)} className={inputCls} placeholder="Region" required={required} />
+      <input id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} placeholder="Region" required={required} />
     )
   }
 
   const renderField = () => {
     switch (field.type) {
-      case 'geo_restriction': {
-        // Show configuration hint only in on-card (builder) preview; hide elsewhere
-        if (isPreview) {
-          return (
-            <div className="rounded-[12px] border border-gray-200 bg-gray-50 p-3 text-left">
-              <div className="flex items-center gap-2 text-gray-700 mb-1">
-                <GlobeAltIcon className="w-4 h-4" />
-                <span className="text-sm font-medium">Geo-Restriction</span>
-              </div>
-              <div className="text-xs text-gray-500">Restrict access by country or IP.</div>
-            </div>
-          )
-        }
-        return null
-      }
-
       case 'cover_slide': {
         if (isPreview) {
           return (
@@ -209,7 +236,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       }
       case 'name': {
         const current = (typeof localValue === 'object' && localValue) ? localValue as any : { first: '', last: '' }
-        const setPart = (key: 'first'|'last', v: string) => {
+        const setPart = (key: 'first' | 'last', v: string) => {
           const formatted = v.replace(/\s+/g, ' ').replace(/^\s+/, '')
           const updated = { ...current, [key]: formatted.charAt(0).toUpperCase() + formatted.slice(1) }
           handleChange(updated)
@@ -267,8 +294,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const onlyDigits = (s: string) => s.replace(/\D/g, '')
         const formatPhone = (digits: string) => {
           if (digits.length <= 3) return digits
-          if (digits.length <= 6) return `${digits.slice(0,3)} ${digits.slice(3)}`
-          return `${digits.slice(0,3)} ${digits.slice(3,6)} ${digits.slice(6,10)}`
+          if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`
+          return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`
         }
 
         const setNumber = (v: string) => {
@@ -378,7 +405,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             maxFiles={maxFiles}
             maxSizeMB={5}
             value={Array.isArray(value) ? value : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'images' }).catch(()=> simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'images' }).catch(() => simulatedUpload(file, onP))}
             onChange={(items) => onChange?.(items)}
           />
         )
@@ -392,7 +419,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             maxSizeMB={10}
             multiple={maxFiles > 1}
             value={Array.isArray(value) ? (value as any[]) : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'files' }).catch(()=> simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'files' }).catch(() => simulatedUpload(file, onP))}
             onChange={(rows: any[]) => onChange?.(rows)}
           />
         )
@@ -406,7 +433,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             maxSizeMB={10}
             multiple={maxFiles > 1}
             value={Array.isArray(value) ? (value as any[]) : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'videos' }).catch(()=> simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'videos' }).catch(() => simulatedUpload(file, onP))}
             onChange={(rows: any[]) => onChange?.(rows)}
           />
         )
@@ -442,12 +469,12 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           }
           script.addEventListener('load', init, { once: true })
         }, [])
-          return (
+        return (
           <div className="space-y-2">
             <div>
               <label className="block text-xs text-gray-700 mb-1">Search location</label>
-              <input ref={inputRef} id={`${field.id}-search`} name={`${field.id}-search`} value={text} onChange={(e)=>setText(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Start typing an address or place" />
-                </div>
+              <input ref={inputRef} id={`${field.id}-search`} name={`${field.id}-search`} value={text} onChange={(e) => setText(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Start typing an address or place" />
+            </div>
             {pos?.lat && pos?.lng && (
               <div className="text-xs text-gray-600">Lat: {pos.lat}, Lng: {pos.lng}</div>
             )}
@@ -474,15 +501,15 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             setView({ y: now.getFullYear(), m: now.getMonth() })
           }
         }, [sel])
-        const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa']
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+        const daysShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
         const start = new Date(view.y, view.m, 1)
         const firstWeekday = start.getDay()
         const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
         const grid: Array<Date | null> = []
         for (let i = 0; i < firstWeekday; i++) grid.push(null)
         for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(view.y, view.m, d))
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
         const label = sel ? `${monthNames[sel.getMonth()]} ${sel.getDate()}, ${sel.getFullYear()}` : (field.placeholder || 'Select date')
         const nav = (delta: number) => {
           const m = view.m + delta
@@ -490,9 +517,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           const mm = ((m % 12) + 12) % 12
           setView({ y, m: mm })
         }
-          return (
+        return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o=>!o)}
+            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
               className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
               <span className={`flex items-center gap-2 ${!sel ? 'text-gray-400' : ''}`}>
                 {getFieldIcon('date')}
@@ -522,8 +549,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     )
                   })}
                 </div>
-                </div>
-              )}
+              </div>
+            )}
           </div>
         )
       }
@@ -549,15 +576,15 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             setView({ y: now.getFullYear(), m: now.getMonth() })
           }
         }, [values])
-        const daysShort = ['Su','Mo','Tu','We','Th','Fr','Sa']
-        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']
+        const daysShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
         const start = new Date(view.y, view.m, 1)
         const firstWeekday = start.getDay()
         const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
         const grid: Array<Date | null> = []
         for (let i = 0; i < firstWeekday; i++) grid.push(null)
         for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(view.y, view.m, d))
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
         const nav = (delta: number) => {
           const m = view.m + delta
           const y = view.y + Math.floor(m / 12)
@@ -582,7 +609,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 </span>
               ))}
             </div>
-            <button type="button" disabled={disabled} onClick={() => setOpen(o=>!o)}
+            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
               className={`w-full px-4 py-2 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
               <span className="text-sm">Pick dates</span>
               <ChevronDownIcon className="w-5 h-5 text-gray-400" />
@@ -623,13 +650,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const sel = typeof localValue === 'string' ? localValue : ''
         const [open, setOpen] = useState(false)
         const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-        const minutes = ['00','15','30','45']
+        const minutes = ['00', '15', '30', '45']
         const [h, setH] = useState(sel.split(':')[0] || '09')
         const [m, setM] = useState(sel.split(':')[1] || '00')
         const label = sel || (field.placeholder || 'Select time')
         return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o=>!o)}
+            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
               className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
               <span className={`flex items-center gap-2 ${!sel ? 'text-gray-400' : ''}`}>
                 {getFieldIcon('time')}
@@ -644,7 +671,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     <div className="text-xs text-gray-500 mb-1">Hour</div>
                     <div className="max-h-40 overflow-auto border rounded">
                       {hours.map((hh) => (
-                        <button key={hh} type="button" onClick={() => setH(hh)} className={`w-full text-left px-3 py-2 text-sm ${h===hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                        <button key={hh} type="button" onClick={() => setH(hh)} className={`w-full text-left px-3 py-2 text-sm ${h === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
                       ))}
                     </div>
                   </div>
@@ -652,7 +679,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     <div className="text-xs text-gray-500 mb-1">Minute</div>
                     <div className="max-h-40 overflow-auto border rounded">
                       {minutes.map((mm) => (
-                        <button key={mm} type="button" onClick={() => setM(mm)} className={`w-full text-left px-3 py-2 text-sm ${m===mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                        <button key={mm} type="button" onClick={() => setM(mm)} className={`w-full text-left px-3 py-2 text-sm ${m === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
                       ))}
                     </div>
                   </div>
@@ -673,7 +700,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const [s0, e0] = raw.split('|')
         const [open, setOpen] = useState(false)
         const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-        const minutes = ['00','15','30','45']
+        const minutes = ['00', '15', '30', '45']
         const [sh, setSh] = useState((s0 || '09:00').split(':')[0])
         const [sm, setSm] = useState((s0 || '09:00').split(':')[1])
         const [eh, setEh] = useState((e0 || '17:00').split(':')[0])
@@ -681,9 +708,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const label = (s0 && e0) ? `${s0} — ${e0}` : (field.placeholder || 'Select time range')
         return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o=>!o)}
+            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
               className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
-              <span className={`flex items-center gap-2 ${!(s0&&e0) ? 'text-gray-400' : ''}`}>
+              <span className={`flex items-center gap-2 ${!(s0 && e0) ? 'text-gray-400' : ''}`}>
                 {getFieldIcon('time')}
                 {label}
               </span>
@@ -699,7 +726,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Hour</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {hours.map((hh) => (
-                            <button key={hh} type="button" onClick={() => setSh(hh)} className={`w-full text-left px-3 py-2 text-sm ${sh===hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                            <button key={hh} type="button" onClick={() => setSh(hh)} className={`w-full text-left px-3 py-2 text-sm ${sh === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
                           ))}
                         </div>
                       </div>
@@ -707,7 +734,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Minute</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {minutes.map((mm) => (
-                            <button key={mm} type="button" onClick={() => setSm(mm)} className={`w-full text-left px-3 py-2 text-sm ${sm===mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                            <button key={mm} type="button" onClick={() => setSm(mm)} className={`w-full text-left px-3 py-2 text-sm ${sm === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
                           ))}
                         </div>
                       </div>
@@ -720,7 +747,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Hour</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {hours.map((hh) => (
-                            <button key={hh} type="button" onClick={() => setEh(hh)} className={`w-full text-left px-3 py-2 text-sm ${eh===hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                            <button key={hh} type="button" onClick={() => setEh(hh)} className={`w-full text-left px-3 py-2 text-sm ${eh === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
                           ))}
                         </div>
                       </div>
@@ -728,7 +755,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Minute</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {minutes.map((mm) => (
-                            <button key={mm} type="button" onClick={() => setEm(mm)} className={`w-full text-left px-3 py-2 text-sm ${em===mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                            <button key={mm} type="button" onClick={() => setEm(mm)} className={`w-full text-left px-3 py-2 text-sm ${em === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
                           ))}
                         </div>
                       </div>
@@ -752,9 +779,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           return (
             <div className="space-y-1">
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><PencilIcon className="w-4 h-4" /></div>
-                <div className="h-[44px] w-full rounded-[12px] bg-gray-100 border border-gray-200 pl-9 flex items-center text-gray-400">
-                  {field.placeholder || 'Short answer...'}
+                <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
+                  {field.placeholder || 'Type your answer here...'}
                 </div>
               </div>
             </div>
@@ -764,7 +790,6 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="space-y-1">
             {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
             <div className="relative">
-              <div className={`absolute left-0 top-1/2 -translate-y-1/2 ${isFocused ? 'text-indigo-600' : 'text-gray-400'} transition-colors`}><PencilIcon className="w-4 h-4" /></div>
               <input
                 ref={inputRef}
                 type="text"
@@ -775,18 +800,17 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Type your answer...'}
+                placeholder={field.placeholder || 'Type your answer here...'}
                 disabled={disabled}
-                className={`w-full bg-transparent pl-6 pr-2 py-2 border-b transition-all duration-200 outline-none ${
-                  isFocused ? 'border-indigo-500 shadow-[0_2px_0_0_rgba(99,102,241,0.5)]' : error ? 'border-red-400' : 'border-gray-300'
-                }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
+                  }`}
                 required={field.required}
               />
               {maxLength ? (
-                <div className="mt-1 text-[11px] text-gray-500">{count}/{maxLength}</div>
+                <div className="mt-2 text-xs text-gray-500 font-medium">{count} / {maxLength}</div>
               ) : null}
               {error && (
-                <div className="mt-1 text-[12px] text-red-600">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
               )}
             </div>
           </div>
@@ -798,9 +822,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           return (
             <div className="space-y-1">
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><EnvelopeIcon className="w-4 h-4" /></div>
-                <div className="h-[44px] w-full rounded-[12px] bg-gray-100 border border-gray-200 pl-9 flex items-center text-gray-400">
-                  example@email.com
+                <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
+                  name@example.com
                 </div>
               </div>
             </div>
@@ -811,7 +834,6 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="space-y-1">
             {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
             <div className="relative">
-              <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${isFocused ? 'text-indigo-600' : 'text-gray-400'} transition-colors`}><EnvelopeIcon className="w-5 h-5" /></div>
               <input
                 ref={inputRef}
                 type="email"
@@ -821,16 +843,16 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Enter your email address'}
+                placeholder={field.placeholder || 'name@example.com'}
                 disabled={disabled}
                 aria-invalid={!!error}
-                className={`${baseInputClasses} ${neutralBorderClass} pl-10 ${valid ? 'pr-10' : ''}`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${valid ? 'pr-10' : ''} ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
+                  }`}
                 required={field.required}
               />
-              {valid && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">✓</span>}
-              <div className="mt-1 text-[11px] text-gray-500">We’ll never share your email.</div>
+              {valid && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(250,86%,66%)]"><CheckIcon className="w-6 h-6" /></span>}
               {error && (
-                <div className="mt-1 text-[12px] text-red-600">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
               )}
             </div>
           </div>
@@ -852,7 +874,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         if (isPreview) {
           return (
             <div className="space-y-1">
-              <div className="rounded-[12px] bg-gray-100 border border-gray-200 p-3 text-gray-400 min-h-[88px]">{field.placeholder || 'Type your full response...'}</div>
+              <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
+                {field.placeholder || 'Type your answer here...'}
+              </div>
             </div>
           )
         }
@@ -867,23 +891,19 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => { setIsFocused(false); onBlur?.() }}
                 placeholder={field.placeholder || 'Type your answer here...'}
-                rows={Math.max(3, field.settings?.rows || 4)}
+                rows={1}
                 disabled={disabled}
-                className={`w-full bg-white dark:bg-[#1E1E1E] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-[12px] px-3 py-2 border transition-all duration-200 ${
-                  isFocused ? 'border-indigo-500 ring-4 ring-indigo-500/20' : error ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
+                  }`}
                 aria-label={label}
                 required={field.required}
                 style={{ overflow: 'hidden', resize: 'none' }}
               />
-              <div className="mt-1 flex items-center justify-between text-[11px] text-gray-500">
-                <span className="opacity-90">{maxLength ? `${count}/${maxLength}` : `${String(localValue || '').split(/\s+/).filter(Boolean).length} words`}</span>
-                {!!localValue && (
-                  <button type="button" onClick={() => handleChange('')} className="text-gray-500 hover:text-gray-700">Clear</button>
-                )}
+              <div className="mt-2 flex items-center justify-between text-xs text-gray-500 font-medium">
+                <span className="opacity-90">{maxLength ? `${count}/${maxLength}` : ''}</span>
               </div>
               {error && (
-                <div className="mt-1 text-[12px] text-red-600">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
               )}
             </div>
           </div>
@@ -896,11 +916,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           return (
             <div className="space-y-1">
               <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">#</div>
-                <div className="h-[44px] w-full rounded-[12px] bg-gray-100 border border-gray-200 pl-8 flex items-center text-gray-400">
+                <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
                   12345
                 </div>
-                <div className="mt-1 text-[11px] text-gray-500">Enter a numeric value</div>
               </div>
             </div>
           )
@@ -909,7 +927,6 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           <div className="space-y-1">
             {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
             <div className="relative">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">#</div>
               <input
                 type="number"
                 inputMode="numeric"
@@ -920,18 +937,17 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Enter your number'}
+                placeholder={field.placeholder || 'Enter a number'}
                 min={field.settings?.min}
                 max={field.settings?.max}
                 step={field.settings?.step || 1}
                 disabled={disabled}
-                className={`w-full h-[50px] rounded-[12px] border pl-8 pr-3 bg-white dark:bg-[#1E1E1E] transition-all duration-200 ${
-                  isFocused ? 'border-indigo-500 ring-4 ring-indigo-500/20' : error ? 'border-red-300' : 'border-gray-300'
-                } ${error ? 'bg-red-50' : ''}`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
+                  }`}
                 required={field.required}
               />
               {error && (
-                <div className="mt-1 text-[12px] text-red-600">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
               )}
             </div>
           </div>
@@ -993,13 +1009,17 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         // Non-interactive preview: render static styled list like the screenshot
         if (isPreview) {
           return (
-            <div className="space-y-2">
-              {(field.options || []).map((opt, idx) => (
-                <div key={idx} className="rounded-lg border border-blue-300/60 bg-blue-50/60 text-blue-800 px-3 py-2 flex items-center gap-3">
-                  {numberingStyle === 'none' ? null : renderNumberBox(idx)}
-                  <span className="font-medium">{opt}</span>
+            <div className="space-y-1">
+              <div className="relative">
+                <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 flex items-center justify-between text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
+                  <span>Type or select an option</span>
+                  <ChevronDownIcon className="w-6 h-6 md:w-8 md:h-8" />
                 </div>
-              ))}
+                <div className="flex justify-between items-center mt-3 text-sm md:text-base text-[hsl(250,86%,66%)]/70">
+                  <span className="font-semibold underline cursor-pointer hover:text-[hsl(250,86%,66%)]">Edit choices</span>
+                  <span>{field.options?.length || 0} options in list</span>
+                </div>
+              </div>
             </div>
           )
         }
@@ -1007,46 +1027,45 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         // SINGLE SELECT (standard)
         if (dropdownType === 'single') {
           if (dropdownStyle === 'default') {
-        return (
-          <div className="relative">
-            <select
-              id={field.id}
-              name={field.id}
-              value={localValue}
-              onChange={(e) => handleChange(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => {
-                setIsFocused(false)
-                onBlur?.()
-              }}
+            return (
+              <div className="relative">
+                <select
+                  id={field.id}
+                  name={field.id}
+                  value={localValue}
+                  onChange={(e) => handleChange(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => {
+                    setIsFocused(false)
+                    onBlur?.()
+                  }}
                   disabled={disabled}
-              className={`w-full px-4 py-3 border rounded-lg transition-all duration-200 appearance-none ${
-                isFocused 
-                  ? 'border-blue-500 ring-2 ring-blue-500/20' 
-                  : error 
-                    ? 'border-red-300' 
-                    : 'border-gray-300'
-                  } ${error ? 'bg-red-50' : 'bg-white'}`}
-              required={field.required}
-            >
-              <option value="">{field.placeholder || 'Select an option...'}</option>
-              {field.options?.map((option, index) => (
-                <option key={index} value={option}>
+                  className={`w-full px-4 py-3 border rounded-lg transition-all duration-200 appearance-none ${isFocused
+                    ? 'border-blue-500 ring-2 ring-blue-500/20'
+                    : error
+                      ? 'border-red-300'
+                      : 'border-gray-300'
+                    } ${error ? 'bg-red-50' : 'bg-white'}`}
+                  required={field.required}
+                >
+                  <option value="">{field.placeholder || 'Select an option...'}</option>
+                  {field.options?.map((option, index) => (
+                    <option key={index} value={option}>
                       {getNumberPrefix(index)}{option}
-                </option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-              <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-            </div>
-            {error && (
-              <div className="absolute -bottom-6 left-0 text-sm text-red-600 flex items-center space-x-1">
-                <XMarkIcon className="w-4 h-4" />
-                <span>{error}</span>
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                </div>
+                {error && (
+                  <div className="absolute -bottom-6 left-0 text-sm text-red-600 flex items-center space-x-1">
+                    <XMarkIcon className="w-4 h-4" />
+                    <span>{error}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )
+            )
           }
           // custom-styled single select (cards/pills/minimal)
           const displayLabel = field.options?.find(o => o === localValue) || ''
@@ -1055,9 +1074,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <button
                 type="button"
                 onClick={() => !disabled && setOpen(v => !v)}
-                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${
-                  open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-                } ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
+                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
+                  } ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
               >
                 <span className={`truncate ${!displayLabel ? 'text-gray-400' : ''}`}>
                   {displayLabel || field.placeholder || 'Select an option...'}
@@ -1093,9 +1111,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <button
                 type="button"
                 onClick={() => !isPreview && !disabled && setOpen(v => !v)}
-                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${
-                  open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-                } ${disabled || isPreview ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
+                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
+                  } ${disabled || isPreview ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
               >
                 <span className={`truncate ${!displayLabel ? 'text-gray-400' : ''}`}>
                   {displayLabel || field.placeholder || 'Select an option...'}
@@ -1127,16 +1144,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                           }}
                           className={
                             dropdownStyle === 'cards'
-                              ? `w-full text-left p-3 text-sm rounded-md border transition-colors ${
-                                  opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                }`
+                              ? `w-full text-left p-3 text-sm rounded-md border transition-colors ${opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                              }`
                               : dropdownStyle === 'pills'
-                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${
-                                    opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                  }`
-                                : `w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${
-                                    opt === localValue ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
-                                  }`
+                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                                }`
+                                : `w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${opt === localValue ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
+                                }`
                           }
                         >
                           <span className="flex items-center gap-3">
@@ -1169,9 +1183,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         return (
           <div className="relative">
             <div
-              className={`w-full min-h-[44px] px-3 py-2 border rounded-lg flex items-center flex-wrap gap-2 ${
-                isFocused ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-              } ${disabled || isPreview ? 'bg-gray-50' : 'bg-white'}`}
+              className={`w-full min-h-[44px] px-3 py-2 border rounded-lg flex items-center flex-wrap gap-2 ${isFocused ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
+                } ${disabled || isPreview ? 'bg-gray-50' : 'bg-white'}`}
               onClick={() => !isPreview && !disabled && setOpen(true)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
@@ -1217,16 +1230,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                           onClick={() => toggleItem(opt)}
                           className={
                             dropdownStyle === 'cards'
-                              ? `w-full text-left p-3 text-sm rounded-md border flex items-center justify-between transition-colors ${
-                                  selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                }`
+                              ? `w-full text-left p-3 text-sm rounded-md border flex items-center justify-between transition-colors ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                              }`
                               : dropdownStyle === 'pills'
-                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${
-                                    selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                                  }`
-                                : `w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-blue-50 ${
-                                    selected ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
-                                  }`
+                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                                }`
+                                : `w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-blue-50 ${selected ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
+                                }`
                           }
                         >
                           <span className="flex items-center gap-3">
@@ -1341,7 +1351,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     ))}
                   </select>
                 ) : (
-                  <RegionAuto country={v.country} value={v.region || ''} onChange={(val)=>set('region', val)} inputCls={inputCls} required={req('addressRequireRegion', true)} />
+                  <RegionAuto country={v.country} value={v.region || ''} onChange={(val) => set('region', val)} inputCls={inputCls} required={req('addressRequireRegion', true)} />
                 )}
               </div>
             </div>
@@ -1367,46 +1377,52 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         )
       }
 
-      case 'radio':
+      case 'radio': {
+        const getLetter = (index: number) => String.fromCharCode(65 + (index % 26))
         if (isPreview) {
           return (
             <div className="space-y-2">
               {field.options?.map((opt, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-gray-700">
-                  <span className="inline-block w-3 h-3 rounded-full border border-gray-400" />
-                  <span className="text-sm">{opt}</span>
+                <div key={idx} className="flex items-center w-full max-w-lg p-3 rounded-md border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7]">
+                  <div className="flex items-center justify-center w-6 h-6 rounded border border-[#6C5CE7] text-xs font-bold mr-3 bg-white">
+                    {getLetter(idx)}
+                  </div>
+                  <span className="text-lg">{opt}</span>
                 </div>
               ))}
             </div>
           )
         }
         return (
-          <div className="space-y-3">
-            {field.options?.map((option, index) => (
-              <label key={index} className="flex items-center space-x-3 cursor-pointer group">
-                 <input
-                  type="radio"
-                  name={field.id}
-                  value={option}
-                  checked={localValue === option}
-                  onChange={(e) => handleChange(e.target.value)}
-                   disabled={disabled}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                  required={field.required}
-                />
-                <span className="text-gray-900 group-hover:text-blue-600 transition-colors">
-                  {option}
-                </span>
-              </label>
-            ))}
+          <div className="space-y-2">
+            {field.options?.map((option, index) => {
+              const isSelected = localValue === option
+              return (
+                <label key={index} className={`flex items-center w-full max-w-lg p-3 rounded-md border cursor-pointer transition-all ${isSelected ? 'border-[#6C5CE7] bg-[#6C5CE7]/10 text-[#6C5CE7]' : 'border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7] hover:bg-[#6C5CE7]/10 hover:border-[#6C5CE7]/50'}`}>
+                  <input
+                    type="radio"
+                    name={field.id}
+                    value={option}
+                    checked={isSelected}
+                    onChange={(e) => handleChange(e.target.value)}
+                    disabled={disabled}
+                    className="hidden"
+                    required={field.required}
+                  />
+                  <div className={`flex items-center justify-center w-6 h-6 rounded border text-xs font-bold mr-3 transition-colors ${isSelected ? 'border-[#6C5CE7] bg-[#6C5CE7] text-white' : 'border-[#6C5CE7] bg-white text-[#6C5CE7]'}`}>
+                    {getLetter(index)}
+                  </div>
+                  <span className="text-lg">{option}</span>
+                  {isSelected && <CheckIcon className="w-5 h-5 ml-auto text-[#6C5CE7]" />}
+                </label>
+              )
+            })}
             {error && (
-              <div className="text-sm text-red-600 flex items-center space-x-1">
-                <XMarkIcon className="w-4 h-4" />
-                <span>{error}</span>
-              </div>
+              <div className="text-sm text-red-600 font-medium mt-2">{error}</div>
             )}
           </div>
         )
+      }
 
       case 'checkbox': {
         const shape = (field.settings as any)?.checkboxShape || 'square'
@@ -1460,9 +1476,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <button
                   type="button"
                   onClick={(e) => { e.preventDefault(); toggle(option) }}
-                  className={`relative inline-flex items-center justify-center w-5 h-5 mr-1 transition-all duration-200 bg-white ${
-                    isSelected(option) ? 'ring-2 ring-blue-200' : 'hover:ring-1 hover:ring-blue-100'
-                  }`}
+                  className={`relative inline-flex items-center justify-center w-5 h-5 mr-1 transition-all duration-200 bg-white ${isSelected(option) ? 'ring-2 ring-blue-200' : 'hover:ring-1 hover:ring-blue-100'
+                    }`}
                 >
                   {shape === 'triangle'
                     ? renderTriangle(isSelected(option))
@@ -1506,81 +1521,128 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             </span>
           )
         }
+        // Picture Choice / Gallery layout implementation
+        const hasImages = field.settings?.optionImages && field.settings.optionImages.length > 0
+        const gridClass = hasImages
+          ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full"
+          : "grid grid-cols-1 md:grid-cols-2 gap-3 w-full"
+
+        const getCardClass = (selected: boolean, hasImg: boolean) => {
+          if (hasImg) {
+            return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left bg-white cursor-pointer ${selected
+              ? 'border-[#6C5CE7] shadow-md'
+              : 'border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.08)] hover:shadow-lg hover:border-[#6C5CE7]/40'
+              }`
+          }
+          return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left cursor-pointer ${selected
+            ? 'border-[#6C5CE7] bg-[#6C5CE7]/10 shadow-[0_0_0_1px_#6C5CE7]'
+            : 'border-[#6C5CE7]/30 bg-[#6C5CE7]/5 hover:border-[#6C5CE7]/50 hover:bg-[#6C5CE7]/10'
+            }`
+        }
+
         // Preview mode — non-interactive cards with badges
         if (isPreview) {
           const items = [...(field.options || [])]
           if (showOther) items.push('Other')
           return (
-            <div className="space-y-2">
-              {items.map((opt, idx) => (
-                <div key={idx} className="rounded-lg border border-blue-300/60 bg-blue-50/60 text-blue-800 px-3 py-2 flex items-center gap-3">
-                  {numberingStyle === 'none' ? null : getBadge(idx)}
-                  <span className="font-medium">{opt}</span>
-                </div>
-              ))}
-            </div>
-          )
-        }
-        // Live mode — radios or checkboxes depending on allowMultiple
-        if (allowMultiple) {
-          const valueArray: string[] = Array.isArray(localValue) ? localValue : []
-          const toggle = (opt: string) => {
-            if (valueArray.includes(opt)) handleChange(valueArray.filter(v => v !== opt))
-            else handleChange([...valueArray, opt])
-          }
-          return (
-            <div className="space-y-2">
-              {(field.options || []).map((opt, idx) => {
-                const selected = valueArray.includes(opt)
+            <div className={gridClass}>
+              {items.map((opt, idx) => {
+                const img = hasImages ? field.settings?.optionImages?.[idx] : null
                 return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => toggle(opt)}
-                    disabled={disabled}
-                    className={`w-full text-left rounded-lg px-3 py-2 border flex items-center gap-3 transition-colors ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50'}`}
-                  >
-                    {numberingStyle === 'none' ? null : getBadge(idx)}
-                    <span className="font-medium">{opt}</span>
-                  </button>
+                  <div key={idx} className={getCardClass(false, !!img)}>
+                    {img && (
+                      <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img} alt={opt} className="object-cover w-full h-full" />
+                        {numberingStyle === 'none' ? null : (
+                          <div className="absolute top-2 left-2 flex items-center justify-center w-6 h-6 text-xs font-bold rounded shadow-sm bg-white/90 text-[#6C5CE7] mix-blend-normal">
+                            {String.fromCharCode(65 + (idx % 26))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-3 md:p-4 flex items-center justify-between w-full h-full mt-auto">
+                      <div className="flex items-center">
+                        {!img && numberingStyle !== 'none' ? (
+                          <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border border-[#6C5CE7] bg-white text-[#6C5CE7]">
+                            {String.fromCharCode(65 + (idx % 26))}
+                          </span>
+                        ) : null}
+                        <span className={`text-lg md:text-xl ${img ? 'text-gray-800' : 'text-[#6C5CE7]'}`}>{opt}</span>
+                      </div>
+                    </div>
+                  </div>
                 )
               })}
-              {showOther && (
-                <button
-                  type="button"
-                  disabled
-                  className="w-full text-left rounded-lg px-3 py-2 border flex items-center gap-3 border-gray-300 bg-blue-50/60 text-blue-800"
-                >
-                  {numberingStyle === 'none' ? null : getBadge((field.options || []).length)}
-                  <span className="font-medium">Other</span>
-                </button>
-              )}
             </div>
           )
         }
-        // Single-select behavior (radio-like)
+
+        // Live mode
+        const valueArray: string[] = Array.isArray(localValue) ? localValue : (localValue ? [localValue] : [])
+        const toggle = (opt: string) => {
+          if (allowMultiple) {
+            if (valueArray.includes(opt)) handleChange(valueArray.filter(v => v !== opt))
+            else handleChange([...valueArray, opt])
+          } else {
+            handleChange(opt)
+          }
+        }
+
         return (
-          <div className="space-y-2">
-            {(field.options || []).map((opt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleChange(opt)}
-                disabled={disabled}
-                className={`w-full text-left rounded-lg px-3 py-2 border flex items-center gap-3 transition-colors ${localValue === opt ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 hover:border-blue-300 hover:bg-blue-50'}`}
-              >
-                {numberingStyle === 'none' ? null : getBadge(idx)}
-                <span className="font-medium">{opt}</span>
-              </button>
-            ))}
+          <div className={gridClass}>
+            {(field.options || []).map((opt, idx) => {
+              const selected = allowMultiple ? valueArray.includes(opt) : localValue === opt
+              const img = hasImages ? field.settings?.optionImages?.[idx] : null
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => toggle(opt)}
+                  disabled={disabled}
+                  className={getCardClass(selected, !!img)}
+                >
+                  {img && (
+                    <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={img} alt={opt} className="object-cover w-full h-full transform transition-transform duration-300 hover:scale-105" />
+                      {numberingStyle === 'none' ? null : (
+                        <div className="absolute top-2 left-2 flex items-center justify-center w-6 h-6 text-xs font-bold rounded shadow bg-white/90 text-[#6C5CE7] mix-blend-normal">
+                          {String.fromCharCode(65 + (idx % 26))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className={`p-3 md:p-4 flex items-center justify-between w-full h-full mt-auto ${selected && img ? 'bg-[#6C5CE7]/5' : ''}`}>
+                    <div className="flex items-center">
+                      {!img && numberingStyle !== 'none' ? (
+                        <span className={`flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border transition-colors ${selected ? 'border-[#6C5CE7] bg-[#6C5CE7] text-white' : 'border-[#6C5CE7] bg-white text-[#6C5CE7]'}`}>
+                          {String.fromCharCode(65 + (idx % 26))}
+                        </span>
+                      ) : null}
+                      <span className={`text-lg md:text-xl transition-colors ${selected ? 'text-[#6C5CE7]' : (img ? 'text-gray-800' : 'text-[#6C5CE7]')}`}>{opt}</span>
+                    </div>
+                    {selected && <CheckIcon className="w-6 h-6 text-[#6C5CE7]" />}
+                  </div>
+                </button>
+              )
+            })}
             {showOther && (
               <button
                 type="button"
+                className={getCardClass(false, false)}
                 disabled
-                className="w-full text-left rounded-lg px-3 py-2 border flex items-center gap-3 border-gray-300 bg-blue-50/60 text-blue-800"
               >
-                {numberingStyle === 'none' ? null : getBadge((field.options || []).length)}
-                <span className="font-medium">Other</span>
+                <div className="p-4 flex items-center justify-between w-full h-full mt-auto">
+                  <div className="flex items-center">
+                    {numberingStyle === 'none' ? null : (
+                      <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border border-[#6C5CE7] bg-white text-[#6C5CE7]">
+                        {String.fromCharCode(65 + ((field.options || []).length % 26))}
+                      </span>
+                    )}
+                    <span className="text-lg md:text-xl text-[#6C5CE7]">Other</span>
+                  </div>
+                </div>
               </button>
             )}
           </div>
@@ -1602,36 +1664,36 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               </div>
             )
           }
-        return (
-          <div className="space-y-3">
+          return (
+            <div className="space-y-3">
               <div className="flex items-center gap-1">
                 {Array.from({ length: max }).map((_, i) => {
                   const idx = i + 1
                   const active = idx <= (localValue || 0)
                   return (
-                 <button
+                    <button
                       key={i}
-                  type="button"
+                      type="button"
                       onClick={() => handleChange(idx)}
                       disabled={disabled}
                       className={`p-1 transition-all duration-200 ${active ? 'scale-110' : ''} ${active ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
                     >
                       {active ? <ActiveIcon className="w-8 h-8" /> : <InactiveIcon className="w-8 h-8" />}
-                </button>
+                    </button>
                   )
                 })}
-            </div>
-            {localValue && (
-                <p className="text-sm text-gray-600">You rated this {localValue} / {max}</p>
-            )}
-            {error && (
-              <div className="text-sm text-red-600 flex items-center space-x-1">
-                <XMarkIcon className="w-4 h-4" />
-                <span>{error}</span>
               </div>
-            )}
-          </div>
-        )
+              {localValue && (
+                <p className="text-sm text-gray-600">You rated this {localValue} / {max}</p>
+              )}
+              {error && (
+                <div className="text-sm text-red-600 flex items-center space-x-1">
+                  <XMarkIcon className="w-4 h-4" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </div>
+          )
         }
 
       case 'nps':
@@ -1639,11 +1701,11 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const style = (field.settings as any)?.npsStyle || 'buttons'
         const accent = (field.settings as any)?.checkedColor || '#2563eb'
         const cardView = !!(field.settings as any)?.npsCardView
-        const scores = [0,1,2,3,4,5,6,7,8,9,10]
+        const scores = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         const gapCls = cardView ? 'gap-2' : 'gap-1.5'
         const renderItem = (score: number, selected: boolean) => {
           if (style === 'chips') {
-        return (
+            return (
               <button type="button" onClick={() => handleChange(score)} disabled={disabled}
                 className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-sm rounded-full border ${selected ? 'text-white' : 'text-gray-700'}`}
                 style={{ background: selected ? accent : 'white', borderColor: selected ? accent : '#E5E7EB' }}>{score}</button>
@@ -1668,8 +1730,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <button type="button" onClick={() => handleChange(score)} disabled={disabled}
                 className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? 'text-base rounded-lg' : 'text-sm rounded-md'} font-medium transition-colors ${selected ? 'text-white' : 'text-gray-700'}`}
                 style={{ background: selected ? accent : 'white', border: `1px solid ${selected ? accent : '#E5E7EB'}` }}>
-                  {score}
-                </button>
+                {score}
+              </button>
             )
           }
           // buttons default
@@ -1692,11 +1754,11 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     if (style === 'typeform') {
                       return (
                         <div
-                  key={score}
+                          key={score}
                           className={previewTypeformTileCls}
                           style={{ borderColor: accent, color: accent }}
-                >
-                  {score}
+                        >
+                          {score}
                         </div>
                       )
                     }
@@ -1711,8 +1773,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   })}
                 </div>
                 <div className="grid grid-cols-11 mt-2 px-0.5">
-                  <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style==='typeform' ? accent : undefined }}>{style==='typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
-                  <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style==='typeform' ? accent : undefined }}>Extremely likely</span>
+                  <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>{style === 'typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
+                  <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>Extremely likely</span>
                 </div>
               </div>
             </div>
@@ -1729,8 +1791,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 ))}
               </div>
               <div className="grid grid-cols-11 mt-2 px-0.5">
-                <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style==='typeform' ? accent : undefined }}>{style==='typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
-                <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style==='typeform' ? accent : undefined }}>Extremely likely</span>
+                <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>{style === 'typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
+                <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>Extremely likely</span>
               </div>
             </div>
             {localValue !== undefined && localValue !== '' && (
@@ -1755,7 +1817,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
 
           if (isPreview) {
             if (style === 'toggle') {
-        return (
+              return (
                 <div className="inline-flex items-center gap-2 text-gray-500">
                   <span>No</span>
                   <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300">
@@ -1797,11 +1859,10 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             )
           }
 
-          const btnCls = (active: boolean, positive: boolean) => `flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
-            active ? '' : 'hover:opacity-90'
-          }` + (active
-            ? ` border-[${accent}]`
-            : ' border-gray-300')
+          const btnCls = (active: boolean, positive: boolean) => `flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${active ? '' : 'hover:opacity-90'
+            }` + (active
+              ? ` border-[${accent}]`
+              : ' border-gray-300')
 
           if (style === 'toggle') {
             const on = localValue === 'yes'
@@ -1821,13 +1882,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           if (style === 'chips') {
             return (
               <div className="flex gap-2">
-                {['yes','no'].map(v => (
+                {['yes', 'no'].map(v => (
                   <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
                     className={`px-3 py-1.5 text-sm border rounded-full ${localValue === v ? 'text-white' : 'text-gray-600'}`}
                     style={{ background: localValue === v ? accent : 'white', borderColor: localValue === v ? accent : '#D1D5DB' }}
                   >{v === 'yes' ? 'Yes' : 'No'}</button>
                 ))}
-                 </div>
+              </div>
             )
           }
 
@@ -1839,7 +1900,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   style={{ background: localValue === 'yes' ? accent : 'white', borderColor: localValue === 'yes' ? accent : '#D1D5DB' }}
                 >
                   <HandThumbUpIcon className="w-5 h-5" />
-              </button>
+                </button>
                 <button type="button" onClick={() => handleChange('no')} disabled={disabled}
                   className={`p-2 rounded-lg border ${localValue === 'no' ? 'text-white' : 'text-gray-600'}`}
                   style={{ background: localValue === 'no' ? accent : 'white', borderColor: localValue === 'no' ? accent : '#D1D5DB' }}
@@ -1853,7 +1914,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           if (style === 'cards') {
             return (
               <div className="flex gap-3">
-                {['yes','no'].map(v => (
+                {['yes', 'no'].map(v => (
                   <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
                     className="flex-1 px-4 py-3 rounded-lg border text-center"
                     style={{ background: localValue === v ? `${accent}1A` : '#F9FAFB', color: localValue === v ? accent : '#374151', borderColor: localValue === v ? accent : '#E5E7EB' }}
@@ -1870,22 +1931,26 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="button"
                 onClick={() => handleChange('yes')}
                 disabled={disabled}
-                className="flex-1 py-3 px-4 rounded-lg border-2"
+                className="flex-1 py-3 px-4 rounded-lg border-2 relative"
                 style={{ background: localValue === 'yes' ? `${accent}1A` : 'white', color: localValue === 'yes' ? accent : '#374151', borderColor: localValue === 'yes' ? accent : '#E5E7EB' }}
-              >Yes</button>
+              >Yes
+                <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">Y</span>
+              </button>
               <button
                 type="button"
                 onClick={() => handleChange('no')}
                 disabled={disabled}
-                className="flex-1 py-3 px-4 rounded-lg border-2"
+                className="flex-1 py-3 px-4 rounded-lg border-2 relative"
                 style={{ background: localValue === 'no' ? `${accent}1A` : 'white', color: localValue === 'no' ? accent : '#374151', borderColor: localValue === 'no' ? accent : '#E5E7EB' }}
-              >No</button>
+              >No
+                <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">N</span>
+              </button>
             </div>
           )
         }
 
       case 'matrix_grid': {
-        const rows = ((field.settings as any)?.matrixRows || ['Row 1','Row 2','Row 3','Row 4']) as string[]
+        const rows = ((field.settings as any)?.matrixRows || ['Row 1', 'Row 2', 'Row 3', 'Row 4']) as string[]
         const cols = ((field.settings as any)?.matrixColumns || ['Col 1']) as string[]
         const selection = ((field.settings as any)?.matrixSelection || 'single') as 'single' | 'multiple'
         const shape = ((field.settings as any)?.matrixBoxShape || 'square') as 'square' | 'rounded' | 'circle'
@@ -1913,7 +1978,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   Add column
                 </button>
               )}
-                 </div>
+            </div>
             {/* header with editable column titles in builder card */}
             <div className="relative">
               {cols.length > 4 && (
@@ -1989,9 +2054,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                           />
                         )
                       })()}
-              </button>
+                    </button>
                   ))}
-            </div>
+                </div>
               ))}
             </div>
             {inBuilderCard && rows.length > 6 && (
@@ -2024,7 +2089,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const right = (field.settings as any)?.rightLabel || 'High'
         const values = Array.from({ length: max - min + 1 }, (_, i) => i + min)
         if (isPreview) {
-        return (
+          return (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs text-gray-600">
                 <span>{left}</span>
@@ -2034,9 +2099,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 {values.map(v => (
                   <span key={v} className="flex-1 text-center py-2 rounded bg-gray-100 border text-xs">{v}</span>
                 ))}
+              </div>
             </div>
-          </div>
-        )
+          )
         }
         return (
           <div className="space-y-2">
@@ -2047,7 +2112,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="flex gap-1.5">
               {values.map(v => (
                 <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
-                  className={`flex-1 text-center py-2 rounded border text-xs ${localValue===v ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-50'}`}>{v}</button>
+                  className={`flex-1 text-center py-2 rounded border text-xs ${localValue === v ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-50'}`}>{v}</button>
               ))}
             </div>
           </div>
@@ -2055,14 +2120,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       }
 
       case 'likert_scale': {
-        const rows = ((field.settings as any)?.likertRows || ['Statement 1','Statement 2']) as string[]
-        const cols = ((field.settings as any)?.likertCols || ['Strongly Disagree','Disagree','Neutral','Agree','Strongly Agree']) as string[]
+        const rows = ((field.settings as any)?.likertRows || ['Statement 1', 'Statement 2']) as string[]
+        const cols = ((field.settings as any)?.likertCols || ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree']) as string[]
         const selType = ((field.settings as any)?.likertSelection || 'single') as 'single' | 'multiple'
         // value stored as { [rowIndex]: number[] } of selected column indices
         const current = (localValue && typeof localValue === 'object') ? localValue : {}
         const toggle = (ri: number, ci: number) => {
           const rowSel: number[] = Array.isArray(current[ri]) ? current[ri] : []
-          const nextRow = selType==='single' ? [ci] : (rowSel.includes(ci) ? rowSel.filter(x=>x!==ci) : [...rowSel, ci])
+          const nextRow = selType === 'single' ? [ci] : (rowSel.includes(ci) ? rowSel.filter(x => x !== ci) : [...rowSel, ci])
           handleChange({ ...current, [ri]: nextRow })
         }
         const isSel = (ri: number, ci: number) => Array.isArray(current[ri]) && (current[ri] as number[]).includes(ci)
@@ -2073,20 +2138,20 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <thead>
                   <tr>
                     <th className="text-left pr-3"></th>
-                    {cols.map((c,i)=>(<th key={i} className="px-2 py-1 text-gray-600 font-medium text-center">{c}</th>))}
+                    {cols.map((c, i) => (<th key={i} className="px-2 py-1 text-gray-600 font-medium text-center">{c}</th>))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r,ri)=> (
+                  {rows.map((r, ri) => (
                     <tr key={ri} className="border-t">
                       <td className="py-2 pr-3 text-gray-800">{r}</td>
-                      {cols.map((_,ci)=> (
+                      {cols.map((_, ci) => (
                         <td key={ci} className="px-2 py-1 text-center">
                           {isPreview ? (
-                            <span className={`inline-block w-3 h-3 rounded-full border ${isSel(ri,ci)?'bg-blue-500 border-blue-500':'border-gray-300'}`} />
+                            <span className={`inline-block w-3 h-3 rounded-full border ${isSel(ri, ci) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`} />
                           ) : (
-                            <button type="button" onClick={() => toggle(ri,ci)} disabled={disabled}
-                              className={`inline-block w-4 h-4 rounded-full border ${isSel(ri,ci)?'bg-blue-600 border-blue-600':'border-gray-300 hover:border-blue-300'}`} />
+                            <button type="button" onClick={() => toggle(ri, ci)} disabled={disabled}
+                              className={`inline-block w-4 h-4 rounded-full border ${isSel(ri, ci) ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-300'}`} />
                           )}
                         </td>
                       ))}
@@ -2101,13 +2166,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
 
       case 'ranking': {
         // Simple dragless rank with up/down toggles for builder simplicity
-        const items = (field.options || ['Item 1','Item 2','Item 3']) as string[]
+        const items = (field.options || ['Item 1', 'Item 2', 'Item 3']) as string[]
         const arr: string[] = Array.isArray(localValue) ? localValue : items
         const move = (from: number, to: number) => {
           if (to < 0 || to >= arr.length) return
           const next = [...arr]
-          const [it] = next.splice(from,1)
-          next.splice(to,0,it)
+          const [it] = next.splice(from, 1)
+          next.splice(to, 0, it)
           handleChange(next)
         }
         return (
@@ -2117,8 +2182,8 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <span className="text-sm text-gray-800">{it}</span>
                 {!isPreview && (
                   <div className="flex items-center gap-1">
-                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i-1)}>Up</button>
-                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i+1)}>Down</button>
+                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i - 1)}>Up</button>
+                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i + 1)}>Down</button>
                   </div>
                 )}
               </div>
@@ -2131,9 +2196,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const cfg = (field.settings as any) || {}
         const type = (cfg.captchaType || 'text') as string
         const caseSensitive = !!cfg.captchaCaseSensitive
-        const difficulty = (cfg.captchaDifficulty || 'easy') as 'easy'|'medium'|'hard'
+        const difficulty = (cfg.captchaDifficulty || 'easy') as 'easy' | 'medium' | 'hard'
         const [challenge, setChallenge] = useState<string>('')
-        const [mathOps, setMathOps] = useState<{ a: number; b: number; op: '+'|'-'|'×' } | null>(null)
+        const [mathOps, setMathOps] = useState<{ a: number; b: number; op: '+' | '-' | '×' } | null>(null)
         const [slider, setSlider] = useState<number>(0)
         const [checked, setChecked] = useState<boolean>(false)
         const [inputVal, setInputVal] = useState<string>('')
@@ -2144,7 +2209,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             const max = difficulty === 'hard' ? 50 : difficulty === 'medium' ? 20 : 10
             const a = Math.floor(Math.random() * max) + 1
             const b = Math.floor(Math.random() * max) + 1
-            const ops: Array<'+'|'-'|'×'> = ['+','-','×']
+            const ops: Array<'+' | '-' | '×'> = ['+', '-', '×']
             const op = ops[Math.floor(Math.random() * (difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3))]
             setMathOps({ a, b, op })
             setInputVal('')
@@ -2177,9 +2242,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           setIsClient(true)
         }, [])
 
-        useEffect(() => { 
+        useEffect(() => {
           if (isClient) {
-            regen() 
+            regen()
           }
         }, [type, difficulty, isClient])
 
@@ -2210,7 +2275,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
 
         const sectionCls = 'p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50'
         const labelCls = 'text-xs text-gray-600'
-        
+
         // Show loading state until client-side generation is complete
         if (!isClient) {
           return (
@@ -2223,38 +2288,38 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             </div>
           )
         }
-        
+
         return (
           <div className={sectionCls}>
             {type === 'math' && mathOps && (
               <div className="text-center space-y-2">
                 <div className="font-mono text-base">{mathOps.a} {mathOps.op} {mathOps.b} = ?</div>
-                <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} className="w-24 h-8 mx-auto border rounded bg-white text-center" placeholder="Answer" />
+                <input value={inputVal} onChange={(e) => setInputVal(e.target.value)} className="w-24 h-8 mx-auto border rounded bg-white text-center" placeholder="Answer" />
                 <div className={labelCls}>{verify() ? 'Verified' : 'Enter the result'}</div>
               </div>
             )}
             {type === 'text' && challenge && (
               <div className="text-center space-y-2">
                 <div className="font-mono bg-gray-100 inline-block px-2 py-1 rounded tracking-widest select-none">{challenge}</div>
-                <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} className="w-32 h-8 mx-auto border rounded bg-white text-center" placeholder="Type here" />
+                <input value={inputVal} onChange={(e) => setInputVal(e.target.value)} className="w-32 h-8 mx-auto border rounded bg-white text-center" placeholder="Type here" />
                 <div className={labelCls}>{verify() ? 'Verified' : caseSensitive ? 'Case sensitive' : 'Not case sensitive'}</div>
               </div>
             )}
             {type === 'slider' && (
               <div className="space-y-1">
                 <div className={labelCls}>Slide to verify</div>
-                <input type="range" min={0} max={100} value={slider} onChange={(e)=>setSlider(parseInt(e.target.value))} className="w-full" />
+                <input type="range" min={0} max={100} value={slider} onChange={(e) => setSlider(parseInt(e.target.value))} className="w-full" />
                 <div className={labelCls}>{verify() ? 'Verified' : 'Slide to 100%'}</div>
               </div>
             )}
             {type === 'checkbox' && (
               <label className="flex items-center justify-center gap-2">
-                <input type="checkbox" checked={checked} onChange={(e)=>setChecked(e.target.checked)} className="w-4 h-4" />
+                <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="w-4 h-4" />
                 <span className="text-sm">I'm not a robot</span>
               </label>
             )}
             {type === 'recaptcha' && (
-              <button type="button" onClick={()=>setChecked(v=>!v)} className={`w-full md:w-72 mx-auto flex items-center justify-between px-3 py-2 rounded border ${checked ? 'bg-emerald-50 border-emerald-400' : 'bg-white border-gray-300'} shadow-sm`}>
+              <button type="button" onClick={() => setChecked(v => !v)} className={`w-full md:w-72 mx-auto flex items-center justify-between px-3 py-2 rounded border ${checked ? 'bg-emerald-50 border-emerald-400' : 'bg-white border-gray-300'} shadow-sm`}>
                 <div className="flex items-center gap-2">
                   <span className={`inline-flex h-4 w-4 items-center justify-center rounded border ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-400'}`}>{checked && <CheckIcon className="w-3 h-3 text-white" />}</span>
                   <span className="text-sm">I'm not a robot</span>
@@ -2277,26 +2342,26 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         // Canvas refs/state
         const canvasRef = useRef<HTMLCanvasElement>(null)
         const drawingRef = useRef(false)
-        const lastRef = useRef<{x:number;y:number}|null>(null)
+        const lastRef = useRef<{ x: number; y: number } | null>(null)
 
         useEffect(() => {
           if (mode !== 'draw') return
-          
+
           try {
             const canvas = canvasRef.current
             if (!canvas) return
-            
+
             const ctx = canvas.getContext('2d')
             if (!ctx) return
-            
+
             // scale for DPR with mobile safety checks
             const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
             const rect = canvas.getBoundingClientRect()
-            
+
             // Ensure minimum dimensions for mobile
             const minWidth = Math.max(rect.width || 300, 300)
             const minHeight = Math.max(rect.height || 200, 200)
-            
+
             canvas.width = minWidth * dpr
             canvas.height = minHeight * dpr
             ctx.scale(dpr, dpr)
@@ -2304,7 +2369,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             ctx.lineCap = 'round'
             ctx.strokeStyle = '#111827'
             ctx.lineWidth = penSize
-            
+
             // If existing image value
             if (typeof value === 'string' && (value as string).startsWith('data:')) {
               const img = new Image()
@@ -2329,15 +2394,15 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
           try {
             const rect = canvas.getBoundingClientRect()
             if ('touches' in e && e.touches && e.touches.length > 0) {
-              return { 
-                x: e.touches[0].clientX - rect.left, 
-                y: e.touches[0].clientY - rect.top 
+              return {
+                x: e.touches[0].clientX - rect.left,
+                y: e.touches[0].clientY - rect.top
               }
             } else if ('clientX' in e) {
               const me = e as MouseEvent
-              return { 
-                x: me.clientX - rect.left, 
-                y: me.clientY - rect.top 
+              return {
+                x: me.clientX - rect.left,
+                y: me.clientY - rect.top
               }
             }
             return { x: 0, y: 0 }
@@ -2353,10 +2418,10 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             const canvas = canvasRef.current
             const ctx = canvas?.getContext('2d')
             if (!canvas || !ctx) return
-            
+
             // Prevent default to avoid scrolling on mobile
             if (e.preventDefault) e.preventDefault()
-            
+
             drawingRef.current = true
             lastRef.current = getPos(e.nativeEvent || e, canvas)
           } catch (error) {
@@ -2369,10 +2434,10 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             const canvas = canvasRef.current
             const ctx = canvas?.getContext('2d')
             if (!canvas || !ctx || !drawingRef.current || !lastRef.current) return
-            
+
             // Prevent default to avoid scrolling on mobile
             if (e.preventDefault) e.preventDefault()
-            
+
             const now = getPos(e.nativeEvent || e, canvas)
             ctx.beginPath()
             ctx.moveTo(lastRef.current.x, lastRef.current.y)
@@ -2388,10 +2453,10 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             if (mode !== 'draw') return
             const canvas = canvasRef.current
             if (!canvas) return
-            
+
             drawingRef.current = false
             lastRef.current = null
-            
+
             const data = canvas.toDataURL('image/png')
             onChange?.(data)
           } catch (error) {
@@ -2404,7 +2469,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             const canvas = canvasRef.current
             const ctx = canvas?.getContext('2d')
             if (!canvas || !ctx) return
-            
+
             ctx.clearRect(0, 0, canvas.width, canvas.height)
             onChange?.('')
           } catch (error) {
@@ -2415,7 +2480,7 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
         const fileInputRef = useRef<HTMLInputElement>(null)
         const handleFile = (file: File) => {
           if (!file) return
-          if (!['image/png','image/jpeg'].includes(file.type)) return
+          if (!['image/png', 'image/jpeg'].includes(file.type)) return
           if (file.size > 50 * 1024) return
           const reader = new FileReader()
           reader.onload = () => {
@@ -2517,6 +2582,113 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <ShieldCheckIcon className="w-4 h-4 text-green-600" />
               <span>256-bit SSL encrypted</span>
             </div>
+          </div>
+        )
+      }
+
+      case 'statement': {
+        const buttonText = (field.settings as any)?.buttonText || 'Continue'
+        const hideMarks = !!(field.settings as any)?.hideMarks
+        if (isPreview) {
+          return (
+            <div className="flex flex-col items-center text-center space-y-6 py-6">
+              {!hideMarks && <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />}
+              <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">{field.description || 'Your statement text here...'}</p>
+              <button type="button" disabled className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium">{buttonText}</button>
+            </div>
+          )
+        }
+        return (
+          <div className="flex flex-col items-center text-center space-y-6 py-6">
+            {!hideMarks && <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />}
+            <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">{field.description || 'Your statement text here...'}</p>
+            <button type="button" onClick={() => handleChange('continue')} disabled={disabled}
+              className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium hover:bg-[#5A4BD1] transition-colors shadow-md hover:shadow-lg">
+              {buttonText}
+            </button>
+          </div>
+        )
+      }
+
+      case 'legal': {
+        const acceptLabel = (field.settings as any)?.acceptLabel || 'I accept'
+        const rejectLabel = (field.settings as any)?.rejectLabel || "I don't accept"
+        const termsUrl = (field.settings as any)?.termsUrl || ''
+        const legalText = field.description || 'I agree to the Terms and Conditions'
+        if (isPreview) {
+          return (
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <span className="inline-block w-5 h-5 mt-0.5 rounded border-2 border-[#6C5CE7] bg-white flex-shrink-0" />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  {legalText}
+                  {termsUrl && <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="text-[#6C5CE7] underline ml-1">Read terms</a>}
+                </span>
+              </label>
+              <div className="flex gap-2">
+                <button type="button" disabled className="px-4 py-2 text-sm rounded-lg bg-[#6C5CE7] text-white">{acceptLabel}</button>
+                <button type="button" disabled className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600">{rejectLabel}</button>
+              </div>
+            </div>
+          )
+        }
+        const accepted = localValue === 'accepted'
+        return (
+          <div className="space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer group" onClick={() => handleChange(accepted ? '' : 'accepted')}>
+              <span className={`inline-flex items-center justify-center w-5 h-5 mt-0.5 rounded border-2 flex-shrink-0 transition-colors ${accepted ? 'border-[#6C5CE7] bg-[#6C5CE7]' : 'border-gray-300 bg-white group-hover:border-[#6C5CE7]'}`}>
+                {accepted && <CheckIcon className="w-3.5 h-3.5 text-white" />}
+              </span>
+              <span className="text-sm text-gray-700 leading-relaxed">
+                {legalText}
+                {termsUrl && <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="text-[#6C5CE7] underline ml-1" onClick={e => e.stopPropagation()}>Read terms</a>}
+              </span>
+            </label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => handleChange('accepted')} disabled={disabled}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${accepted ? 'bg-[#6C5CE7] text-white' : 'bg-gray-100 text-gray-600 hover:bg-[#6C5CE7]/10'}`}>{acceptLabel}</button>
+              <button type="button" onClick={() => handleChange('rejected')} disabled={disabled}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${localValue === 'rejected' ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 text-gray-600 hover:border-red-300'}`}>{rejectLabel}</button>
+            </div>
+            {error && <div className="text-sm text-red-600">{error}</div>}
+          </div>
+        )
+      }
+
+      case 'contact_info': {
+        type ContactValue = { firstName?: string; lastName?: string; email?: string; phone?: string }
+        const v: ContactValue = (localValue && typeof localValue === 'object') ? localValue : {}
+        const set = (key: keyof ContactValue, val: string) => handleChange({ ...v, [key]: val })
+        const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] outline-none transition-colors'
+        if (isPreview) {
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label className="block text-xs text-gray-600 mb-1">First Name</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>Jane</div></div>
+              <div><label className="block text-xs text-gray-600 mb-1">Last Name</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>Doe</div></div>
+              <div><label className="block text-xs text-gray-600 mb-1">Email</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>jane@example.com</div></div>
+              <div><label className="block text-xs text-gray-600 mb-1">Phone</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>+1 (555) 123-4567</div></div>
+            </div>
+          )
+        }
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">First Name</label>
+              <input id={`${field.id}-firstName`} name={`${field.id}-firstName`} value={v.firstName || ''} onChange={e => set('firstName', e.target.value)} className={inputCls} placeholder="Jane" disabled={disabled} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Last Name</label>
+              <input id={`${field.id}-lastName`} name={`${field.id}-lastName`} value={v.lastName || ''} onChange={e => set('lastName', e.target.value)} className={inputCls} placeholder="Doe" disabled={disabled} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Email</label>
+              <input id={`${field.id}-email`} name={`${field.id}-email`} type="email" value={v.email || ''} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="jane@example.com" disabled={disabled} />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Phone</label>
+              <input id={`${field.id}-phone`} name={`${field.id}-phone`} type="tel" value={v.phone || ''} onChange={e => set('phone', e.target.value)} className={inputCls} placeholder="+1 (555) 123-4567" disabled={disabled} />
+            </div>
+            {error && <div className="col-span-2 text-sm text-red-600">{error}</div>}
           </div>
         )
       }

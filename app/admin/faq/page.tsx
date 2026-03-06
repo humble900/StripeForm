@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import LoadingSpinner from '@/components/ui/loading-spinner'
 import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 
 interface FAQ {
@@ -134,9 +135,11 @@ export default function AdminFAQPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#6C5CE7]"></div>
-      </div>
+      <LoadingSpinner 
+        size="xl" 
+        centered 
+        text="Loading FAQs..." 
+      />
     )
   }
 

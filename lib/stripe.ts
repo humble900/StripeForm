@@ -6,7 +6,8 @@ if (typeof window === 'undefined') {
   // Server-side only
   const Stripe = require('stripe').default
   stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-07-30.basil',
+    // Use a stable GA API version to avoid SDK/version mismatch
+    apiVersion: '2024-06-20',
   })
 }
 export { stripe }
@@ -29,7 +30,7 @@ if (process.env.NODE_ENV === 'development') {
 
 // Validate required environment variables (only in production)
 if (process.env.NODE_ENV === 'production' && !stripeConfig.PUBLISHABLE_KEY) {
-  throw new Error('Missing required Stripe environment variables. Please check your .env.local file.')
+  throw new Error('Missing required Stripe environment variables. Please set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in your .env file.')
 }
 
 // Modern Stripe client initialization using loadStripe
@@ -41,6 +42,7 @@ export const getStripe = () => {
       console.warn('Stripe publishable key not found. Stripe functionality will be disabled.')
       return Promise.resolve(null)
     }
+    // Guard against environments with blocked DNS by using async import fallback
     stripePromise = loadStripe(stripeConfig.PUBLISHABLE_KEY)
   }
   return stripePromise

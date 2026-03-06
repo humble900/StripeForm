@@ -3,7 +3,6 @@ import { dbService } from '@/lib/db/service'
 import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
 import { withErrorHandling, NotFoundError } from '@/lib/error-handler'
 import { formCache } from '@/lib/cache'
-import { checkGeoRestrictions, validateGeoRestrictions } from '@/lib/geo-location'
 
 // GET /api/forms/[id] - Get a specific form by ID
 export async function GET(
@@ -36,22 +35,6 @@ export async function GET(
       
       if (!form) {
         throw new NotFoundError('Form not found')
-      }
-
-      // Check geo-restrictions if form is published
-      if (form.status === 'published' && form.geoRestrictions) {
-        const restrictions = validateGeoRestrictions(form.geoRestrictions)
-        const restrictionResult = await checkGeoRestrictions(request, restrictions)
-        
-        if (!restrictionResult.isAllowed) {
-          return NextResponse.json({
-            success: false,
-            error: 'Access denied',
-            message: restrictionResult.reason || 'Access restricted based on location',
-            code: 'GEO_RESTRICTED',
-            detectedLocation: restrictionResult.detectedLocation
-          }, { status: 403 })
-        }
       }
 
       const response = {
@@ -90,8 +73,33 @@ export async function PUT(
       // Extract fields from body if provided
       const { fields, ...formUpdates } = body
       
-      // Set publishedAt when form is being published
+      // Enforce publish limits and set publishedAt when form is being published
       if (formUpdates.status === 'published' && !existingForm.publishedAt) {
+        // Determine user and role/subscription
+        const ownerId = existingForm.userId
+        let isAdmin = false
+        let isPro = false
+        try {
+          const owner = await dbService.getUser(ownerId)
+          const role = (owner as any)?.role || 'user'
+          const tier = (owner as any)?.subscriptionTier || 'free'
+          const subStatus = (owner as any)?.subscriptionStatus || 'inactive'
+          isAdmin = role === 'admin' || role === 'super_admin'
+          isPro = tier === 'pro' && (subStatus === 'active')
+        } catch {}
+
+        if (!isAdmin && !isPro) {
+          // For free/authenticated users: limit to 5 published forms
+          const userForms = await dbService.getForms()
+          const userPublished = (userForms || []).filter((f: any) => f.userId === ownerId && f.status === 'published').length
+          if (userPublished >= 5) {
+            return NextResponse.json({
+              success: false,
+              message: 'Publish limit reached for your plan. Please upgrade to Pro to publish more forms.'
+            }, { status: 403 })
+          }
+        }
+
         formUpdates.publishedAt = new Date()
       }
       

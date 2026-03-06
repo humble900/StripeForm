@@ -17,11 +17,10 @@ export default function FormRedirectPage() {
   }, [formId, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <LoadingSpinner />
-        <p className="mt-4 text-gray-600">Redirecting to form...</p>
-      </div>
-    </div>
+    <LoadingSpinner 
+      size="lg" 
+      centered 
+      text="Redirecting to form..." 
+    />
   )
 }

@@ -17,7 +17,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const addNotification = (notification: Omit<Notification, 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9)
+    const id = Math.random().toString(36).substring(2, 11)
     const newNotification: Notification = {
       ...notification,
       id,
@@ -30,7 +30,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const timeoutId = setTimeout(() => {
         removeNotification(id)
       }, notification.duration || 5000)
-      
+
       timeoutRefs.current.set(id, timeoutId)
     }
   }
@@ -42,7 +42,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       clearTimeout(timeoutId)
       timeoutRefs.current.delete(id)
     }
-    
+
     setNotifications(prev => prev.filter(notification => notification.id !== id))
   }
 

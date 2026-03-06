@@ -8,18 +8,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { mapAuthError } from '@/lib/utils/auth-errors'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState('')
-  
+
   const { resetPassword } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setErrors({})
     setSuccess('')
     setIsLoading(true)
 
@@ -27,14 +28,15 @@ export default function ForgotPasswordPage() {
       await resetPassword(email)
       setSuccess('Password reset email sent! Check your inbox for further instructions.')
     } catch (error: any) {
-      setError(error.message || 'Failed to send password reset email')
+      const mappedError = mapAuthError(error, 'email')
+      setErrors({ [mappedError.field]: mappedError.message })
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-blue-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
 
       </div>
@@ -45,13 +47,13 @@ export default function ForgotPasswordPage() {
             <CardTitle className="text-xl text-center">Forgot Password</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {error && (
+            {errors['global'] && (
               <Alert variant="destructive">
                 <ExclamationTriangleIcon className="h-4 w-4 text-red-600 mr-2" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{errors['global']}</AlertDescription>
               </Alert>
             )}
-            
+
             {success && (
               <Alert variant="success">
                 <CheckCircleIcon className="h-4 w-4 text-green-600 mr-2" />
@@ -71,16 +73,23 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                  }}
                   placeholder="Enter your email"
                   className="w-full"
                   disabled={isLoading}
+                  error={!!errors.email}
                 />
+                {errors.email && (
+                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.email}</p>
+                )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 hover:from-blue-600 hover:via-blue-700 hover:to-purple-700 text-white"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? 'Sending...' : 'Send reset link'}
@@ -88,9 +97,9 @@ export default function ForgotPasswordPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <Link 
-                href="/login" 
-                className="inline-flex items-center text-sm font-medium bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-600 hover:via-blue-700 hover:to-purple-700"
+              <Link
+                href="/login"
+                className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
               >
                 <ArrowLeftIcon className="h-4 w-4 mr-1" />
                 Back to sign in
@@ -100,7 +109,7 @@ export default function ForgotPasswordPage() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link href="/register" className="font-medium bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 bg-clip-text text-transparent hover:from-blue-600 hover:via-blue-700 hover:to-purple-700">
+                <Link href="/register" className="font-medium text-blue-600 hover:text-blue-700">
                   Sign up here
                 </Link>
               </p>

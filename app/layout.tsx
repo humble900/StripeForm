@@ -1,5 +1,5 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { Providers } from '@/components/providers/Providers'
 import { ConditionalToaster } from '@/components/ui/ConditionalToaster'
 import { ConditionalNavigation } from '@/components/layout/ConditionalNavigation'
@@ -9,9 +9,17 @@ import { ConditionalProviders } from '@/components/providers/ConditionalProvider
 import { AuthProvider } from '@/components/providers/AuthProvider'
 import { NotificationProvider } from '@/components/providers/NotificationProvider'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
-  fallback: ['system-ui', 'arial']
+  fallback: ['system-ui', 'arial'],
+  variable: '--font-inter',
+})
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  fallback: ['system-ui', 'arial'],
+  variable: '--font-heading',
+  weight: ['400', '500', '600', '700', '800'],
 })
 
 export const metadata = {
@@ -131,22 +139,11 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png" />
         <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
         <link rel="manifest" href="/manifest.json" />
-        
-        {/* Preload critical resources */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
-        <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
-        
-        {/* DNS prefetch for performance */}
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
-        
+
         {/* Cache control and performance */}
         <meta httpEquiv="Cache-Control" content="max-age=86400" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        
+
         {/* Structured data for better SEO */}
         <script
           type="application/ld+json"
@@ -161,7 +158,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} h-full antialiased`}>
+      <body className={`${inter.variable} ${plusJakarta.variable} ${inter.className} h-full antialiased`}>
         <NotificationProvider>
           <AuthProvider>
             <ConditionalProviders>

@@ -56,25 +56,25 @@ class UserTrackingManager {
     try {
       // Get device fingerprint
       const fingerprint = await getDeviceFingerprint()
-      
+
       // Get IP address
       const ip = await this.getIPAddress()
-      
+
       // Get user agent
       const userAgent = navigator.userAgent
-      
+
       // Get cookies
       const cookies = this.getCookies()
-      
+
       // Generate session ID
       const sessionId = this.currentSession
-      
+
       // Get geolocation data
       const geoData = await this.getGeoData(ip)
-      
+
       // Update visit history
       this.updateVisitHistory(fingerprint, ip)
-      
+
       // Store tracking data
       const trackingData: UserTrackingData = {
         fingerprint,
@@ -85,7 +85,7 @@ class UserTrackingManager {
         timestamp: new Date(),
         geoData
       }
-      
+
       // Log tracking (admin only)
       console.group('🕵️ User Visit Tracked (Admin Only)')
       console.log('Fingerprint:', fingerprint)
@@ -95,12 +95,12 @@ class UserTrackingManager {
       console.log('IP History:', this.ipHistory.get(ip) || 1)
       console.log('Geolocation:', geoData)
       console.groupEnd()
-      
+
       return trackingData
-      
+
     } catch (error) {
       console.warn('⚠️ Could not track user visit (non-critical):', error)
-      
+
       // Return basic tracking data even if some methods fail
       return {
         fingerprint: 'unknown',
@@ -175,7 +175,7 @@ class UserTrackingManager {
     try {
       // Use our server-side API to avoid CORS issues
       const response = await fetch('/api/geo-location')
-      
+
       if (response.ok) {
         const result = await response.json()
         if (result.success && result.data.ip) {
@@ -197,10 +197,10 @@ class UserTrackingManager {
     try {
       // Use our server-side API to avoid CORS issues
       const response = await fetch('/api/geo-location')
-      
+
       if (response.ok) {
         const result = await response.json()
-        
+
         if (result.success) {
           const data = result.data
           return {
@@ -215,7 +215,7 @@ class UserTrackingManager {
     } catch (error) {
       console.warn('Could not get geolocation data:', error)
     }
-    
+
     return undefined
   }
 
@@ -230,7 +230,7 @@ class UserTrackingManager {
    * Generate unique session ID
    */
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   }
 
   /**
@@ -239,17 +239,17 @@ class UserTrackingManager {
   private updateVisitHistory(fingerprint: string, ip: string): void {
     const currentFingerprintCount = this.visitHistory.get(fingerprint) || 0
     const currentIpCount = this.ipHistory.get(ip) || 0
-    
+
     this.visitHistory.set(fingerprint, currentFingerprintCount + 1)
     this.ipHistory.set(ip, currentIpCount + 1)
-    
+
     // Clean up old entries to prevent memory leaks
     if (this.visitHistory.size > 1000) {
       const entries = Array.from(this.visitHistory.entries())
       entries.sort((a, b) => b[1] - a[1])
       this.visitHistory = new Map(entries.slice(0, 500))
     }
-    
+
     if (this.ipHistory.size > 1000) {
       const entries = Array.from(this.ipHistory.entries())
       entries.sort((a, b) => b[1] - a[1])
@@ -272,7 +272,7 @@ class UserTrackingManager {
       /puppeteer/i,
       /playwright/i
     ]
-    
+
     return suspiciousPatterns.some(pattern => pattern.test(userAgent))
   }
 

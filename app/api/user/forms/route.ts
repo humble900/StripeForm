@@ -101,7 +101,18 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ success: true, data: [] })
         }
         
-        const forms = await dbService.getUserForms(user.id)
+        // Check if summary is requested
+        const url = new URL(request.url)
+        const summary = url.searchParams.get('summary') === 'true'
+        
+        let forms
+        if (summary) {
+          // For summary, get forms without fields and submissions for better performance
+          forms = await dbService.getUserFormsSummary(user.id)
+        } else {
+          // Full forms with fields and submissions
+          forms = await dbService.getUserForms(user.id)
+        }
         
         return NextResponse.json({
           success: true,

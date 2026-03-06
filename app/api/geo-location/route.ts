@@ -1,95 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
-import { withErrorHandling } from '@/lib/error-handler'
+import { NextRequest, NextResponse } from "next/server";
 
-// Simple in-memory cache for geolocation data
-const geoCache = new Map<string, { data: any, timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+export async function GET(req: NextRequest) {
+    // In a real application, you might use an IP geolocation service like ip-api.com,
+    // MaxMind, or Vercel's built-in geolocation headers to get the user's location.
 
-export async function GET(request: NextRequest) {
-  return withRateLimit(request, apiRateLimit,
-    withErrorHandling(async (request: NextRequest) => {
-      try {
-        // Get client IP from request headers
-        const forwarded = request.headers.get('x-forwarded-for')
-        const realIp = request.headers.get('x-real-ip')
-        const clientIp = forwarded?.split(',')[0] || realIp || '127.0.0.1'
+    // Try to get country and city from Vercel headers if deployed there
+    const country = req.headers.get("x-vercel-ip-country");
+    const city = req.headers.get("x-vercel-ip-city");
+    const region = req.headers.get("x-vercel-ip-country-region");
+    const timezone = req.headers.get("x-vercel-ip-timezone");
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0] || req.headers.get("x-real-ip") || "127.0.0.1";
 
-        // Check cache first
-        const cached = geoCache.get(clientIp)
-        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-          return NextResponse.json({
-            success: true,
-            data: cached.data,
-            cached: true
-          })
-        }
-
-        // Call ipapi.co from server-side to avoid CORS issues
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
-        
-        const response = await fetch(`https://ipapi.co/${clientIp}/json/`, {
-          headers: {
-            'User-Agent': 'StripeForm/1.0'
-          },
-          signal: controller.signal
-        })
-        
-        clearTimeout(timeoutId)
-
-        if (!response.ok) {
-          throw new Error(`API responded with status: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // Check if API returned an error
-        if (data.error) {
-          throw new Error(`API error: ${data.reason || 'Unknown error'}`)
-        }
-
-        const geoData = {
-          country: data.country_name || 'Unknown',
-          countryCode: data.country_code || 'US',
-          region: data.region || 'Unknown',
-          city: data.city || 'Unknown',
-          timezone: data.timezone || 'UTC',
-          ip: data.ip || clientIp
-        }
-
-        // Cache the result
-        geoCache.set(clientIp, {
-          data: geoData,
-          timestamp: Date.now()
-        })
-
+    // If we have Vercel headers, use them
+    if (country) {
         return NextResponse.json({
-          success: true,
-          data: geoData,
-          cached: false
-        })
+            country,
+            city: city || undefined,
+            region: region || undefined,
+            timezone: timezone || undefined,
+            ip
+        });
+    }
 
-      } catch (error) {
-        console.error('Geolocation API error:', error)
-        
-        // Return fallback data
-        const fallbackData = {
-          country: 'United States',
-          countryCode: 'US',
-          region: 'Unknown',
-          city: 'Unknown',
-          timezone: 'UTC',
-          ip: 'Unknown'
-        }
-
-        return NextResponse.json({
-          success: true,
-          data: fallbackData,
-          cached: false,
-          fallback: true
-        })
-      }
-    })
-  )
+    // Otherwise, return a generic fallback or unknown location
+    // so the frontend doesn't crash with 404s
+    return NextResponse.json({
+        country: "US", // Default fallback
+        city: "Unknown",
+        timezone: "UTC",
+        ip
+    });
 }

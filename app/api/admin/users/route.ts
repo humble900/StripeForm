@@ -25,14 +25,14 @@ const createUserSchema = z.object({
 // Helper function to verify superadmin access
 async function verifySuperAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthenticationError('Authentication required')
   }
 
   const token = authHeader.replace('Bearer ', '')
   const user = await authService.verifyToken(token)
-  
+
   if (user.role !== 'super_admin') {
     throw new AuthorizationError('Super admin access required')
   }
@@ -46,20 +46,20 @@ export async function GET(request: NextRequest) {
     withErrorHandling(async (request: NextRequest) => {
       try {
         await verifySuperAdmin(request)
-        
+
         const { searchParams } = new URL(request.url)
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '50')
         const role = searchParams.get('role')
-        
+
         const allUsers = await dbService.getUsers()
-        
+
         // Filter by role if specified
         let filteredUsers = allUsers
         if (role) {
           filteredUsers = allUsers.filter(user => user.role === role)
         }
-        
+
         // Calculate pagination
         const totalUsers = filteredUsers.length
         const totalPages = Math.ceil(totalUsers / limit)
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
             message: error.message
           }, { status: error.statusCode })
         }
-        
+
         throw error
       }
     })
@@ -99,13 +99,13 @@ export async function POST(request: NextRequest) {
     withErrorHandling(async (request: NextRequest) => {
       try {
         await verifySuperAdmin(request)
-        
+
         const body = await request.json()
         const validatedData = createUserSchema.parse(body)
-        
+
         // Generate a unique ID for the new user
-        const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        
+        const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+
         const newUser = await dbService.createUser({
           id: userId,
           email: validatedData.email,
@@ -129,14 +129,14 @@ export async function POST(request: NextRequest) {
             errors: error.errors
           }, { status: 400 })
         }
-        
+
         if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
           return NextResponse.json({
             success: false,
             message: error.message
           }, { status: error.statusCode })
         }
-        
+
         throw error
       }
     })
@@ -149,10 +149,10 @@ export async function PUT(request: NextRequest) {
     withErrorHandling(async (request: NextRequest) => {
       try {
         await verifySuperAdmin(request)
-        
+
         const body = await request.json()
         const validatedData = updateRoleSchema.parse(body)
-        
+
         const updatedUser = await dbService.updateUser(validatedData.userId, {
           role: validatedData.role
         })
@@ -177,14 +177,14 @@ export async function PUT(request: NextRequest) {
             errors: error.errors
           }, { status: 400 })
         }
-        
+
         if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
           return NextResponse.json({
             success: false,
             message: error.message
           }, { status: error.statusCode })
         }
-        
+
         throw error
       }
     })

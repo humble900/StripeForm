@@ -7,17 +7,20 @@ import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
 import { BrandKitProvider } from '@/components/providers/BrandKitProvider'
 import { FormBuilderLayout } from '@/components/form-builder/FormBuilderLayout'
 import LoadingSpinner from '@/components/ui/loading-spinner'
+import InlineLoading from '@/components/ui/inline-loading'
 import { useNotifications } from '@/components/providers/NotificationProvider'
 import { StripeProvider } from '@/components/providers/StripeProvider'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { initializeErrorHandling } from '@/lib/error-handler'
 import { Form } from '@/types'
+import { useUserType } from '@/hooks/useUserType'
+import { memoryStorage } from '@/lib/memory-storage'
 
 function FormBuilderContent() {
-  const { user, isAuthenticated, isAnonymous, getUserTrackingData } = useAuth()
-  const { state, dispatch } = useFormBuilder()
+  const { getUserTrackingData } = useAuth()
+  const { state, dispatch, restoreFromLocalStorage, loadFromMemory } = useFormBuilder()
   const { addNotification } = useNotifications()
-  const [isLoading, setIsLoading] = useState(true)
+  const { type: userType, firebaseUser, userId, isLoading } = useUserType()
   const searchParams = useSearchParams()
   const templateId = searchParams ? searchParams.get('template') : null
   const formIdFromQuery = searchParams ? searchParams.get('form') : null
@@ -30,25 +33,27 @@ function FormBuilderContent() {
   useEffect(() => {
     const initializeBuilder = async () => {
       try {
-        // Wait for authentication state to be properly initialized
+        // Wait for user type to be determined
         if (isLoading) {
-          console.log('⏳ FormBuilder: Waiting for authentication state...')
+          console.log('⏳ FormBuilder: Waiting for user type determination...')
           return
         }
-        
-        let userId = 'anonymous'
-        
-        if (isAuthenticated && user) {
-          userId = user.id
-        } else if (isAnonymous) {
-          // For anonymous users, ensure we have tracking data
+
+        let formUserId = 'anonymous'
+
+        if (firebaseUser) {
+          // Use Firebase UID directly
+          formUserId = firebaseUser.uid
+          console.log('🔐 Firebase user:', formUserId, 'Type:', userType)
+        } else {
+          // Guest user - get fingerprint
           const trackingData = await getUserTrackingData()
           if (!trackingData?.fingerprint) {
-            console.log('⏳ FormBuilder: Waiting for user tracking data...')
+            console.log('⏳ FormBuilder: Waiting for guest tracking data...')
             return
           }
-          userId = trackingData.fingerprint
-          console.log('🔍 Anonymous user using fingerprint as ID:', userId)
+          formUserId = trackingData.fingerprint
+          console.log('🔍 Guest user:', formUserId)
         }
 
         // Create default form structure
@@ -78,7 +83,7 @@ function FormBuilderContent() {
           },
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-          user_id: userId,
+          user_id: formUserId || 'anonymous',
           isPublished: false,
           publishedUrl: '',
           response_count: 0,
@@ -88,6 +93,20 @@ function FormBuilderContent() {
 
         // Priority 1: Load specific form if formIdFromQuery is provided
         if (formIdFromQuery && state.current_form?.id !== formIdFromQuery) {
+          // First try to restore from memory storage for immediate UI response
+          const memoryRestored = loadFromMemory(formIdFromQuery)
+          if (memoryRestored) {
+            console.log('✅ Form restored from memory storage')
+            return
+          }
+
+          // Fallback to localStorage
+          const restored = restoreFromLocalStorage(formIdFromQuery)
+          if (restored) {
+            console.log('✅ Form restored from localStorage, will sync with server')
+            return
+          }
+
           try {
             const formResp = await fetch(`/api/forms/${formIdFromQuery}`)
             const formData = await formResp.json()
@@ -118,7 +137,6 @@ function FormBuilderContent() {
                 response_count: formData.data.submissionCount || 0,
               }
               dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
-              setIsLoading(false)
               return
             }
           } catch (e) {
@@ -127,104 +145,47 @@ function FormBuilderContent() {
           }
         }
 
-        // Priority 2: Load template if templateId is provided
-          if (templateId) {
-            try {
-              const templateResponse = await fetch(`/api/templates/${templateId}`)
-              const templateData = await templateResponse.json()
-              
-              if (templateData.success) {
-                const template = templateData.data
-                newForm = {
-                  ...template.templateData,
-                  id: '',
-                  title: `${template.templateData.title} (Copy)`,
-                  user_id: userId,
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  isPublished: false,
-                  published_url: '',
-                  response_count: 0,
-                }
-                
-                addNotification({
-                  type: 'success',
-                  title: 'Template Loaded',
-                  message: `Template "${template.name}" has been loaded`,
-                  duration: 3000
-                })
-              
-              dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
-              setIsLoading(false)
-              return
-              }
-            } catch (error) {
-              console.error('Error loading template:', error)
-              addNotification({
-                type: 'error',
-                title: 'Template Error',
-              message: 'Failed to load template. Creating empty form instead.',
-                duration: 5000
-              })
-            // Continue to default form creation
-          }
+        // Priority 2: Load template if templateId is provided (should not happen anymore)
+        // Templates should now be copied first, then loaded via formId
+        if (templateId) {
+          console.warn('⚠️ Direct template loading detected - this should not happen anymore')
+          addNotification({
+            type: 'warning',
+            title: 'Template Loading',
+            message: 'Please use the "Use Template" button to copy templates properly.',
+            duration: 5000
+          })
+          // Continue to default form creation
         }
 
-        // Priority 3: Only create new form if current form is default or doesn't exist
+        // Priority 3: Check for existing forms in memory storage first
         if (!state.current_form || state.current_form.id === 'default-form') {
-          // Try to create server-side draft first for authenticated users
-          if (isAuthenticated) {
-            try {
-              const resp = await fetch('/api/user/forms', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${userId}`
-                },
-                body: JSON.stringify({
-                  title: 'Untitled Form',
-                  description: '',
-                  fields: [],
-                  settings: {},
-                })
-              })
-              if (resp.ok) {
-                const data = await resp.json()
-                const created = data.data
-                newForm = {
-                  id: created.id,
-                  title: created.title || 'Untitled Form',
-                  description: created.description || '',
-                  fields: [],
-                  settings: created.settings || {},
-                  theme: created.theme || createDefaultForm().theme,
-                  created_at: created.createdAt || new Date().toISOString(),
-                  updated_at: created.updatedAt || new Date().toISOString(),
-                  user_id: created.userId || userId,
-                  isPublished: created.status === 'published',
-                  publishedUrl: created.publishedUrl || '',
-                  response_count: created.submissionCount || 0,
-                }
-              } else {
-                throw new Error('Failed to create server draft')
-              }
-            } catch (e) {
-              console.log('Failed to create server draft, using local form')
-              newForm = createDefaultForm()
+          // Try to load the most recent form from memory storage
+          const memoryForms = memoryStorage.getUserForms(formUserId)
+
+          if (memoryForms.length > 0) {
+            // Load the most recent form
+            const mostRecentForm = memoryForms[0]
+            const restored = loadFromMemory(mostRecentForm.id)
+            if (restored) {
+              console.log('✅ Most recent form restored from memory:', mostRecentForm.id)
+              return
             }
-          } else {
-            // For anonymous users, just create local form
-            newForm = createDefaultForm()
           }
 
-          console.log('🎯 Form prepared for builder:', newForm)
+          // If no forms in memory, create a new one
+          newForm = createDefaultForm()
+
+          // Generate a unique ID for the form
+          const formId = `form_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+          newForm.id = formId
+
+          console.log('🎯 New form created for builder (memory only):', newForm)
           dispatch({ type: 'SET_CURRENT_FORM', payload: newForm })
-          setIsLoading(false)
-          console.log('✅ Form builder initialization complete')
+          console.log('✅ Form builder initialization complete (memory storage)')
         } else {
           // Form already exists and is not default, no need to reinitialize
           console.log('✅ Form already loaded, skipping initialization')
-          setIsLoading(false)
         }
       } catch (error) {
         console.error('Error initializing form builder:', error)
@@ -233,24 +194,23 @@ function FormBuilderContent() {
           title: 'Error',
           message: 'Failed to initialize form builder. Please try again.',
         })
-        setIsLoading(false)
       }
     }
 
     initializeBuilder()
-  }, [user, isAuthenticated, isAnonymous, formIdFromQuery, templateId, dispatch, addNotification, getUserTrackingData, state.current_form?.id])
+  }, [firebaseUser, userType, formIdFromQuery, templateId, dispatch, addNotification, getUserTrackingData, state.current_form?.id, isLoading, loadFromMemory])
 
   // Authentication redirect logic for returning users
   useEffect(() => {
     const checkForReturningUser = async () => {
       // Only check if we're not loading and not authenticated
-      if (isLoading || isAuthenticated) return
-      
+      if (isLoading || firebaseUser) return
+
       try {
         // Check if user has any published forms (indicating they're a returning user)
         const userTrackingData = await getUserTrackingData()
         const fingerprint = userTrackingData?.fingerprint
-        
+
         if (fingerprint) {
           // Try to fetch forms for this fingerprint
           const response = await fetch(`/api/user/forms`, {
@@ -262,12 +222,12 @@ function FormBuilderContent() {
             },
             credentials: 'include'
           })
-          
+
           if (response.ok) {
             const data = await response.json()
             const forms = data.data || []
             const publishedForms = forms.filter((form: any) => form.status === 'published')
-            
+
             // If user has published forms but is not authenticated, redirect to login
             if (publishedForms.length > 0) {
               console.log('🔄 FormBuilder: Returning user with published forms detected, redirecting to login')
@@ -277,7 +237,7 @@ function FormBuilderContent() {
                 message: 'Please sign in to access your published forms.',
                 duration: 5000
               })
-              
+
               // Redirect to login with return URL
               const returnUrl = encodeURIComponent(window.location.pathname + window.location.search)
               window.location.href = `/login?redirect=${returnUrl}`
@@ -288,17 +248,19 @@ function FormBuilderContent() {
         console.warn('Could not check for returning user:', error)
       }
     }
-    
+
     // Only check after a short delay to avoid interfering with initial load
-    const timeoutId = setTimeout(checkForReturningUser, 3000)
-    
+    const timeoutId = setTimeout(checkForReturningUser, 1000)
+
     return () => clearTimeout(timeoutId)
-  }, [isLoading, isAuthenticated, getUserTrackingData, addNotification])
+  }, [isLoading, firebaseUser, getUserTrackingData, addNotification])
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+        <div className="text-center">
+          <InlineLoading size="lg" text="Initializing form builder..." variant="dots" />
+        </div>
       </div>
     )
   }
@@ -313,15 +275,15 @@ function FormBuilderContent() {
 export default function FormBuilderPage() {
   return (
     <ErrorBoundary>
-    <BrandKitProvider>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <LoadingSpinner size="lg" />
-        </div>
-      }>
-        <FormBuilderContent />
-      </Suspense>
-    </BrandKitProvider>
+      <BrandKitProvider>
+        <Suspense fallback={
+          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <InlineLoading size="lg" text="Loading form builder..." variant="dots" />
+          </div>
+        }>
+          <FormBuilderContent />
+        </Suspense>
+      </BrandKitProvider>
     </ErrorBoundary>
   )
 }

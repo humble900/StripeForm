@@ -30,7 +30,7 @@ class MemoryCache {
 
   set<T>(key: string, data: T, ttl: number = 5 * 60 * 1000): void {
     const fullKey = this.getKey(key)
-    
+
     // Check if we need to evict entries
     if (this.store.size >= this.maxSize) {
       this.evictOldest()
@@ -65,6 +65,18 @@ class MemoryCache {
     return this.store.delete(fullKey)
   }
 
+  deleteByPrefix(prefix: string): number {
+    const fullPrefix = this.getKey(prefix)
+    let count = 0
+    for (const key of this.store.keys()) {
+      if (key.startsWith(fullPrefix)) {
+        this.store.delete(key)
+        count++
+      }
+    }
+    return count
+  }
+
   clear(): void {
     this.store.clear()
   }
@@ -96,26 +108,26 @@ class MemoryCache {
 }
 
 // Cache instances for different purposes
-export const formCache = new MemoryCache({ 
-  namespace: 'forms', 
+export const formCache = new MemoryCache({
+  namespace: 'forms',
   maxSize: 500,
   ttl: 5 * 60 * 1000 // 5 minutes
 })
 
-export const userCache = new MemoryCache({ 
-  namespace: 'users', 
+export const userCache = new MemoryCache({
+  namespace: 'users',
   maxSize: 200,
   ttl: 10 * 60 * 1000 // 10 minutes
 })
 
-export const analyticsCache = new MemoryCache({ 
-  namespace: 'analytics', 
+export const analyticsCache = new MemoryCache({
+  namespace: 'analytics',
   maxSize: 100,
   ttl: 15 * 60 * 1000 // 15 minutes
 })
 
-export const submissionCache = new MemoryCache({ 
-  namespace: 'submissions', 
+export const submissionCache = new MemoryCache({
+  namespace: 'submissions',
   maxSize: 300,
   ttl: 2 * 60 * 1000 // 2 minutes
 })
@@ -142,7 +154,7 @@ export function withCache<T extends any[]>(
       }
 
       const result = await method.apply(this, args)
-      
+
       if (result) {
         cache.set(cacheKey, result, ttl)
       }
@@ -174,7 +186,7 @@ export async function withApiCache(
 
   // Execute handler
   const result = await handler(request)
-  
+
   // Cache successful responses
   if (result.status >= 200 && result.status < 300) {
     const responseData = await result.json()
@@ -190,18 +202,18 @@ export async function withApiCache(
 export function invalidateFormCache(formId: string): void {
   // Invalidate form-specific cache
   formCache.delete(`form:${formId}`)
-  
+
   // Invalidate user forms cache (will be regenerated on next request)
-  formCache.delete(`user-forms:*`)
-  
+  formCache.deleteByPrefix(`user-forms:`)
+
   // Invalidate analytics cache
-  analyticsCache.delete(`analytics:*`)
+  analyticsCache.deleteByPrefix(`analytics:`)
 }
 
 export function invalidateUserCache(userId: string): void {
   userCache.delete(`user:${userId}`)
   userCache.delete(`profile:${userId}`)
-  
+
   // Invalidate related caches
   formCache.delete(`user-forms:${userId}`)
   analyticsCache.delete(`analytics:${userId}`)
@@ -209,12 +221,12 @@ export function invalidateUserCache(userId: string): void {
 
 export function invalidateSubmissionCache(formId: string): void {
   submissionCache.delete(`submissions:${formId}`)
-  
+
   // Invalidate form submission count
   formCache.delete(`form:${formId}`)
-  
+
   // Invalidate analytics
-  analyticsCache.delete(`analytics:*`)
+  analyticsCache.deleteByPrefix(`analytics:`)
 }
 
 // Cache warming functions

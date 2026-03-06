@@ -4,6 +4,7 @@ import { ReactNode } from 'react'
 import { AuthProvider } from './AuthProvider'
 import { FormBuilderProvider } from './FormBuilderProvider'
 import { NotificationProvider } from './NotificationProvider'
+import { PageCacheProvider } from './PageCacheProvider'
 
 interface ProvidersProps {
   children: ReactNode
@@ -11,12 +12,14 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <NotificationProvider>
-      <AuthProvider>
-        <FormBuilderProvider>
-          {children}
-        </FormBuilderProvider>
-      </AuthProvider>
-    </NotificationProvider>
+    <PageCacheProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <FormBuilderProvider>
+            {children}
+          </FormBuilderProvider>
+        </AuthProvider>
+      </NotificationProvider>
+    </PageCacheProvider>
   )
 } 

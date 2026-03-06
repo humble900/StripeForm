@@ -48,23 +48,23 @@ export async function GET(request: NextRequest) {
 
         // Get user's forms using the correct method
         const forms = await db.getUserForms(userId)
-        
-        // Get form submissions for analytics
-        const submissions = await db.getUserFormSubmissions(userId)
-        
+
+        // Calculate total submissions from the forms' submissionCount
+        const totalSubmissions = forms.reduce((sum, form) => sum + (form.submissionCount || 0), 0)
+
         // Calculate analytics
         const analytics = {
           totalForms: forms.length,
-          totalSubmissions: submissions.length,
+          totalSubmissions: totalSubmissions,
           publishedForms: forms.filter(f => f.status === 'published').length,
           draftForms: forms.filter(f => f.status === 'draft').length,
           archivedForms: forms.filter(f => f.status === 'archived').length,
-          averageSubmissionsPerForm: forms.length > 0 ? (submissions.length / forms.length).toFixed(2) : 0,
-          topPerformingForms: forms
+          averageSubmissionsPerForm: forms.length > 0 ? (totalSubmissions / forms.length).toFixed(2) : 0,
+          topPerformingForms: [...forms]
             .map(form => ({
               id: form.id,
               title: form.title,
-              submissionCount: submissions.filter(s => s.formId === form.id).length
+              submissionCount: form.submissionCount || 0
             }))
             .sort((a, b) => b.submissionCount - a.submissionCount)
             .slice(0, 5)
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
             message: error.message
           }, { status: error.statusCode })
         }
-        
+
         console.error('Get analytics error:', error)
         return NextResponse.json(
           { error: (error as Error)?.message || 'Internal Server Error' },

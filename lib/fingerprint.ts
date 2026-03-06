@@ -3,6 +3,20 @@ import { DeviceFingerprint, FingerprintComponents } from '@/types'
 
 let fpPromise: Promise<any>
 
+const FINGERPRINT_COOKIE = 'sf_fp'
+
+const getCookie = (name: string): string | null => {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
+  return match ? decodeURIComponent(match[2]) : null
+}
+
+const setCookie = (name: string, value: string, days = 365) => {
+  if (typeof document === 'undefined') return
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString()
+  document.cookie = `${name}=${encodeURIComponent(value)}; Expires=${expires}; Path=/; SameSite=Lax`
+}
+
 const getFingerprint = async (): Promise<DeviceFingerprint> => {
   if (!fpPromise) {
     fpPromise = FingerprintJS.load()
@@ -65,11 +79,34 @@ export const generateSimpleFingerprint = (): string => {
 // Get fingerprint with fallback
 export const getDeviceFingerprint = async (): Promise<string> => {
   try {
+    // 1) Prefer existing persisted ID (cookie, then localStorage)
+    const cookieFp = getCookie(FINGERPRINT_COOKIE)
+    if (cookieFp) return cookieFp
+
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(FINGERPRINT_COOKIE)
+      if (stored) {
+        setCookie(FINGERPRINT_COOKIE, stored)
+        return stored
+      }
+    }
+
+    // 2) Generate new via FPJS
     const fingerprint = await getFingerprint()
-    return fingerprint.fingerprint
+    const id = fingerprint.fingerprint
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(FINGERPRINT_COOKIE, id)
+    }
+    setCookie(FINGERPRINT_COOKIE, id)
+    return id
   } catch (error) {
     console.warn('FingerprintJS failed, using fallback:', error)
-    return generateSimpleFingerprint()
+    const id = generateSimpleFingerprint()
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(FINGERPRINT_COOKIE, id)
+    }
+    setCookie(FINGERPRINT_COOKIE, id)
+    return id
   }
 }
 

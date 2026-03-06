@@ -4,106 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import EnhancedFormPreview from '@/components/form-builder/EnhancedFormPreview'
 
-interface FormField {
-  id: string
-  type: string
-  label: string
-  placeholder?: string
-  required: boolean
-  options?: string[]
-  settings?: any
-}
-
-interface FormTheme {
-  primary_color: string
-  secondary_color: string
-  background_color: string
-  text_color: string
-  font_family: string
-  border_radius: number
-  header_color?: string
-  background_image_url?: string
-  header_image_url?: string
-  custom_css?: string
-}
-
-interface BrandKit {
-  logo?: {
-    url: string
-    alt: string
-    width?: number
-    height?: number
-  }
-  textLogo?: {
-    text: string
-    fontSize: string
-    color: string
-    fontFamily: string
-    fontWeight: string
-  }
-  favicon?: {
-    url: string
-  }
-  colors?: {
-    primary: string
-    secondary: string
-    accent: string
-  }
-  fonts?: {
-    primary: string
-    secondary: string
-  }
-  socialMedia?: {
-    website?: string
-    twitter?: string
-    linkedin?: string
-    facebook?: string
-    instagram?: string
-  }
-}
-
-interface FormSettings {
-  allow_multiple_responses: boolean
-  require_login: boolean
-  show_progress_bar: boolean
-  submit_button_text: string
-  success_message: string
-  redirect_url?: string
-  email_notifications: boolean
-  notification_email?: string
-  display_mode?: 'single_page' | 'progressive'
-  layout?: 'vertical' | 'horizontal' | 'grid'
-  width?: any
-  widthMode?: 'px' | 'ratio'
-  widthPx?: number
-  widthRatio?: number
-  heightMode?: 'px' | 'ratio'
-  heightPx?: number
-  heightRatio?: number
-  use_cover?: boolean
-  cover_title?: string
-  cover_description?: string
-  cover_button_text?: string
-  thankyou_title?: string
-  thankyou_description?: string
-}
-
-interface Form {
-  id: string
-  title: string
-  description?: string
-  status: string
-  isPublished: boolean
-  fields?: FormField[]
-  settings?: FormSettings
-  theme?: FormTheme
-  brandKit?: BrandKit
-}
+import { Form, FormField, FormTheme, FormSettings, BrandKit } from '@/types'
 
 export default function PublishedFormPage() {
   const params = useParams()
   const formId = params?.id as string
-  
+
   // All hooks must be declared at the top, before any conditional returns
   const [form, setForm] = useState<Form | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -116,10 +22,11 @@ export default function PublishedFormPage() {
   const [hasStarted, setHasStarted] = useState(false)
   const [geoBlocked, setGeoBlocked] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [submissionId, setSubmissionId] = useState<string | null>(null)
   const AUTOSAVE_RESP_KEY = formId ? `stripeform-autosave-response-${formId}` : ''
 
   // Payment API ref - must be declared before any early returns
-  const paymentApiRef = useRef<{ 
+  const paymentApiRef = useRef<{
     confirm: () => Promise<{ ok: boolean; id?: string; error?: string }>;
     getStatus: () => { isBlocked: boolean };
   } | null>(null)
@@ -135,25 +42,25 @@ export default function PublishedFormPage() {
       if (!formId) {
         return
       }
-      
+
       try {
         setIsLoading(true)
-        
+
         // Use the API route instead of direct Supabase access
         const response = await fetch(`/api/forms/${formId}`)
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
-        
+
         const result = await response.json()
-        
+
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch form')
         }
-        
+
         const formData = result.data
-        
+
         // Check if form is published
         if (!formData.isPublished || formData.status !== 'published') {
           setError('Form not found or not published')
@@ -161,7 +68,7 @@ export default function PublishedFormPage() {
         }
 
         setForm(formData)
-        
+
         // Track form view for analytics (non-blocking)
         fetch(`/api/forms/${formId}/view`, {
           method: 'POST',
@@ -172,11 +79,11 @@ export default function PublishedFormPage() {
           console.warn('Failed to track form view:', viewError)
           // Don't fail the form loading if view tracking fails
         })
-        
+
         // Set initial state based on form settings
         const hasCover = formData.fields?.some((f: any) => f.type === 'cover_slide')
         setHasStarted(hasCover ? false : (formData.settings?.use_cover ? false : true))
-        
+
       } catch (error) {
         console.error('Error fetching form:', error)
         setError('Failed to load form. Please try again.')
@@ -202,30 +109,68 @@ export default function PublishedFormPage() {
         if (typeof saved?.currentStep === 'number') {
           setCurrentStep(saved.currentStep)
         }
+        if (typeof saved?.submissionId === 'string') {
+          setSubmissionId(saved.submissionId)
+        }
       }
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch { }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId])
 
   useEffect(() => {
     if (!formId) return
     try {
-      const payload = { data: formData, currentStep, savedAt: Date.now() }
+      const payload = { data: formData, currentStep, savedAt: Date.now(), submissionId }
       localStorage.setItem(AUTOSAVE_RESP_KEY, JSON.stringify(payload))
-    } catch {}
-  }, [formId, formData, currentStep])
+    } catch { }
+  }, [formId, formData, currentStep, submissionId])
+
+  // Server-side auto-save (debounce 2s) for Partial Responses
+  useEffect(() => {
+    // Only auto-save if they've started, have data, and aren't actively submitting/finished
+    if (!formId || !hasStarted || Object.keys(formData).length === 0 || isSubmitting || isSubmitted) return
+
+    const timeout = setTimeout(async () => {
+      try {
+        const payload: any = {
+          formId,
+          data: formData,
+          status: 'partial'
+        }
+        if (submissionId) payload.id = submissionId
+
+        const resp = await fetch('/api/forms/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+
+        if (resp.ok) {
+          const json = await resp.json()
+          // Save the newly minted ID so future debounces UPDATE it instead of creating duplicates
+          if (json.success && json.data?.id && !submissionId) {
+            setSubmissionId(json.data.id)
+          }
+        }
+      } catch (err) {
+        console.warn('Silent auto-save failed:', err)
+      }
+    }, 2000)
+
+    return () => clearTimeout(timeout)
+  }, [formData, formId, hasStarted, isSubmitting, isSubmitted, submissionId])
 
   // Geo restriction effect - moved to top with other hooks
   useEffect(() => {
     if (!form) return
-    
+
     // Run geo restriction before start
     const applyGeo = async () => {
-  const geoField = form.fields?.find((f: any) => f.type === 'geo_restriction') as any
+      const geoField = form.fields?.find((f: any) => f.type === 'geo_restriction') as any
       if (!geoField) return
-      
+
       try {
-        const ipResp = await fetch('/api/geo-lookup', { method: 'POST' })
+        const ipResp = await fetch('/api/geo-location')
         const geo = await ipResp.json()
         const country = String(geo?.country || '').toUpperCase()
         const ip = String(geo?.ip || '')
@@ -315,24 +260,26 @@ export default function PublishedFormPage() {
       }
 
       // Submit form data
-        const response = await fetch('/api/forms/submit', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+      const response = await fetch('/api/forms/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: submissionId || undefined,
           formId: form?.id,
-            data: formData,
+          data: formData,
+          status: 'pending', // Converts internal 'partial' to actual submission
         }),
-        })
+      })
 
-        if (!response.ok) {
+      if (!response.ok) {
         throw new Error('Failed to submit form')
       }
 
       setIsSubmitted(true)
       // Clear autosave on success
-      try { localStorage.removeItem(AUTOSAVE_RESP_KEY) } catch {}
+      try { localStorage.removeItem(AUTOSAVE_RESP_KEY) } catch { }
     } catch (error) {
       console.error('Error submitting form:', error)
       setErrors(prev => ({ ...prev, submit: 'Failed to submit form. Please try again.' }))
@@ -344,7 +291,7 @@ export default function PublishedFormPage() {
   // Generate dynamic styles based on theme
   const getThemeStyles = () => {
     if (!form?.theme) return {}
-    
+
     const theme = form.theme
     return {
       '--primary-color': theme.primary_color || '#FFFFFF',      // Form body color (white default)
@@ -359,19 +306,19 @@ export default function PublishedFormPage() {
   // Get container width based on settings
   const getContainerWidth = () => {
     if (!form?.settings) return 'max-w-2xl'
-    
+
     const settings = form.settings
     if (settings.widthMode === 'px' && settings.widthPx) {
       return { maxWidth: `${settings.widthPx}px` }
     } else if (settings.widthMode === 'ratio' && settings.widthRatio) {
       return { maxWidth: `${settings.widthRatio * 100}vw` }
     }
-    
+
     // Default width presets
     if (settings.width === 'typeform') return 'max-w-2xl'
     if (settings.width === 'stitch') return 'max-w-4xl'
     if (settings.width === 'tripe') return 'max-w-6xl'
-    
+
     return 'max-w-2xl'
   }
 
@@ -396,7 +343,7 @@ export default function PublishedFormPage() {
     const fieldBg = field?.settings?.buttonColor
     const brand = (form as any)?.brandKit?.colors || {}
     if (fieldBg) return fieldBg
-    return isPrimary 
+    return isPrimary
       ? (brand.buttonPrimary?.hex || '#3B82F6')
       : (brand.buttonSecondary?.hex || '#6B7280')
   }
@@ -446,7 +393,7 @@ export default function PublishedFormPage() {
       </div>
     )
   }
-              
+
   // Error state
   if (error || !form) {
     return (
@@ -458,7 +405,7 @@ export default function PublishedFormPage() {
       </div>
     )
   }
-                    
+
   // Geo blocked state
   if (geoBlocked) {
     return (

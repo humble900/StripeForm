@@ -248,11 +248,13 @@ export default function AnalyticsPage() {
 
   if (isLoadingForms) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your forms...</p>
+      <div className="min-h-screen bg-gray-50 analytics-scroll overflow-y-auto">
+        <div className="p-6">
+          <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your forms...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -261,7 +263,8 @@ export default function AnalyticsPage() {
 
   if (forms.length === 0) {
     return (
-      <div className="p-6">
+      <div className="min-h-screen bg-gray-50 analytics-scroll overflow-y-auto">
+        <div className="p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
@@ -292,12 +295,14 @@ export default function AnalyticsPage() {
             Create Your First Form
         </a>
         </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50 analytics-scroll overflow-y-auto">
+      <div className="p-6 space-y-6">
         {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -495,6 +500,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
         )}
+      </div>
     </div>
   )
 } 

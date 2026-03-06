@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { 
-  Users, 
-  FileText, 
-  MessageSquare, 
-  Bell, 
-  TrendingUp, 
+import {
+  Users,
+  FileText,
+  MessageSquare,
+  Bell,
+  TrendingUp,
   Clock,
   AlertCircle,
   CheckCircle,
@@ -143,7 +143,7 @@ export default function AdminClient() {
       if (!token) {
         throw new Error('No admin token found')
       }
-      
+
       const response = await fetch(`/api/admin/dashboard?period=${period}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -156,7 +156,7 @@ export default function AdminClient() {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setStats(data.data)
       } else {
@@ -177,11 +177,11 @@ export default function AdminClient() {
         throw new Error('No admin token found')
       }
       const queryParams = new URLSearchParams()
-      
+
       if (ticketFilters.status) queryParams.append('status', ticketFilters.status)
       if (ticketFilters.priority) queryParams.append('priority', ticketFilters.priority)
       if (ticketFilters.category) queryParams.append('category', ticketFilters.category)
-      
+
       const response = await fetch(`/api/admin/support-tickets?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +194,7 @@ export default function AdminClient() {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setTickets(data.data)
       } else {
@@ -214,7 +214,7 @@ export default function AdminClient() {
       if (!token) {
         throw new Error('No admin token found')
       }
-      
+
       const response = await fetch('/api/admin/notifications?limit=50', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -227,7 +227,7 @@ export default function AdminClient() {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setNotifications(data.data.notifications)
       } else {
@@ -246,7 +246,7 @@ export default function AdminClient() {
       if (!token) {
         throw new Error('No admin token found')
       }
-      
+
       const response = await fetch(`/api/admin/notifications/${notificationId}`, {
         method: 'PUT',
         headers: {
@@ -284,11 +284,11 @@ export default function AdminClient() {
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <p className="text-gray-600">
-              Please sign in to access the admin dashboard.
-            </p>
-              <Button 
+                Please sign in to access the admin dashboard.
+              </p>
+              <Button
                 onClick={() => window.location.href = '/admin/login'}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Go to Admin Login
               </Button>
@@ -304,7 +304,10 @@ export default function AdminClient() {
       <div className="container mx-auto px-4 py-8">
         <Card>
           <CardContent className="pt-6">
-            <LoadingSpinner />
+            <LoadingSpinner
+              size="lg"
+              text="Loading admin panel..."
+            />
           </CardContent>
         </Card>
       </div>
@@ -349,7 +352,7 @@ export default function AdminClient() {
               <span className="text-sm text-gray-600">
                 Welcome, {user.firstName || user.email}
               </span>
-              <Button 
+              <Button
                 onClick={logout}
                 variant="outline"
                 size="sm"
@@ -370,453 +373,457 @@ export default function AdminClient() {
           </p>
         </div>
 
-      {/* Tab Navigation */}
-      <div className="mb-6">
-        <nav className="flex space-x-8 border-b border-gray-200">
-          {[
-            { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-            { id: 'users', label: 'Users', icon: Users, requiresSuperAdmin: true },
-            { id: 'forms', label: 'Forms', icon: FileText },
-            { id: 'tickets', label: 'Support Tickets', icon: MessageSquare },
-            { id: 'notifications', label: 'Notifications', icon: Bell },
-            { id: 'analytics', label: 'Analytics', icon: TrendingUp }
-          ].map((tab) => {
-            const Icon = tab.icon
-            const isDisabled = tab.requiresSuperAdmin && user.role !== 'super_admin'
-            
-            return (
-              <button
-                key={tab.id}
-                onClick={() => !isDisabled && setActiveTab(tab.id)}
-                disabled={isDisabled}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                  activeTab === tab.id
-                    ? 'border-purple-500 text-purple-600'
-                    : isDisabled
-                    ? 'border-transparent text-gray-300 cursor-not-allowed'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{tab.label}</span>
-                {tab.requiresSuperAdmin && (
-                  <Shield className="w-3 h-3 text-gray-400" />
-                )}
-              </button>
-            )
-          })}
-        </nav>
-      </div>
+        {/* Tab Navigation */}
+        <div className="mb-6">
+          <nav className="flex space-x-8 border-b border-gray-200">
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
+              { id: 'users', label: 'Users', icon: Users, requiresSuperAdmin: true },
+              { id: 'forms', label: 'Forms', icon: FileText },
+              { id: 'tickets', label: 'Support Tickets', icon: MessageSquare },
+              { id: 'notifications', label: 'Notifications', icon: Bell },
+              { id: 'analytics', label: 'Analytics', icon: TrendingUp }
+            ].map((tab) => {
+              const Icon = tab.icon
+              const isDisabled = tab.requiresSuperAdmin && user.role !== 'super_admin'
 
-      {/* Dashboard Tab */}
-      {activeTab === 'dashboard' && (
-        <div className="space-y-8">
-          {/* Period Selector */}
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
-              {['day', 'week', 'month', 'year'].map((p) => (
-                <Button
-                  key={p}
-                  variant={period === p ? 'default' : 'outline'}
-                  onClick={() => setPeriod(p)}
-                  className="capitalize"
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !isDisabled && setActiveTab(tab.id)}
+                  disabled={isDisabled}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${activeTab === tab.id
+                      ? 'border-purple-500 text-purple-600'
+                      : isDisabled
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
                 >
-                  {p}
-                </Button>
-              ))}
-            </div>
-            <Button onClick={fetchAdminStats} disabled={loading} variant="outline">
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-          </div>
-
-          {/* Stats Grid */}
-          {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.statistics.total.users}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{stats.statistics.newThisPeriod.users} this {period}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.statistics.total.forms}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{stats.statistics.newThisPeriod.forms} this {period}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Submissions</CardTitle>
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.statistics.total.submissions}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{stats.statistics.newThisPeriod.submissions} this {period}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Support Tickets</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.statistics.total.tickets}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{stats.statistics.newThisPeriod.tickets} this {period}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.statistics.total.notifications}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{stats.statistics.newThisPeriod.notifications} this {period}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    ${stats.revenue ? (stats.revenue / 100).toFixed(2) : '0.00'}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Total revenue
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Recent Tickets */}
-          {stats && stats.recentTickets.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Support Tickets</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stats.recentTickets.map((ticket) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">{ticket.ticketNumber}</span>
-                          <Badge className={getStatusColor(ticket.status)}>
-                            {ticket.status}
-                          </Badge>
-                          <Badge className={getPriorityColor(ticket.priority)}>
-                            {ticket.priority}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{ticket.subject}</p>
-                        <p className="text-xs text-gray-500">{ticket.userEmail}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          {new Date(ticket.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Recent Notifications */}
-          {stats && stats.recentNotifications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Notifications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {stats.recentNotifications.map((notification) => (
-                    <div key={notification.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">{notification.title}</span>
-                          <Badge className={getStatusColor(notification.status)}>
-                            {notification.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{notification.message}</p>
-                        <p className="text-xs text-gray-500">Type: {notification.type}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          {new Date(notification.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  <Icon className="w-5 h-5" />
+                  <span>{tab.label}</span>
+                  {tab.requiresSuperAdmin && (
+                    <Shield className="w-3 h-3 text-gray-400" />
+                  )}
+                </button>
+              )
+            })}
+          </nav>
         </div>
-      )}
 
-      {/* Users Tab */}
-      {activeTab === 'users' && (
-        <UserManagement userRole={user.role as 'admin' | 'super_admin'} />
-      )}
-
-      {/* Forms Tab */}
-      {activeTab === 'forms' && (
-        <FormManagement userRole={user.role as 'admin' | 'super_admin'} />
-      )}
-
-      {/* Support Tickets Tab */}
-      {activeTab === 'tickets' && (
-        <div className="space-y-6">
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Filter Tickets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Status</label>
-                  <select
-                    value={ticketFilters.status}
-                    onChange={(e) => setTicketFilters(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full p-2 border rounded-md"
+        {/* Dashboard Tab */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-8">
+            {/* Period Selector */}
+            <div className="flex justify-between items-center">
+              <div className="flex gap-2">
+                {['day', 'week', 'month', 'year'].map((p) => (
+                  <Button
+                    key={p}
+                    variant={period === p ? 'default' : 'outline'}
+                    onClick={() => setPeriod(p)}
+                    className="capitalize"
                   >
-                    <option value="">All Statuses</option>
-                    <option value="open">Open</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Priority</label>
-                  <select
-                    value={ticketFilters.priority}
-                    onChange={(e) => setTicketFilters(prev => ({ ...prev, priority: e.target.value }))}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">All Priorities</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Category</label>
-                  <select
-                    value={ticketFilters.category}
-                    onChange={(e) => setTicketFilters(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">All Categories</option>
-                    <option value="technical">Technical</option>
-                    <option value="billing">Billing</option>
-                    <option value="feature_request">Feature Request</option>
-                    <option value="bug_report">Bug Report</option>
-                    <option value="general">General</option>
-                    <option value="demo_request">Demo Request</option>
-                  </select>
-                </div>
+                    {p}
+                  </Button>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+              <Button onClick={fetchAdminStats} disabled={loading} variant="outline">
+                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
 
-          {/* Tickets List */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Support Tickets</CardTitle>
-                <Button onClick={fetchSupportTickets} disabled={loading} variant="outline">
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+            {/* Stats Grid */}
+            {stats && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.statistics.total.users}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{stats.statistics.newThisPeriod.users} this {period}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Forms</CardTitle>
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.statistics.total.forms}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{stats.statistics.newThisPeriod.forms} this {period}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Submissions</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.statistics.total.submissions}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{stats.statistics.newThisPeriod.submissions} this {period}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Support Tickets</CardTitle>
+                    <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.statistics.total.tickets}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{stats.statistics.newThisPeriod.tickets} this {period}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.statistics.total.notifications}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{stats.statistics.newThisPeriod.notifications} this {period}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      ${stats.revenue ? (stats.revenue / 100).toFixed(2) : '0.00'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Total revenue
+                    </p>
+                  </CardContent>
+                </Card>
               </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <LoadingSpinner />
-                </div>
-              ) : tickets.length > 0 ? (
-                <div className="space-y-4">
-                  {tickets.map((ticket) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">{ticket.ticketNumber}</span>
-                          <Badge className={getStatusColor(ticket.status)}>
-                            {ticket.status}
-                          </Badge>
-                          <Badge className={getPriorityColor(ticket.priority)}>
-                            {ticket.priority}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">{ticket.subject}</p>
-                        <p className="text-xs text-gray-500">{ticket.userEmail}</p>
-                        {ticket.tags && ticket.tags.length > 0 && (
-                          <div className="flex space-x-1 mt-1">
-                            {ticket.tags.map((tag, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
+            )}
+
+            {/* Recent Tickets */}
+            {stats && stats.recentTickets.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Support Tickets</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {stats.recentTickets.map((ticket) => (
+                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium">{ticket.ticketNumber}</span>
+                            <Badge className={getStatusColor(ticket.status)}>
+                              {ticket.status}
+                            </Badge>
+                            <Badge className={getPriorityColor(ticket.priority)}>
+                              {ticket.priority}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          {new Date(ticket.createdAt).toLocaleDateString()}
-                        </p>
-                        <Button size="sm" variant="outline" className="mt-2">
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No tickets found
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Notifications Tab */}
-      {activeTab === 'notifications' && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle>Notifications</CardTitle>
-                <Button onClick={fetchNotifications} disabled={loading} variant="outline">
-                  <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <LoadingSpinner />
-                </div>
-              ) : notifications.length > 0 ? (
-                <div className="space-y-4">
-                  {notifications.map((notification) => (
-                    <div 
-                      key={notification.id} 
-                      className={`flex items-center justify-between p-4 border rounded-lg ${
-                        notification.status === 'unread' ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="font-medium">{notification.title}</span>
-                          <Badge className={getStatusColor(notification.status)}>
-                            {notification.status}
-                          </Badge>
+                          <p className="text-sm text-gray-600">{ticket.subject}</p>
+                          <p className="text-xs text-gray-500">{ticket.userEmail}</p>
                         </div>
-                        <p className="text-sm text-gray-600">{notification.message}</p>
-                        <p className="text-xs text-gray-500">Type: {notification.type}</p>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(ticket.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          {new Date(notification.createdAt).toLocaleDateString()}
-                        </p>
-                        {notification.status === 'unread' && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="mt-2"
-                            onClick={() => markNotificationAsRead(notification.id)}
-                          >
-                            Mark as Read
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Recent Notifications */}
+            {stats && stats.recentNotifications.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Notifications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {stats.recentNotifications.map((notification) => (
+                      <div key={notification.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium">{notification.title}</span>
+                            <Badge className={getStatusColor(notification.status)}>
+                              {notification.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-500">Type: {notification.type}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(notification.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Users Tab */}
+        {activeTab === 'users' && (
+          <UserManagement userRole={user.role as 'admin' | 'super_admin'} />
+        )}
+
+        {/* Forms Tab */}
+        {activeTab === 'forms' && (
+          <FormManagement userRole={user.role as 'admin' | 'super_admin'} />
+        )}
+
+        {/* Support Tickets Tab */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-6">
+            {/* Filters */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Filter Tickets</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Status</label>
+                    <select
+                      value={ticketFilters.status}
+                      onChange={(e) => setTicketFilters(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="open">Open</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="resolved">Resolved</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Priority</label>
+                    <select
+                      value={ticketFilters.priority}
+                      onChange={(e) => setTicketFilters(prev => ({ ...prev, priority: e.target.value }))}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">All Priorities</option>
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Category</label>
+                    <select
+                      value={ticketFilters.category}
+                      onChange={(e) => setTicketFilters(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full p-2 border rounded-md"
+                    >
+                      <option value="">All Categories</option>
+                      <option value="technical">Technical</option>
+                      <option value="billing">Billing</option>
+                      <option value="feature_request">Feature Request</option>
+                      <option value="bug_report">Bug Report</option>
+                      <option value="general">General</option>
+                      <option value="demo_request">Demo Request</option>
+                    </select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tickets List */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Support Tickets</CardTitle>
+                  <Button onClick={fetchSupportTickets} disabled={loading} variant="outline">
+                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSpinner
+                      size="md"
+                      text="Loading tickets..."
+                    />
+                  </div>
+                ) : tickets.length > 0 ? (
+                  <div className="space-y-4">
+                    {tickets.map((ticket) => (
+                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium">{ticket.ticketNumber}</span>
+                            <Badge className={getStatusColor(ticket.status)}>
+                              {ticket.status}
+                            </Badge>
+                            <Badge className={getPriorityColor(ticket.priority)}>
+                              {ticket.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{ticket.subject}</p>
+                          <p className="text-xs text-gray-500">{ticket.userEmail}</p>
+                          {ticket.tags && ticket.tags.length > 0 && (
+                            <div className="flex space-x-1 mt-1">
+                              {ticket.tags.map((tag, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(ticket.createdAt).toLocaleDateString()}
+                          </p>
+                          <Button size="sm" variant="outline" className="mt-2">
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
                           </Button>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No tickets found
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Notifications Tab */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Notifications</CardTitle>
+                  <Button onClick={fetchNotifications} disabled={loading} variant="outline">
+                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
-              ) : (
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSpinner
+                      size="md"
+                      text="Loading notifications..."
+                    />
+                  </div>
+                ) : notifications.length > 0 ? (
+                  <div className="space-y-4">
+                    {notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`flex items-center justify-between p-4 border rounded-lg ${notification.status === 'unread' ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <span className="font-medium">{notification.title}</span>
+                            <Badge className={getStatusColor(notification.status)}>
+                              {notification.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-500">Type: {notification.type}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(notification.createdAt).toLocaleDateString()}
+                          </p>
+                          {notification.status === 'unread' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-2"
+                              onClick={() => markNotificationAsRead(notification.id)}
+                            >
+                              Mark as Read
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No notifications found
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Analytics</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-8 text-gray-500">
-                  No notifications found
+                  Analytics dashboard coming soon...
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <Card className="border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <p className="text-red-600">{error}</p>
+              <Button
+                onClick={() => {
+                  if (activeTab === 'dashboard') fetchAdminStats()
+                  else if (activeTab === 'tickets') fetchSupportTickets()
+                  else if (activeTab === 'notifications') fetchNotifications()
+                }}
+                variant="outline"
+                className="mt-2"
+              >
+                Retry
+              </Button>
             </CardContent>
           </Card>
-        </div>
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Analytics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Analytics dashboard coming soon...
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Error Display */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
-            <Button 
-              onClick={() => {
-                if (activeTab === 'dashboard') fetchAdminStats()
-                else if (activeTab === 'tickets') fetchSupportTickets()
-                else if (activeTab === 'notifications') fetchNotifications()
-              }} 
-              variant="outline" 
-              className="mt-2"
-            >
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+        )}
       </div>
     </div>
   )

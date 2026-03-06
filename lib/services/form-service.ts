@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { forms, formFields, formSubmissions } from '@/lib/db/schema'
+import { forms, formFields, formSubmissions, systemAnalytics } from '@/lib/db/schema'
 import { eq, and, desc, asc, count, sql } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 
@@ -128,22 +128,19 @@ export class FormService {
    */
   async getFormById(formId: string): Promise<FormWithFields | null> {
     const form = await db.query.forms.findFirst({
-      where: eq(forms.id, formId)
+      where: eq(forms.id, formId),
+      with: {
+        fields: {
+          orderBy: (formFields, { asc }) => [asc(formFields.order)]
+        }
+      }
     })
 
     if (!form) {
       return null
     }
 
-    const fields = await db.query.formFields.findMany({
-      where: eq(formFields.formId, formId),
-      orderBy: (formFields, { asc }) => [asc(formFields.order)]
-    })
-
-    return {
-      ...form,
-      fields
-    }
+    return form
   }
 
   /**
@@ -151,22 +148,19 @@ export class FormService {
    */
   async getFormBySlug(slug: string): Promise<FormWithFields | null> {
     const form = await db.query.forms.findFirst({
-      where: eq(forms.slug, slug)
+      where: eq(forms.slug, slug),
+      with: {
+        fields: {
+          orderBy: (formFields, { asc }) => [asc(formFields.order)]
+        }
+      }
     })
 
     if (!form) {
       return null
     }
 
-    const fields = await db.query.formFields.findMany({
-      where: eq(formFields.formId, form.id),
-      orderBy: (formFields, { asc }) => [asc(formFields.order)]
-    })
-
-    return {
-      ...form,
-      fields
-    }
+    return form
   }
 
   /**
@@ -451,8 +445,21 @@ export class FormService {
    * Track analytics event
    */
   async trackEvent(formId: string, eventType: string, eventData: any = {}): Promise<void> {
-    // Analytics not implemented yet - skip for now
-    console.log('Analytics event tracked:', { formId, eventType, eventData })
+    try {
+      await db.insert(systemAnalytics).values({
+        date: new Date(),
+        metric: eventType,
+        value: 1, // Default increment
+        metadata: {
+          formId,
+          ...eventData
+        },
+        createdAt: new Date()
+      })
+      console.log('Analytics event tracked:', { formId, eventType, eventData })
+    } catch (error) {
+      console.error('Failed to track analytics event:', error)
+    }
   }
 
   /**

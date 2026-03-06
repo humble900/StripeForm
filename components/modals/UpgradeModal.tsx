@@ -12,11 +12,11 @@ interface UpgradeModalProps {
   isAuthenticated?: boolean
 }
 
-export function UpgradeModal({ 
-  isOpen, 
-  onClose, 
-  onUpgrade, 
-  currentFormCount, 
+export function UpgradeModal({
+  isOpen,
+  onClose,
+  onUpgrade,
+  currentFormCount,
   formLimit,
   isAuthenticated = false
 }: UpgradeModalProps) {
@@ -36,15 +36,15 @@ export function UpgradeModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-xl max-w-sm w-full mx-auto overflow-hidden">
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-2 text-white">
+        <div className="relative bg-blue-600 p-2 text-white">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded-full transition-colors"
@@ -62,13 +62,17 @@ export function UpgradeModal({
               <div className="w-2 h-2 bg-amber-500 rounded-full" />
               <span className="text-xs sm:text-sm font-medium text-amber-800">Limit Reached</span>
             </div>
-            <p className="text-xs sm:text-sm text-amber-700">You have reached your trial publishing limit.</p>
+            <p className="text-xs sm:text-sm text-amber-700">
+              {isAuthenticated
+                ? 'You have reached your free plan publishing limit. Upgrade to Pro to unlock unlimited forms.'
+                : 'You have reached your free guest publishing limit. Please create an account and upgrade to Pro to unlock unlimited forms.'}
+            </p>
           </div>
 
           {/* Features */}
           <div className="space-y-2.5 sm:space-y-3 mb-3 sm:mb-4">
             <h3 className="font-semibold text-gray-900 text-sm">Pro Features</h3>
-            
+
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
                 <div className="p-1 bg-green-100 rounded">
@@ -76,28 +80,28 @@ export function UpgradeModal({
                 </div>
                 <span className="text-xs sm:text-sm text-gray-700">Unlimited forms</span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="p-1 bg-green-100 rounded">
                   <Check className="w-4 h-4 text-green-600" />
                 </div>
                 <span className="text-xs sm:text-sm text-gray-700">Advanced analytics & insights</span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="p-1 bg-green-100 rounded">
                   <Check className="w-4 h-4 text-green-600" />
                 </div>
                 <span className="text-xs sm:text-sm text-gray-700">Custom branding & themes</span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="p-1 bg-green-100 rounded">
                   <Check className="w-4 h-4 text-green-600" />
                 </div>
                 <span className="text-xs sm:text-sm text-gray-700">Priority support</span>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <div className="p-1 bg-green-100 rounded">
                   <Check className="w-4 h-4 text-green-600" />
@@ -124,7 +128,7 @@ export function UpgradeModal({
             <button
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="w-full px-3 py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Processing...' : 'Upgrade to Pro'}
             </button>

@@ -136,9 +136,9 @@ export class AuthService {
       if (!this.JWT_SECRET) {
         throw new Error('JWT secret is not configured')
       }
-      
+
       const decoded = jwt.verify(token, this.JWT_SECRET) as any
-      
+
       // Get user from database
       const user = await db.query.users.findFirst({
         where: eq(users.id, decoded.userId)
@@ -160,7 +160,7 @@ export class AuthService {
   async refreshToken(token: string): Promise<{ user: AuthUser; token: string }> {
     const user = await this.verifyToken(token)
     const newToken = this.generateToken({ id: user.id } as any)
-    
+
     return {
       user,
       token: newToken
@@ -192,8 +192,9 @@ export class AuthService {
       })
       .where(eq(users.id, user.id))
 
-    // TODO: Send email with reset link
-    console.log(`Password reset token for ${user.email}: ${passwordResetToken}`)
+    // TODO: Send email with reset link containing the token
+    // e.g., await sendEmail(user.email, 'Password Reset', `Reset link: ${APP_URL}/reset-password?token=${passwordResetToken}`)
+    // For now, the token is stored in the database and can be used via the reset endpoint
   }
 
   /**
@@ -373,7 +374,7 @@ export class AuthService {
     if (!this.JWT_SECRET) {
       throw new Error('JWT secret is not configured. Please set NEXTAUTH_SECRET or JWT_SECRET environment variable.')
     }
-    
+
     return jwt.sign(
       { userId: user.id },
       this.JWT_SECRET,

@@ -51,7 +51,7 @@ export default function PricingClient() {
       ],
       cta: isOnFree ? 'Current Plan' : 'Start Free',
       disabled: true,
-      ctaAction: () => {},
+      ctaAction: () => { },
       popular: false,
       icon: Zap
     },
@@ -122,15 +122,14 @@ export default function PricingClient() {
             return (
               <div
                 key={plan.name}
-                className={`relative bg-white rounded-lg shadow-lg p-4 ${
-                  plan.popular
-                    ? 'ring-2 ring-purple-500'
+                className={`relative bg-white rounded-lg shadow-lg p-4 ${plan.popular
+                    ? 'ring-2 ring-blue-500'
                     : 'hover:shadow-xl transition-shadow'
-                }`}
+                  }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
                       Most Popular
                     </span>
                   </div>
@@ -138,12 +137,10 @@ export default function PricingClient() {
 
                 <div className="text-center mb-6">
                   <div className="flex justify-center mb-3">
-                    <div className={`p-2 rounded-full ${
-                      plan.popular ? 'bg-purple-100' : 'bg-gray-100'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${
-                        plan.popular ? 'text-purple-600' : 'text-gray-600'
-                      }`} />
+                    <div className={`p-2 rounded-full ${plan.popular ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                      <Icon className={`w-6 h-6 ${plan.popular ? 'text-blue-600' : 'text-gray-600'
+                        }`} />
                     </div>
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{plan.name}</h3>
@@ -171,13 +168,12 @@ export default function PricingClient() {
                 <button
                   onClick={plan.ctaAction}
                   disabled={!!loadingPlan || plan.disabled}
-                  className={`w-full py-2 px-3 rounded-md font-semibold transition-all text-xs ${
-                    plan.disabled
+                  className={`w-full py-2 px-3 rounded-md font-semibold transition-all text-xs ${plan.disabled
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : plan.popular
-                        ? 'bg-purple-600 text-white hover:bg-purple-700'
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-gray-900 text-white hover:bg-gray-800'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loadingPlan === plan.planId ? 'Processing...' : plan.cta}
                 </button>
@@ -221,7 +217,7 @@ export default function PricingClient() {
 
         {/* CTA Section */}
         <div className="mt-12 text-center">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-8 text-white">
+          <div className="bg-blue-600 rounded-lg p-8 text-white">
             <h2 className="text-xl font-bold mb-3">
               Ready to create amazing forms?
             </h2>
@@ -231,13 +227,13 @@ export default function PricingClient() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
                 onClick={() => window.location.href = '/register'}
-                className="bg-white text-purple-600 px-5 py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors text-xs"
+                className="bg-white text-blue-600 px-5 py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors text-xs"
               >
                 Start Free Today
               </button>
               <button
                 onClick={() => window.location.href = '/contact'}
-                className="border-2 border-white text-white px-5 py-2 rounded-md font-semibold hover:bg-white hover:text-purple-600 transition-colors text-xs"
+                className="border-2 border-white text-white px-5 py-2 rounded-md font-semibold hover:bg-white hover:text-blue-600 transition-colors text-xs"
               >
                 Contact Sales
               </button>

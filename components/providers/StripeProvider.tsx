@@ -40,23 +40,21 @@ export function StripeProvider({ children }: StripeProviderProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <LoadingSpinner />
-        <span className="ml-2">Initializing payment system...</span>
+      <div className="flex items-center justify-center p-8 min-h-[200px]">
+        <LoadingSpinner 
+          size="md" 
+          text="Initializing payment system..." 
+        />
       </div>
     )
   }
 
   if (error || !stripePromise) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="text-red-500 mb-2">⚠️</div>
-          <p className="text-red-600 font-medium">Payment system unavailable</p>
-          <p className="text-gray-500 text-sm mt-1">{error || 'Stripe configuration error'}</p>
-        </div>
-      </div>
-    )
+    // Fallback: render children without Stripe so the builder still works
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Stripe unavailable, rendering builder without payment elements:', error)
+    }
+    return <>{children}</>
   }
 
   return (

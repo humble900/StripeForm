@@ -89,6 +89,9 @@ export async function PATCH(
           updatedAt: new Date()
         })
         
+        // Get the complete updated form with fields
+        const completeForm = await dbService.getForm(id)
+        
         // Invalidate cache
         const { formCache } = await import('@/lib/cache')
         formCache.delete(`form:${id}`)
@@ -107,7 +110,7 @@ export async function PATCH(
         
         return NextResponse.json({
           success: true,
-          data: updatedForm,
+          data: completeForm,
           message: 'Form updated successfully'
         })
         

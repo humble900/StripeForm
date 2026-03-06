@@ -17,7 +17,7 @@ export interface FormField {
   form_id?: string
 }
 
-export type FieldType = 
+export type FieldType =
   | 'short_text'
   | 'long_text'
   | 'email'
@@ -54,10 +54,13 @@ export type FieldType =
   | 'captcha'
   | 'matrix_grid'
   | 'signature_upload'
-  | 'geo_restriction'
   | 'cover_slide'
   | 'end_page'
   | 'url_redirect'
+  | 'statement'
+  | 'legal'
+  | 'contact_info'
+  | 'hidden_question'
 
 export interface ValidationRule {
   type: 'required' | 'min' | 'max' | 'pattern' | 'email' | 'url' | 'no_special_chars' | 'min_length' | 'max_length' | 'exact_length' | 'no_html' | 'no_links' | 'no_profanity' | 'custom_regex'
@@ -86,11 +89,6 @@ export interface FieldSettings {
   recurring?: boolean // For payment fields (subscription mode)
   blockedCountries?: string[] // ISO country codes to block
 
-  // Geo restriction
-  geoAllowedCountries?: string[]
-  geoBlockMode?: 'allow' | 'block'
-  geoIpList?: string[]
-
   // Cover slide settings
   coverTitle?: string
   coverSubtitle?: string
@@ -116,7 +114,7 @@ export interface FieldSettings {
     type: string
     lastModified: number
   }
-  
+
   // Dropdown-specific settings
   defaultValue?: string | number
   maxSelections?: number
@@ -133,21 +131,21 @@ export interface FieldSettings {
   randomize?: boolean
   // Yes/No appearance
   yesNoStyle?: 'buttons' | 'cards' | 'chips' | 'toggle' | 'thumbs'
-  
+
   // Email-specific settings
   emailType?: 'standard' | 'multiple' | 'confirm'
   showEmailIcon?: boolean
   validateOn?: 'blur' | 'change' | 'submit' | 'always'
   allowedDomains?: string[]
   blockedDomains?: string[]
-  
+
   // Text area specific settings
   resize?: 'none' | 'both' | 'horizontal' | 'vertical'
   wrap?: 'soft' | 'hard' | 'off'
   autoGrow?: boolean
   showCharCounter?: boolean
   minLength?: number
-  
+
   // Number-specific settings
   numberType?: 'integer' | 'decimal' | 'currency' | 'percentage' | 'phone' | 'postal'
   decimalPlaces?: number
@@ -155,7 +153,7 @@ export interface FieldSettings {
   allowNegative?: boolean
   formatOnBlur?: boolean
   inputMode?: 'numeric' | 'decimal' | 'tel'
-  
+
   // Multiple Choice-specific settings
   multipleChoiceType?: 'radio' | 'checkbox' | 'buttons' | 'cards' | 'dropdown'
   layout?: 'vertical' | 'horizontal' | 'grid' | 'inline'
@@ -168,7 +166,8 @@ export interface FieldSettings {
   spacing?: 'compact' | 'normal' | 'loose'
   allowClear?: boolean
   showSelectionCount?: boolean
-  
+  optionImages?: string[]
+
   // Checkbox-specific settings
   checkboxType?: 'single' | 'multiple' | 'toggle' | 'custom'
   labelPosition?: 'left' | 'right' | 'top' | 'bottom'
@@ -184,7 +183,7 @@ export interface FieldSettings {
   allowIndeterminate?: boolean
   autoSave?: boolean
   showCheckMark?: boolean
-  
+
   // Star Rating-specific settings
   // Matrix-specific settings
   matrixRows?: string[]
@@ -232,7 +231,7 @@ export interface FieldSettings {
   addressRequireRegion?: boolean
   addressRequirePostalCode?: boolean
   addressRequireCountry?: boolean
-  
+
   // Advanced Styling Options
   styling?: {
     // Text styling
@@ -242,14 +241,14 @@ export interface FieldSettings {
     fontFamily?: string
     textAlign?: 'left' | 'center' | 'right' | 'justify'
     lineHeight?: number
-    
+
     // Background and border
     backgroundColor?: string
     borderColor?: string
     borderWidth?: number
     borderStyle?: 'solid' | 'dashed' | 'dotted' | 'none'
     borderRadius?: number
-    
+
     // Spacing
     padding?: {
       top?: number
@@ -263,7 +262,7 @@ export interface FieldSettings {
       bottom?: number
       left?: number
     }
-    
+
     // Input field specific
     width?: 'full' | 'half' | 'third' | 'quarter'
     inputBackgroundColor?: string
@@ -276,22 +275,22 @@ export interface FieldSettings {
       bottom?: number
       left?: number
     }
-    
+
     // Focus states
     focusBorderColor?: string
     focusBackgroundColor?: string
     focusBoxShadow?: string
-    
+
     // Hover states
     hoverBorderColor?: string
     hoverBackgroundColor?: string
-    
+
     // Placeholder styling
     placeholderColor?: string
     placeholderFontSize?: number
     placeholderFontWeight?: string
   }
-  
+
   // Advanced Behavior Options
   behavior?: {
     autoComplete?: 'on' | 'off' | 'name' | 'email' | 'tel' | 'url' | 'current-password' | 'new-password'
@@ -301,26 +300,26 @@ export interface FieldSettings {
     spellCheck?: boolean
     autoCapitalize?: 'off' | 'on' | 'sentences' | 'words' | 'characters'
     autoCorrect?: 'off' | 'on'
-    
+
     // Validation behavior
     validateOnBlur?: boolean
     validateOnChange?: boolean
     validateOnSubmit?: boolean
     validateOn?: 'blur' | 'change' | 'submit' | 'always'
-    
+
     // Input behavior
     debounceTime?: number
     throttleTime?: number
     maxFileSize?: number // in bytes
     allowedFileTypes?: string[]
-    
+
     // Conditional behavior
     showOn?: ConditionalLogic[]
     hideOn?: ConditionalLogic[]
     enableOn?: ConditionalLogic[]
     disableOn?: ConditionalLogic[]
   }
-  
+
   // Advanced Validation Options
   validation?: {
     customRules?: ValidationRule[]
@@ -352,7 +351,7 @@ export interface FieldSettings {
     minRating?: number
     maxRating?: number
   }
-  
+
   // Advanced Accessibility Options
   accessibility?: {
     ariaLabel?: string
@@ -363,21 +362,21 @@ export interface FieldSettings {
     role?: string
     dataAttributes?: Record<string, string>
   }
-  
+
   // Advanced Integration Options
   integration?: {
     webhookUrl?: string
     webhookHeaders?: Record<string, string>
     webhookMethod?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     webhookTimeout?: number
-    
+
     // Third-party integrations
     googleSheetsId?: string
     googleSheetsRange?: string
     zapierWebhookUrl?: string
     makeWebhookUrl?: string
     n8nWebhookUrl?: string
-    
+
     // Custom JavaScript
     customJS?: string
     customCSS?: string
@@ -394,7 +393,6 @@ export interface Form {
   settings: FormSettings
   theme: FormTheme
   brandKit?: BrandKit
-  geoRestrictions?: any // Geo-political restrictions for form access
   created_at: string
   updated_at: string
   user_id: string
@@ -402,6 +400,14 @@ export interface Form {
   status?: 'draft' | 'published' | 'archived' | 'deleted'
   publishedUrl?: string
   response_count: number
+  // Optional aliases/mapped fields used in UI
+  createdAt?: string
+  updatedAt?: string
+  view_count?: number
+  submission_count?: number
+  viewCount?: number
+  submissionCount?: number
+  submissions?: any[]
 }
 
 export interface FormSettings {
@@ -416,23 +422,87 @@ export interface FormSettings {
   // Rendering preferences
   display_mode?: 'single_page' | 'progressive'
   layout?: 'vertical' | 'horizontal' | 'grid'
+  // Preview device toggle
+  previewDevice?: 'desktop' | 'mobile'
   // Presentation controls
   // Form size presets: 'typeform' | 'stitch' | 'tripe'
   width?: any
   // New numeric sizing controls
   widthMode?: 'px' | 'ratio'
-  widthPx?: number // e.g., 480 means max-width: 480px
-  widthRatio?: number // 0.3 - 1.0 means max-width: 30vw - 100vw
+  widthPx?: number
+  widthRatio?: number
   // Height sizing controls
   heightMode?: 'px' | 'ratio'
-  heightPx?: number // e.g., 640 means max-height: 640px
-  heightRatio?: number // 0.5 - 1.0 means max-height: 50vh - 100vh
+  heightPx?: number
+  heightRatio?: number
   use_cover?: boolean
   cover_title?: string
   cover_description?: string
   cover_button_text?: string
   thankyou_title?: string
   thankyou_description?: string
+
+  // ─── General > Display ───
+  show_branding?: boolean
+  show_navigation_arrows?: boolean
+  show_question_numbers?: boolean
+  show_letters_on_answers?: boolean
+
+  // ─── General > Preferences ───
+  autosave_progress?: boolean
+  free_navigation?: boolean
+  cookie_consent?: boolean
+  enrich_responses?: boolean
+  spam_prevention?: boolean
+  duplicate_prevention?: boolean
+
+  // ─── Access & Scheduling ───
+  is_open?: boolean
+  schedule_close?: boolean
+  schedule_close_date?: string
+  response_limit_enabled?: boolean
+  response_limit?: number
+  show_closed_message?: boolean
+  closed_message?: string
+
+  // ─── Language / System Messages ───
+  lang_confirm_button?: string
+  lang_enter_hint?: string
+  lang_multi_select_hint?: string
+  lang_dropdown_instruction?: string
+  lang_dropdown_touch?: string
+  lang_other_label?: string
+  lang_other_hint?: string
+  lang_yes_label?: string
+  lang_no_label?: string
+  lang_accept_label?: string
+  lang_reject_label?: string
+  lang_review_button?: string
+  lang_submit_button?: string
+  lang_continue_button?: string
+  // Error messages
+  lang_err_required?: string
+  lang_err_selection?: string
+  lang_err_value?: string
+  lang_err_legal?: string
+  lang_err_email?: string
+  lang_err_url?: string
+  lang_err_number_range?: string
+  lang_err_number_low?: string
+  lang_err_number_high?: string
+  lang_err_dropdown_empty?: string
+  lang_err_phone?: string
+  // Completion messages
+  lang_completion_message?: string
+  lang_server_error?: string
+  // File upload messages
+  lang_file_required?: string
+  lang_file_button?: string
+  lang_file_drag?: string
+  lang_file_too_big?: string
+  lang_file_uploading?: string
+  // Other
+  lang_line_break_hint?: string
 }
 
 export interface FormTheme {
@@ -446,6 +516,11 @@ export interface FormTheme {
   background_image_url?: string
   header_image_url?: string
   custom_css?: string
+  // Theme gallery extended properties
+  button_text_color?: string
+  answer_color?: string
+  // Gallery theme ID — used to render the SVG art background
+  gallery_theme_id?: string
 }
 
 export interface BrandKit {
@@ -687,14 +762,14 @@ export interface Notification {
 }
 
 // Long Text Question Field Types
-export type LongTextInputType = 
+export type LongTextInputType =
   | 'textarea'
   | 'rich_text'
   | 'markdown'
   | 'html'
   | 'plain_text'
 
-export type LongTextValidationType = 
+export type LongTextValidationType =
   | 'required'
   | 'min_length'
   | 'max_length'
@@ -706,7 +781,7 @@ export type LongTextValidationType =
   | 'no_profanity'
   | 'custom_regex'
 
-export type LongTextFormatting = 
+export type LongTextFormatting =
   | 'none'
   | 'uppercase'
   | 'lowercase'
@@ -716,7 +791,7 @@ export type LongTextFormatting =
   | 'trim'
   | 'custom'
 
-export type LongTextAccessibilityFeature = 
+export type LongTextAccessibilityFeature =
   | 'aria_label'
   | 'aria_describedby'
   | 'aria_required'
@@ -732,13 +807,13 @@ export interface LongTextQuestionField {
   placeholder: string
   required: boolean
   helpText: string
-  
+
   // Advanced input settings
   inputType: LongTextInputType
   customInputType: string
   defaultValue: string
   autoComplete: string
-  
+
   // Text area specific settings
   rows: number
   resize: 'none' | 'both' | 'horizontal' | 'vertical'
@@ -747,7 +822,7 @@ export interface LongTextQuestionField {
   showCharCounter: boolean
   minLength: number
   maxLength: number
-  
+
   // Validation settings
   validation: ValidationRule[]
   exactLength: number
@@ -758,20 +833,20 @@ export interface LongTextQuestionField {
   disallowHtml: boolean
   disallowLinks: boolean
   disallowProfanity: boolean
-  
+
   // Formatting settings
   textFormatting: LongTextFormatting
   customFormatting: string
   autoFormat: boolean
-  
+
   // Prefill settings
   prefillFromUrl: boolean
   urlParamName: string
-  
+
   // Variable binding
   variableBinding: boolean
   variableName: string
-  
+
   // Visual settings
   textColor: string
   backgroundColor: string
@@ -779,14 +854,14 @@ export interface LongTextQuestionField {
   fontSize: number
   borderRadius: number
   padding: number
-  
+
   // Advanced features
   smartSuggestions: boolean
   autoSave: boolean
   realTimeValidation: boolean
   characterCounter: boolean
   accessibilityFeatures: LongTextAccessibilityFeature[]
-  
+
   // Behavior settings
   autoFocus: boolean
   readOnly: boolean
@@ -794,11 +869,11 @@ export interface LongTextQuestionField {
   clearOnSubmit: boolean
   preserveOnError: boolean
   spellCheck: boolean
-  
+
   // Conditional logic
   showCondition: string
   hideCondition: string
-  
+
   // Integration settings
   webhookUrl: string
   apiKey: string

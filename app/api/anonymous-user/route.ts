@@ -15,10 +15,13 @@ export async function GET(request: NextRequest) {
 
     const anonymousUser = await dbService.getAnonymousUser(fingerprint)
     
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       data: anonymousUser
     })
+    // Persist fingerprint cookie for reuse across sessions/browsers
+    res.cookies.set('sf_fp', fingerprint, { path: '/', httpOnly: false, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    return res
   } catch (error) {
     console.error('Error fetching anonymous user:', error)
     return NextResponse.json(
@@ -45,10 +48,12 @@ export async function POST(request: NextRequest) {
       userAgent: userAgent || null
     })
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       data: anonymousUser
     })
+    res.cookies.set('sf_fp', fingerprint, { path: '/', httpOnly: false, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    return res
   } catch (error) {
     console.error('Error creating anonymous user:', error)
     return NextResponse.json(
@@ -74,10 +79,12 @@ export async function PUT(request: NextRequest) {
     
     const anonymousUser = await dbService.updateAnonymousUser(fingerprint, updates)
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       data: anonymousUser
     })
+    res.cookies.set('sf_fp', fingerprint, { path: '/', httpOnly: false, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
+    return res
   } catch (error) {
     console.error('Error updating anonymous user:', error)
     console.error('Error details:', {

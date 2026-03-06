@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import LoadingSpinner from '@/components/ui/loading-spinner'
+import InlineLoading from '@/components/ui/inline-loading'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { useNotifications } from '@/components/providers/NotificationProvider'
@@ -94,6 +96,12 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
   }, [selectedCategory, searchQuery, addNotification])
 
   const handleUseTemplate = async (template: FormTemplate) => {
+    // Prevent multiple simultaneous template copies
+    if (copyingTemplate) {
+      console.log('⚠️ Template copy already in progress, ignoring request')
+      return
+    }
+
     try {
       setCopyingTemplate(template.id)
       
@@ -105,6 +113,7 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
         userId = trackingData.fingerprint
       }
 
+      // Silent background copy - no notifications during process
       const response = await fetch(`/api/templates/${template.id}/copy`, {
         method: 'POST',
         headers: {
@@ -116,10 +125,11 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
       const data = await response.json()
 
       if (data.success) {
+        // Only show success notification
         addNotification({
           type: 'success',
-          title: 'Template Copied!',
-          message: 'Template has been added to your drafts',
+          title: 'Template Ready!',
+          message: `"${template.name}" has been copied and is ready to edit`,
           duration: 3000
         })
 
@@ -128,7 +138,7 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
         if (onTemplateSelect) {
           onTemplateSelect(template.id)
         } else {
-          // Prefer navigating with the created form id so the builder loads persisted fields
+          // Navigate directly to the created form
           const createdFormId: string | undefined = data?.data?.formId
           if (createdFormId) {
             router.push(`/builder?form=${createdFormId}`)
@@ -143,7 +153,7 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
       console.error('Error copying template:', error)
       addNotification({
         type: 'error',
-        title: 'Error',
+        title: 'Copy Failed',
         message: 'Failed to copy template. Please try again.',
         duration: 5000
       })
@@ -190,17 +200,36 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading templates...</p>
+      <div className="min-h-screen bg-gray-50 template-scroll overflow-y-auto">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Form Templates</h1>
+                <p className="text-gray-600 mt-1">Choose from our professionally designed templates to get started quickly</p>
+              </div>
+              {onClose && (
+                <Button variant="outline" onClick={onClose}>
+                  Close
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Content with inline loading */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <InlineLoading size="lg" text="Loading templates..." variant="dots" />
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 template-scroll overflow-y-auto">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -254,7 +283,7 @@ export function TemplateGallery({ onClose, onTemplateSelect }: TemplateGalleryPr
         </div>
 
         {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 template-scroll">
           {templates.map((template) => (
             <Card key={template.id} className="group hover:shadow-lg transition-all duration-200 border-0 shadow-md">
               <CardContent className="p-0">

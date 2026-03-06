@@ -1,12 +1,15 @@
 'use client'
 import React, { useState, useEffect, Suspense } from 'react'
+import { BrandKitContent } from '@/components/brand-kit/BrandKitContent'
+import InlineLoading from '@/components/ui/inline-loading'
+import { BrandKitProvider } from '@/components/providers/BrandKitProvider'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/components/providers/AuthProvider'
-import { 
-  UserIcon, 
-  EnvelopeIcon, 
-  KeyIcon, 
-  ShieldCheckIcon, 
+import {
+  UserIcon,
+  EnvelopeIcon,
+  KeyIcon,
+  ShieldCheckIcon,
   CreditCardIcon,
   Cog6ToothIcon,
   ArrowRightIcon,
@@ -36,13 +39,13 @@ function ProfileContent() {
   const { user, updateUserProfile, updateDisplayName, signOut, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   const [activeTab, setActiveTab] = useState('profile')
   const [isEditing, setIsEditing] = useState(false)
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [success, setSuccess] = useState('')
-  
+
   // Form states
   const [displayName, setDisplayName] = useState('')
   const [company, setCompany] = useState('')
@@ -124,9 +127,9 @@ function ProfileContent() {
 
   const handleSaveProfile = async () => {
     if (!user) return
-    
+
     setIsLoadingProfile(true)
-    setError('')
+    setErrors({})
     setSuccess('')
 
     try {
@@ -149,7 +152,7 @@ function ProfileContent() {
       setSuccess('Profile updated successfully!')
       setIsEditing(false)
     } catch (error: any) {
-      setError(error.message || 'Failed to update profile')
+      setErrors({ global: error.message || 'Failed to update profile' })
     } finally {
       setIsLoadingProfile(false)
     }
@@ -180,11 +183,12 @@ function ProfileContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <InlineLoading
+          variant="dots"
+          size="lg"
+          text="Loading profile..."
+        />
       </div>
     )
   }
@@ -208,7 +212,7 @@ function ProfileContent() {
             <Card>
               <CardContent className="p-2">
                 <nav className="space-y-1">
-                  {[ 
+                  {[
                     { value: 'profile', label: 'Profile', icon: UserIcon },
                     { value: 'security', label: 'Security', icon: ShieldCheckIcon },
                     { value: 'subscription', label: 'Subscription', icon: CreditCardIcon },
@@ -247,7 +251,7 @@ function ProfileContent() {
               <CardContent className="p-4">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                    <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
                       {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
                     </div>
                     <button className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-1 shadow-md hover:shadow-lg transition-shadow">
@@ -286,13 +290,13 @@ function ProfileContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {error && (
+                  {errors['global'] && (
                     <Alert variant="destructive">
                       <ExclamationTriangleIcon className="h-4 w-4 text-red-600 mr-2" />
-                      <AlertDescription className="text-xs">{error}</AlertDescription>
+                      <AlertDescription className="text-xs">{errors['global']}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   {success && (
                     <Alert variant="success">
                       <CheckCircleIcon className="h-4 w-4 text-green-600 mr-2" />
@@ -307,11 +311,18 @@ function ProfileContent() {
                       </label>
                       <Input
                         value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        onChange={(e) => {
+                          setDisplayName(e.target.value)
+                          if (errors.displayName) setErrors(prev => ({ ...prev, displayName: '' }))
+                        }}
                         placeholder="Enter your display name"
                         disabled={!isEditing}
                         className="text-sm py-1 px-2"
+                        error={!!errors.displayName}
                       />
+                      {errors.displayName && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.displayName}</p>
+                      )}
                     </div>
 
                     <div>
@@ -320,11 +331,18 @@ function ProfileContent() {
                       </label>
                       <Input
                         value={company}
-                        onChange={(e) => setCompany(e.target.value)}
+                        onChange={(e) => {
+                          setCompany(e.target.value)
+                          if (errors.company) setErrors(prev => ({ ...prev, company: '' }))
+                        }}
                         placeholder="Enter your company"
                         disabled={!isEditing}
                         className="text-sm py-1 px-2"
+                        error={!!errors.company}
                       />
+                      {errors.company && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.company}</p>
+                      )}
                     </div>
 
                     <div>
@@ -333,11 +351,18 @@ function ProfileContent() {
                       </label>
                       <Input
                         value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
+                        onChange={(e) => {
+                          setWebsite(e.target.value)
+                          if (errors.website) setErrors(prev => ({ ...prev, website: '' }))
+                        }}
                         placeholder="https://yourwebsite.com"
                         disabled={!isEditing}
                         className="text-sm py-1 px-2"
+                        error={!!errors.website}
                       />
+                      {errors.website && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.website}</p>
+                      )}
                     </div>
 
                     <div>
@@ -350,11 +375,16 @@ function ProfileContent() {
                         onChange={(phoneNumber, country) => {
                           setPhone(phoneNumber)
                           setCountryCode(country)
+                          if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
                         }}
                         placeholder="Enter your phone number"
                         disabled={!isEditing}
                         className="text-sm py-1 px-2"
+                        error={!!errors.phone}
                       />
+                      {errors.phone && (
+                        <p className="text-xs font-medium text-red-500 mt-1">{errors.phone}</p>
+                      )}
                     </div>
                   </div>
 
@@ -369,7 +399,7 @@ function ProfileContent() {
                         <Button variant="outline" onClick={handleCancelEdit} size="sm">
                           Cancel
                         </Button>
-                        <Button 
+                        <Button
                           onClick={handleSaveProfile}
                           disabled={isLoadingProfile}
                           size="sm"
@@ -436,14 +466,14 @@ function ProfileContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg">
+                  <div className="bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-base font-semibold text-gray-900">
                           {user.subscription_tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {user.subscription_tier === 'pro' 
+                          {user.subscription_tier === 'pro'
                             ? 'Unlimited forms, advanced analytics, and priority support'
                             : 'Basic features with form limits'
                           }
@@ -453,12 +483,12 @@ function ProfileContent() {
                         {user.subscription_status}
                       </Badge>
                     </div>
-                    
+
                     <div className="mt-3">
                       <p className="text-sm text-gray-600 mb-2">Form Limit: {user.form_limit} forms</p>
                       {user.subscription_tier === 'free' && (
-                        <Button 
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700" 
+                        <Button
+                          className="bg-blue-600 hover:bg-blue-700"
                           size="sm"
                           onClick={() => router.push('/pricing')}
                         >
@@ -839,13 +869,9 @@ function ProfileContent() {
                     Brand Kit
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4">
-                  <div className="border rounded-md overflow-hidden">
-                    <iframe
-                      src="/brand-kit"
-                      title="Brand Kit"
-                      className="w-full h-[60vh]"
-                    />
+                <CardContent className="p-0 border-t">
+                  <div className="bg-white rounded-b-md overflow-hidden">
+                    <BrandKitContent />
                   </div>
                 </CardContent>
               </Card>
@@ -859,8 +885,10 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ProfileContent />
-    </Suspense>
+    <BrandKitProvider>
+      <Suspense fallback={<div>Loading...</div>}>
+        <ProfileContent />
+      </Suspense>
+    </BrandKitProvider>
   )
 }

@@ -20,10 +20,10 @@
  */
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback } from 'react'
-import { 
-  User as FirebaseUser, 
+import {
+  User as FirebaseUser,
   UserCredential,
-  onAuthStateChanged, 
+  onAuthStateChanged,
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -43,7 +43,7 @@ import { useNotifications } from '@/components/providers/NotificationProvider'
 // API helper functions
 const apiCall = async (url: string, options: RequestInit = {}) => {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15000) // 15s timeout
+  const timeout = setTimeout(() => controller.abort(), 30000) // Increased to 30s timeout
   try {
     const response = await fetch(url, {
       headers: {
@@ -58,7 +58,7 @@ const apiCall = async (url: string, options: RequestInit = {}) => {
     if (!response.ok) {
       // Try to read response text for better diagnostics, but don't throw parse errors
       let errText = response.statusText
-      try { errText = await response.text() } catch {}
+      try { errText = await response.text() } catch { }
       throw new Error(`API call failed (${response.status}): ${errText}`)
     }
 
@@ -79,11 +79,17 @@ const apiCall = async (url: string, options: RequestInit = {}) => {
 
 const getUser = async (userId: string) => {
   try {
-    const result = await apiCall(`/api/user?userId=${userId}`)
+    const result = await apiCall(`/api/user?userId=${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${userId}`,
+        'x-fingerprint': userId
+      }
+    })
     return result.data
-  } catch (error) {
+  } catch (error: any) {
     // If user not found (404), return null instead of throwing
-    if (error instanceof Error && error.message.includes('Not Found')) {
+    const errorMsg = error?.message || String(error)
+    if (errorMsg.includes('Not Found') || errorMsg.includes('404') || errorMsg.includes('User not found')) {
       return null
     }
     throw error
@@ -93,6 +99,10 @@ const getUser = async (userId: string) => {
 const createUser = async (userData: any) => {
   const result = await apiCall('/api/user', {
     method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${userData.id || 'anonymous'}`,
+      'x-fingerprint': userData.id
+    },
     body: JSON.stringify(userData)
   })
   return result.data
@@ -101,11 +111,16 @@ const createUser = async (userData: any) => {
 const updateUser = async (userId: string, updates: any) => {
   const result = await apiCall('/api/user', {
     method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${userId}`,
+      'x-fingerprint': userId
+    },
     body: JSON.stringify({ userId, updates })
   })
   return result.data
 }
 
+// ... keeping intermediate functions unchanged up to the hook ...
 const fetchAnonymousUser = async (fingerprint: string) => {
   try {
     const result = await apiCall(`/api/anonymous-user?fingerprint=${fingerprint}`)
@@ -171,7 +186,7 @@ const canUserCreateForm = async (userId: string) => {
 const getAnonymousUserFormCount = async (fingerprint: string) => {
   try {
     const result = await apiCall(`/api/user/form-limits?fingerprint=${fingerprint}`)
-    return { 
+    return {
       currentCount: result.data.formCount,
       limit: 5,
     }
@@ -196,6 +211,7 @@ interface AuthContextType extends AuthState {
   debugAuthState: () => void
   refreshAuthState: () => Promise<void>
   ensureUserState: () => Promise<void>
+  getAuthToken: () => Promise<string | null>
   checkAnonymousFormLimit: () => Promise<{ canCreate: boolean; currentCount: number; limit: number }>
   checkUserFormLimit: () => Promise<{ canCreate: boolean; currentCount: number; limit: number }>
   trackUserVisit: () => Promise<void>
@@ -220,11 +236,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Check if we're on an admin page - skip anonymous user tracking for admin pages
         const isAdminPage = window.location.pathname.startsWith('/admin')
-        
+
         if (!isAdminPage) {
           await trackUserVisit()
         }
-        
+
         // If no Firebase user is authenticated, set anonymous state
         if (!auth.currentUser) {
           setIsAnonymous(true)
@@ -238,25 +254,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
       }
     }
-    
+
     initializeAnonymousState()
   }, [])
 
   // Initialize authentication state
   useEffect(() => {
     let isMounted = true
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isMounted) return
-      
+
       if (!isLoading) {
-      setIsLoading(true)
+        setIsLoading(true)
       }
-      
+
       try {
         if (firebaseUser) {
           console.log('🔥 Firebase user authenticated:', firebaseUser.uid, firebaseUser.email)
-          
+
           // Create preliminary user object for immediate UI update
           const preliminaryUser: User = {
             id: firebaseUser.uid,
@@ -270,36 +286,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
-          
+
           setUser((u) => u ?? preliminaryUser)
           setIsAuthenticated(true)
           setIsAnonymous(false)
-          
+
           // Check if this user was previously anonymous and convert them
           if (userTracking) {
             const anonymousUser = await fetchAnonymousUser(userTracking.fingerprint)
-          
-          if (anonymousUser) {
-            console.log('🔄 Converting anonymous user to authenticated...')
-            if (userTracking) {
-              const migrationResult = await migrateAnonymousToAuthenticated(userTracking.fingerprint, firebaseUser.uid)
-              console.log('✅ Migration completed:', migrationResult)
-              
-              // Trigger dashboard refresh to show migrated forms
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('form-migrated', 'true')
-                window.dispatchEvent(new CustomEvent('formMigrated'))
+
+            if (anonymousUser) {
+              console.log('🔄 Converting anonymous user to authenticated...')
+              if (userTracking) {
+                const migrationResult = await migrateAnonymousToAuthenticated(userTracking.fingerprint, firebaseUser.uid)
+                console.log('✅ Migration completed:', migrationResult)
+
+                // Trigger dashboard refresh to show migrated forms
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('form-migrated', 'true')
+                  window.dispatchEvent(new CustomEvent('formMigrated'))
+                }
               }
             }
-            return
           }
-          }
-          
+
           try {
             // Check if user exists in our database using Firebase UID
             console.log('🗄️ Fetching user from Supabase using Firebase UID...')
             const userData = await getUser(firebaseUser.uid)
-            
+
             if (userData) {
               console.log('✅ User found in database')
               // Convert database user to frontend User type
@@ -366,12 +381,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           stack: error instanceof Error ? error.stack : undefined,
           details: JSON.stringify(error, Object.getOwnPropertyNames(error))
         })
-        
+
         setUser(null)
         setIsAuthenticated(false)
         setIsAnonymous(true) // Set anonymous on error
       }
-      
+
       if (isMounted) {
         setIsLoading(false)
 
@@ -382,7 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isLoading: false,
 
         })
-        
+
         // Ensure user state is properly set after loading (with guard to prevent loops)
         if (firebaseUser && !user && !isEnsuringUserState) {
           console.log('🔍 Ensuring user state after auth state change...')
@@ -402,18 +417,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Use the user tracking manager
       const trackingData = await userTrackingManager.trackUserVisit()
-      
+
       // Store tracking data locally
       setUserTracking({
         ip: trackingData.ip,
         fingerprint: trackingData.fingerprint,
         lastVisit: trackingData.timestamp
       })
-      
+
       // Create or update anonymous user tracking
       try {
         const existingAnonymous = await fetchAnonymousUser(trackingData.fingerprint)
-        
+
         if (existingAnonymous) {
           console.log('🔄 Updating existing anonymous user visit')
           // Update last visit and IP
@@ -429,7 +444,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.warn('⚠️ Could not track anonymous user (non-critical):', error)
       }
-      
+
     } catch (error) {
       console.warn('⚠️ Could not track user visit (non-critical):', error)
     }
@@ -443,7 +458,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const now = new Date().getTime()
         const lastVisit = userTracking.lastVisit ? new Date(userTracking.lastVisit).getTime() : 0
         const fiveMinutes = 5 * 60 * 1000
-        
+
         if (now - lastVisit < fiveMinutes) {
           console.log('📊 Using cached user tracking data')
           return {
@@ -453,11 +468,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      
+
       // Only call trackUserVisit if we don't have recent data
       console.log('📊 Fetching fresh user tracking data')
       const trackingData = await userTrackingManager.trackUserVisit()
-      
+
       // Update cached data
       setUserTracking({
         ip: trackingData.ip,
@@ -465,7 +480,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cookies: trackingData.cookies,
         lastVisit: trackingData.timestamp
       })
-      
+
       return {
         ip: trackingData.ip,
         fingerprint: trackingData.fingerprint,
@@ -473,7 +488,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.warn('⚠️ Could not get user tracking data:', error)
-      
+
       // Return cached data even if there's an error
       if (userTracking) {
         return {
@@ -482,7 +497,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cookies: userTracking.cookies || []
         }
       }
-      
+
       return {
         ip: 'unknown',
         fingerprint: 'unknown',
@@ -497,7 +512,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser && !user && !isEnsuringUserState) {
       setIsEnsuringUserState(true)
       console.log('🔍 Ensuring user state is properly set...')
-      
+
       try {
         const userData = await getUser(firebaseUser.uid)
         if (userData) {
@@ -555,14 +570,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsAnonymous(false)
         }
       } catch (error) {
-        console.error('❌ Failed to ensure user state:', {
-          error,
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          details: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        console.warn('⚠️ Failed to ensure user state (non-critical):', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          firebaseUserId: firebaseUser?.uid,
+          isNetworkError: error instanceof Error && (
+            error.message.includes('NETWORK_TIMEOUT') ||
+            error.message.includes('NETWORK_UNREACHABLE') ||
+            error.message.includes('Failed to fetch')
+          )
         })
+
+        if (error instanceof Error && (
+          error.message.includes('NETWORK_TIMEOUT') ||
+          error.message.includes('NETWORK_UNREACHABLE') ||
+          error.message.includes('Failed to fetch')
+        )) {
+          console.log('🔄 Network error detected. Preventing fake authenticated state to avoid data tearing.')
+          // Explicitly clear state or maintain anonymous to prevent broken downstream calls.
+          setUser(null)
+          setIsAuthenticated(false)
+          setIsAnonymous(true)
+        } else {
+          // For other non-network errors (e.g., 500 internal from API but reachable), try to set basic user state from Firebase
+          console.log('🔄 Setting basic user state from Firebase data due to non-network error')
+          const basicUser: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            name: firebaseUser.displayName || undefined,
+            avatar_url: firebaseUser.photoURL || undefined,
+            is_anonymous: false,
+            subscription_tier: 'free',
+            subscription_status: 'inactive',
+            form_limit: 5,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          setUser(basicUser)
+          setIsAuthenticated(true)
+          setIsAnonymous(false)
+        }
       }
-      
+
       setIsEnsuringUserState(false)
     }
   }, [user, isEnsuringUserState, setIsEnsuringUserState, setUser, setIsAuthenticated, setIsAnonymous])
@@ -597,7 +645,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, name?: string, phoneNumber?: string, countryCode?: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      
+
       if (name) {
         await updateFirebaseProfile(userCredential.user, { displayName: name })
       }
@@ -611,10 +659,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phoneNumber: phoneNumber || null,
         countryCode: countryCode || null,
       }
-      
+
       const createdUser = await createUser(newUser)
       console.log('✅ User created in database:', createdUser.id)
-      
+
       addNotification({
         type: 'success',
         title: 'Sign Up Successful',
@@ -730,7 +778,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUserProfile = async (updates: Partial<User>) => {
     try {
       if (!user) throw new Error('No user to update')
-      
+
       const updatedUser = await updateUser(user.id, {
         ...updates,
         phoneNumber: updates.phone,
@@ -738,7 +786,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!updatedUser) {
         throw new Error('Failed to update user')
       }
-      
+
       // Convert database user to frontend User type
       const frontendUser: User = {
         id: updatedUser.id,
@@ -791,7 +839,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!userTracking) return null
       const anonymousUser = await fetchAnonymousUser(userTracking.fingerprint)
       if (!anonymousUser) return null
-      
+
       // Convert database anonymous user to frontend AnonymousUser type
       return {
         fingerprint: anonymousUser.fingerprint,
@@ -819,7 +867,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           lastVisit: trackingData.timestamp
         })
       }
-      
+
       const anonymousUserData = await createAnonymousUserData()
       const createdUser = await createAnonymousUserAPI(anonymousUserData)
       console.log('✅ Anonymous user create API responded', createdUser ? 'with data' : '(null/fail-soft)')
@@ -887,7 +935,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const currentUser = auth.currentUser
       if (!currentUser) throw new Error('No user to update')
-      
+
       await updateFirebaseProfile(currentUser, { displayName })
       console.log('✅ Display name updated successfully')
       addNotification({
@@ -943,20 +991,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      const currentUser = auth.currentUser
+      if (currentUser) {
+        const token = await currentUser.getIdToken()
+        return token
+      }
+      return null
+    } catch (error) {
+      console.error('❌ Failed to get auth token:', error)
+      return null
+    }
+  }
+
   const checkAnonymousFormLimit = async (): Promise<{ canCreate: boolean; currentCount: number; limit: number }> => {
     try {
       if (!userTracking) {
         return { canCreate: false, currentCount: 0, limit: 5 }
       }
-      
+
       const anonymousUser = await fetchAnonymousUser(userTracking.fingerprint)
       if (!anonymousUser) {
         return { canCreate: true, currentCount: 0, limit: 5 }
       }
-      
+
       const formCountData = await getAnonymousUserFormCount(userTracking.fingerprint)
       const canCreate = formCountData.currentCount < formCountData.limit
-      
+
       return {
         canCreate,
         currentCount: formCountData.currentCount,
@@ -973,7 +1035,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user) {
         return { canCreate: false, currentCount: 0, limit: 5 }
       }
-      
+
       return await canUserCreateForm(user.id)
     } catch (error) {
       console.error('❌ Check user form limit error:', error)
@@ -1001,6 +1063,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     debugAuthState,
     refreshAuthState,
     ensureUserState, // Use the memoized version
+    getAuthToken,
     checkAnonymousFormLimit,
     checkUserFormLimit,
     trackUserVisit,

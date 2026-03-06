@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { 
-  Users, 
-  Search, 
-  Filter, 
-  RefreshCw, 
-  Eye, 
-  Edit, 
-  Shield, 
+import {
+  Users,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  Edit,
+  Shield,
   UserPlus,
   Mail,
   Calendar,
@@ -79,7 +79,7 @@ export function UserManagement({ userRole }: UserManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setUsers(data.data.users || [])
         setTotalPages(data.data.pagination?.totalPages || 1)
@@ -117,7 +117,7 @@ export function UserManagement({ userRole }: UserManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         // Refresh users list
         fetchUsers()
@@ -151,7 +151,7 @@ export function UserManagement({ userRole }: UserManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         // Refresh users list
         fetchUsers()
@@ -199,8 +199,8 @@ export function UserManagement({ userRole }: UserManagementProps) {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
+      user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = !statusFilter || user.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -228,9 +228,9 @@ export function UserManagement({ userRole }: UserManagementProps) {
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
           <p className="text-gray-600 mt-1">Manage users, roles, and permissions</p>
         </div>
-        <Button 
+        <Button
           onClick={() => setShowCreateModal(true)}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <UserPlus className="w-4 h-4 mr-2" />
           Create User
@@ -306,7 +306,10 @@ export function UserManagement({ userRole }: UserManagementProps) {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <LoadingSpinner />
+              <LoadingSpinner
+                size="md"
+                text="Loading users..."
+              />
             </div>
           ) : filteredUsers.length > 0 ? (
             <div className="space-y-4">
@@ -316,8 +319,8 @@ export function UserManagement({ userRole }: UserManagementProps) {
                     <div className="flex items-center space-x-3 mb-2">
                       <div>
                         <h3 className="font-medium text-gray-900">
-                          {user.firstName && user.lastName 
-                            ? `${user.firstName} ${user.lastName}` 
+                          {user.firstName && user.lastName
+                            ? `${user.firstName} ${user.lastName}`
                             : user.email
                           }
                         </h3>
@@ -352,16 +355,16 @@ export function UserManagement({ userRole }: UserManagementProps) {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setSelectedUser(user)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       View
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setSelectedUser(user)}
                     >
@@ -428,9 +431,9 @@ export function UserManagement({ userRole }: UserManagementProps) {
               <AlertCircle className="w-5 h-5 text-red-500" />
               <p className="text-red-600">{error}</p>
             </div>
-            <Button 
-              onClick={fetchUsers} 
-              variant="outline" 
+            <Button
+              onClick={fetchUsers}
+              variant="outline"
               className="mt-2"
             >
               Retry
@@ -443,11 +446,11 @@ export function UserManagement({ userRole }: UserManagementProps) {
 }
 
 // User Details Modal Component
-function UserDetailsModal({ 
-  user, 
-  onClose, 
-  onUpdateRole 
-}: { 
+function UserDetailsModal({
+  user,
+  onClose,
+  onUpdateRole
+}: {
   user: User
   onClose: () => void
   onUpdateRole: (userId: string, role: 'user' | 'admin' | 'super_admin') => void
@@ -481,8 +484,8 @@ function UserDetailsModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
               <p className="text-sm text-gray-900">
-                {user.firstName && user.lastName 
-                  ? `${user.firstName} ${user.lastName}` 
+                {user.firstName && user.lastName
+                  ? `${user.firstName} ${user.lastName}`
                   : 'Not provided'
                 }
               </p>
@@ -534,10 +537,10 @@ function UserDetailsModal({
                 </select>
               </div>
               <div className="flex items-end">
-                <Button 
+                <Button
                   onClick={handleRoleUpdate}
                   disabled={newRole === user.role}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   Update Role
                 </Button>
@@ -551,10 +554,10 @@ function UserDetailsModal({
 }
 
 // Create User Modal Component
-function CreateUserModal({ 
-  onClose, 
-  onCreateUser 
-}: { 
+function CreateUserModal({
+  onClose,
+  onCreateUser
+}: {
   onClose: () => void
   onCreateUser: (userData: { email: string; firstName?: string; lastName?: string; role: 'user' | 'admin' }) => void
 }) {
@@ -627,9 +630,9 @@ function CreateUserModal({
               <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Create User
               </Button>

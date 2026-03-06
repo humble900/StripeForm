@@ -1,0 +1,110 @@
+[
+  {
+    "schema": "public",
+    "name": "update_updated_at_column",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    NEW.updated_at = NOW();\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_supabase_user_id",
+    "args": "firebase_uid text",
+    "def": "CREATE OR REPLACE FUNCTION public.get_supabase_user_id(firebase_uid text)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    RETURN (\r\n        SELECT supabase_uuid \r\n        FROM public.firebase_auth_mapping \r\n        WHERE firebase_uid = get_supabase_user_id.firebase_uid\r\n    );\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_user_form_count",
+    "args": "target_user_id text",
+    "def": "CREATE OR REPLACE FUNCTION public.get_user_form_count(target_user_id text)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    RETURN (\r\n        SELECT COUNT(*)::INTEGER \r\n        FROM public.forms \r\n        WHERE user_id = target_user_id\r\n    );\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_anonymous_form_count",
+    "args": "fingerprint text",
+    "def": "CREATE OR REPLACE FUNCTION public.get_anonymous_form_count(fingerprint text)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    RETURN (\r\n        SELECT COALESCE(form_count, 0)::INTEGER \r\n        FROM public.anonymous_users \r\n        WHERE device_fingerprint = fingerprint\r\n    );\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "is_admin",
+    "args": "user_id text",
+    "def": "CREATE OR REPLACE FUNCTION public.is_admin(user_id text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    RETURN EXISTS (\r\n        SELECT 1 FROM public.users \r\n        WHERE public.users.id = user_id \r\n        AND public.users.role IN ('admin', 'super_admin')\r\n    );\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_admin_users",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.get_admin_users()\n RETURNS TABLE(id text, email text, role text, created_at timestamp with time zone)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT \r\n        u.id,\r\n        u.email,\r\n        u.role,\r\n        u.created_at\r\n    FROM public.users u\r\n    WHERE u.role IN ('admin', 'super_admin')\r\n    ORDER BY u.created_at DESC;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "cleanup_expired_drafts",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.cleanup_expired_drafts()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    DELETE FROM public.form_drafts \r\n    WHERE expires_at < NOW();\r\n    \r\n    -- Log cleanup activity\r\n    INSERT INTO public.system_analytics (date, metric, value, metadata)\r\n    VALUES (NOW(), 'drafts_cleaned_up', \r\n            (SELECT COUNT(*) FROM public.form_drafts WHERE expires_at < NOW()),\r\n            '{\"cleanup_type\": \"expired_drafts\"}');\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "update_form_drafts_updated_at",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.update_form_drafts_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    NEW.updated_at = NOW();\r\n    NEW.last_accessed_at = NOW();\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "update_form_drafts_last_accessed",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.update_form_drafts_last_accessed()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    UPDATE public.form_drafts \r\n    SET last_accessed_at = NOW() \r\n    WHERE id = NEW.id;\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "convert_anonymous_to_authenticated",
+    "args": "fingerprint text, firebase_uid text",
+    "def": "CREATE OR REPLACE FUNCTION public.convert_anonymous_to_authenticated(fingerprint text, firebase_uid text)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    -- Update anonymous_users table\r\n    UPDATE public.anonymous_users \r\n    SET firebase_uid = convert_anonymous_to_authenticated.firebase_uid,\r\n        updated_at = NOW()\r\n    WHERE device_fingerprint = convert_anonymous_to_authenticated.fingerprint;\r\n    \r\n    -- Update user_tracking table\r\n    UPDATE public.user_tracking \r\n    SET firebase_uid = convert_anonymous_to_authenticated.firebase_uid,\r\n        updated_at = NOW()\r\n    WHERE device_fingerprint = convert_anonymous_to_authenticated.fingerprint;\r\n    \r\n    RETURN FOUND;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "increment_visit_count",
+    "args": "fingerprint text, ip_address text, user_agent text",
+    "def": "CREATE OR REPLACE FUNCTION public.increment_visit_count(fingerprint text, ip_address text, user_agent text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    INSERT INTO public.user_tracking (\r\n        device_fingerprint,\r\n        ip_address,\r\n        user_agent,\r\n        last_visit,\r\n        visit_count\r\n    ) VALUES (\r\n        increment_visit_count.fingerprint,\r\n        increment_visit_count.ip_address,\r\n        increment_visit_count.user_agent,\r\n        NOW(),\r\n        1\r\n    )\r\n    ON CONFLICT (device_fingerprint) \r\n    DO UPDATE SET\r\n        last_visit = NOW(),\r\n        visit_count = user_tracking.visit_count + 1,\r\n        updated_at = NOW();\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "validate_password_strength",
+    "args": "password text",
+    "def": "CREATE OR REPLACE FUNCTION public.validate_password_strength(password text)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n    result JSONB;\r\n    has_upper BOOLEAN;\r\n    has_lower BOOLEAN;\r\n    has_number BOOLEAN;\r\n    has_special BOOLEAN;\r\n    length_check BOOLEAN;\r\nBEGIN\r\n    -- Check password requirements\r\n    has_upper := password ~ '[A-Z]';\r\n    has_lower := password ~ '[a-z]';\r\n    has_number := password ~ '[0-9]';\r\n    has_special := password ~ '[^A-Za-z0-9]';\r\n    length_check := length(password) >= 8;\r\n    \r\n    result := jsonb_build_object(\r\n        'is_valid', has_upper AND has_lower AND has_number AND has_special AND length_check,\r\n        'has_upper', has_upper,\r\n        'has_lower', has_lower,\r\n        'has_number', has_number,\r\n        'has_special', has_special,\r\n        'length_check', length_check,\r\n        'length', length(password)\r\n    );\r\n    \r\n    RETURN result;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "log_security_event",
+    "args": "event_type text, user_id text, ip_address inet, user_agent text, details jsonb",
+    "def": "CREATE OR REPLACE FUNCTION public.log_security_event(event_type text, user_id text DEFAULT NULL::text, ip_address inet DEFAULT NULL::inet, user_agent text DEFAULT NULL::text, details jsonb DEFAULT NULL::jsonb)\n RETURNS uuid\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n    event_id UUID;\r\nBEGIN\r\n    INSERT INTO public.security_events (\r\n        event_type,\r\n        user_id,\r\n        ip_address,\r\n        user_agent,\r\n        details\r\n    ) VALUES (\r\n        log_security_event.event_type,\r\n        log_security_event.user_id,\r\n        log_security_event.ip_address,\r\n        log_security_event.user_agent,\r\n        log_security_event.details\r\n    ) RETURNING id INTO event_id;\r\n    \r\n    RETURN event_id;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_security_status",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.get_security_status()\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n    result JSONB;\r\n    rls_tables INTEGER;\r\n    secure_functions INTEGER;\r\n    total_functions INTEGER;\r\nBEGIN\r\n    -- Count tables with RLS enabled\r\n    SELECT COUNT(*) INTO rls_tables\r\n    FROM pg_class c\r\n    JOIN pg_namespace n ON c.relnamespace = n.oid\r\n    WHERE n.nspname = 'public'\r\n    AND c.relkind = 'r'\r\n    AND c.relrowsecurity = true;\r\n    \r\n    -- Count functions with proper search_path\r\n    SELECT COUNT(*) INTO secure_functions\r\n    FROM pg_proc p\r\n    JOIN pg_namespace n ON p.pronamespace = n.oid\r\n    WHERE n.nspname = 'public'\r\n    AND p.prosecdef = true\r\n    AND p.proconfig IS NOT NULL\r\n    AND 'search_path=public' = ANY(p.proconfig);\r\n    \r\n    -- Count total functions\r\n    SELECT COUNT(*) INTO total_functions\r\n    FROM pg_proc p\r\n    JOIN pg_namespace n ON p.pronamespace = n.oid\r\n    WHERE n.nspname = 'public';\r\n    \r\n    result := jsonb_build_object(\r\n        'rls_enabled_tables', rls_tables,\r\n        'secure_functions', secure_functions,\r\n        'total_functions', total_functions,\r\n        'security_score', CASE \r\n            WHEN total_functions > 0 THEN \r\n                ROUND((secure_functions::DECIMAL / total_functions::DECIMAL) * 100, 2)\r\n            ELSE 0 \r\n        END,\r\n        'recommendations', jsonb_build_array(\r\n            'Enable leaked password protection in Supabase Auth settings',\r\n            'Enable multiple MFA options in Supabase Auth settings',\r\n            'Regularly review security events log',\r\n            'Monitor failed login attempts'\r\n        )\r\n    );\r\n    \r\n    RETURN result;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "convert_anonymous_to_authenticated",
+    "args": "fingerprint_text text, user_id_uuid uuid",
+    "def": "CREATE OR REPLACE FUNCTION public.convert_anonymous_to_authenticated(fingerprint_text text, user_id_uuid uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    rows_affected INTEGER := 0;\r\nBEGIN\r\n    -- Validate inputs\r\n    IF fingerprint_text IS NULL OR trim(fingerprint_text) = '' THEN\r\n        RAISE EXCEPTION 'Fingerprint cannot be null or empty';\r\n    END IF;\r\n\r\n    IF user_id_uuid IS NULL THEN\r\n        RAISE EXCEPTION 'User ID cannot be null';\r\n    END IF;\r\n\r\n    -- Update user_tracking\r\n    UPDATE public.user_tracking \r\n    SET \r\n        user_id = user_id_uuid,\r\n        is_anonymous = false,\r\n        updated_at = NOW()\r\n    WHERE fingerprint = fingerprint_text;\r\n    \r\n    -- Update anonymous_users\r\n    UPDATE public.anonymous_users \r\n    SET \r\n        converted_to_user_id = user_id_uuid,\r\n        converted_at = NOW(),\r\n        updated_at = NOW()\r\n    WHERE fingerprint = fingerprint_text;\r\n    \r\n    -- Get total rows affected\r\n    GET DIAGNOSTICS rows_affected = ROW_COUNT;\r\n    \r\n    -- Log the conversion\r\n    IF rows_affected > 0 THEN\r\n        RAISE NOTICE 'Successfully converted anonymous user with fingerprint: %', fingerprint_text;\r\n        RETURN TRUE;\r\n    ELSE\r\n        RAISE NOTICE 'No records found to convert for fingerprint: %', fingerprint_text;\r\n        RETURN FALSE;\r\n    END IF;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "increment_visit_count",
+    "args": "fingerprint_text text",
+    "def": "CREATE OR REPLACE FUNCTION public.increment_visit_count(fingerprint_text text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    UPDATE api.user_tracking \r\n    SET visit_count = visit_count + 1,\r\n        last_visit = NOW(),\r\n        updated_at = NOW()\r\n    WHERE fingerprint = fingerprint_text;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "get_auth_security_status",
+    "args": "",
+    "def": "CREATE OR REPLACE FUNCTION public.get_auth_security_status()\n RETURNS TABLE(setting_name text, current_value text, recommendation text, action_required text)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    RETURN QUERY\r\n    SELECT \r\n        'leaked_password_protection'::TEXT as setting_name,\r\n        'disabled'::TEXT as current_value,\r\n        'Enable leaked password protection in Auth settings'::TEXT as recommendation,\r\n        'Go to Authentication > Settings > Password Protection'::TEXT as action_required\r\n    UNION ALL\r\n    SELECT \r\n        'mfa_options'::TEXT as setting_name,\r\n        'insufficient'::TEXT as current_value,\r\n        'Enable TOTP and other MFA methods'::TEXT as recommendation,\r\n        'Go to Authentication > Multi-Factor Authentication'::TEXT as action_required;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "schema": "public",
+    "name": "log_security_event",
+    "args": "event_type text, user_id text, details jsonb",
+    "def": "CREATE OR REPLACE FUNCTION public.log_security_event(event_type text, user_id text DEFAULT NULL::text, details jsonb DEFAULT '{}'::jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n    INSERT INTO public.system_analytics (\r\n        date,\r\n        metric,\r\n        value,\r\n        metadata\r\n    ) VALUES (\r\n        NOW(),\r\n        'security_event_' || event_type,\r\n        1,\r\n        jsonb_build_object(\r\n            'user_id', user_id,\r\n            'details', details,\r\n            'timestamp', NOW()\r\n        )\r\n    );\r\nEXCEPTION\r\n    WHEN OTHERS THEN\r\n        -- Log to system log if table doesn't exist\r\n        RAISE NOTICE 'Security event: % for user: % with details: %', event_type, user_id, details;\r\nEND;\r\n$function$\n"
+  }
+]

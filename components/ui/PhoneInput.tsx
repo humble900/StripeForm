@@ -18,6 +18,7 @@ interface PhoneInputProps {
   className?: string
   disabled?: boolean
   required?: boolean
+  error?: boolean
 }
 
 const countries: Country[] = [
@@ -100,6 +101,7 @@ export function PhoneInput({
   className = '',
   disabled = false,
   required = false,
+  error = false,
 }: PhoneInputProps) {
   const [selectedCountry, setSelectedCountry] = useState<Country>(
     countries.find(c => c.code === countryCode) || countries[0]
@@ -150,6 +152,9 @@ export function PhoneInput({
     country.dialCode.includes(searchTerm)
   )
 
+  const errorClasses = error ? 'border-red-500 bg-red-50/[0.05]' : 'border-input bg-background'
+  const focusClasses = error ? 'focus:ring-red-500 focus:border-red-500' : 'focus:ring-ring'
+
   return (
     <div className={`relative ${className}`}>
       <div className="flex">
@@ -159,7 +164,7 @@ export function PhoneInput({
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             disabled={disabled}
-            className="flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-md bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7] focus:border-[#6C5CE7] disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex items-center px-3 py-2 border border-r-0 rounded-l-md text-sm font-medium hover:bg-muted/50 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed ${errorClasses} ${focusClasses}`}
           >
             <span className="mr-2 text-lg">{selectedCountry.flag}</span>
             <span className="mr-1">{selectedCountry.dialCode}</span>
@@ -168,15 +173,15 @@ export function PhoneInput({
 
           {/* Dropdown */}
           {isOpen && (
-            <div className="absolute z-50 mt-1 w-80 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+            <div className="absolute z-50 mt-1 w-80 bg-popover text-foreground border border-border rounded-md shadow-md max-h-60 overflow-hidden">
               {/* Search */}
-              <div className="p-2 border-b border-gray-200">
+              <div className="p-2 border-b border-border">
                 <input
                   type="text"
                   placeholder="Search countries..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]"
+                  className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
@@ -187,11 +192,11 @@ export function PhoneInput({
                     key={country.code}
                     type="button"
                     onClick={() => handleCountrySelect(country)}
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:outline-none focus:bg-gray-100 flex items-center"
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-accent focus:bg-accent focus:text-accent-foreground flex items-center"
                   >
                     <span className="mr-3 text-lg">{country.flag}</span>
                     <span className="mr-2 font-medium">{country.dialCode}</span>
-                    <span className="text-gray-700">{country.name}</span>
+                    <span className="text-muted-foreground">{country.name}</span>
                   </button>
                 ))}
               </div>
@@ -207,7 +212,7 @@ export function PhoneInput({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-r-md text-sm focus:outline-none focus:ring-2 focus:ring-[#6C5CE7] focus:border-[#6C5CE7] disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`flex h-10 w-full rounded-r-md border file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 px-3 py-2 text-sm ${errorClasses} ${error ? 'focus-visible:ring-red-500 focus-visible:border-red-500' : 'focus-visible:ring-ring'}`}
         />
       </div>
     </div>

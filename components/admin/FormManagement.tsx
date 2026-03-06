@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import LoadingSpinner from '@/components/ui/loading-spinner'
-import { 
-  FileText, 
-  Search, 
-  Filter, 
-  RefreshCw, 
-  Eye, 
-  Edit, 
-  Trash2, 
+import {
+  FileText,
+  Search,
+  Filter,
+  RefreshCw,
+  Eye,
+  Edit,
+  Trash2,
   Copy,
   ExternalLink,
   Calendar,
@@ -87,7 +87,7 @@ export function FormManagement({ userRole }: FormManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         setForms(data.data.forms || [])
         setTotalPages(data.data.pagination?.totalPages || 1)
@@ -124,7 +124,7 @@ export function FormManagement({ userRole }: FormManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         // Refresh forms list
         fetchForms()
@@ -161,7 +161,7 @@ export function FormManagement({ userRole }: FormManagementProps) {
       }
 
       const data = await response.json()
-      
+
       if (data.success) {
         // Refresh forms list
         fetchForms()
@@ -189,8 +189,8 @@ export function FormManagement({ userRole }: FormManagementProps) {
 
   const filteredForms = forms.filter(form => {
     const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         form.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())
+      form.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      form.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
@@ -268,7 +268,10 @@ export function FormManagement({ userRole }: FormManagementProps) {
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <LoadingSpinner />
+              <LoadingSpinner
+                size="md"
+                text="Loading forms..."
+              />
             </div>
           ) : filteredForms.length > 0 ? (
             <div className="space-y-4">
@@ -315,8 +318,8 @@ export function FormManagement({ userRole }: FormManagementProps) {
                   </div>
                   <div className="flex items-center space-x-2">
                     {form.publishedUrl && (
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => window.open(form.publishedUrl, '_blank')}
                       >
@@ -324,16 +327,16 @@ export function FormManagement({ userRole }: FormManagementProps) {
                         View
                       </Button>
                     )}
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setSelectedForm(form)}
                     >
                       <Eye className="w-4 h-4 mr-1" />
                       Details
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       onClick={() => setSelectedForm(form)}
                     >
@@ -393,9 +396,9 @@ export function FormManagement({ userRole }: FormManagementProps) {
               <AlertCircle className="w-5 h-5 text-red-500" />
               <p className="text-red-600">{error}</p>
             </div>
-            <Button 
-              onClick={fetchForms} 
-              variant="outline" 
+            <Button
+              onClick={fetchForms}
+              variant="outline"
               className="mt-2"
             >
               Retry
@@ -408,12 +411,12 @@ export function FormManagement({ userRole }: FormManagementProps) {
 }
 
 // Form Details Modal Component
-function FormDetailsModal({ 
-  form, 
-  onClose, 
+function FormDetailsModal({
+  form,
+  onClose,
   onUpdateStatus,
   onDeleteForm
-}: { 
+}: {
   form: Form
   onClose: () => void
   onUpdateStatus: (formId: string, status: 'draft' | 'published' | 'archived') => void
@@ -468,9 +471,9 @@ function FormDetailsModal({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Published URL</label>
               {form.publishedUrl ? (
-                <a 
-                  href={form.publishedUrl} 
-                  target="_blank" 
+                <a
+                  href={form.publishedUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
                 >
@@ -534,14 +537,14 @@ function FormDetailsModal({
                 </select>
               </div>
               <div className="flex items-end space-x-2">
-                <Button 
+                <Button
                   onClick={handleStatusUpdate}
                   disabled={newStatus === form.status}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   Update Status
                 </Button>
-                <Button 
+                <Button
                   onClick={handleDelete}
                   variant="outline"
                   className="text-red-600 border-red-200 hover:bg-red-50"

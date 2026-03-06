@@ -18,31 +18,37 @@ function AdminLoginForm() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
+    setErrors({})
 
     const result = await login(email, password)
-    
+
     if (result.success) {
       router.push('/admin')
     } else {
-      setError(result.message)
+      if (result.message.toLowerCase().includes('password') || result.message.toLowerCase().includes('login failed')) {
+        setErrors({ password: result.message })
+      } else if (result.message.toLowerCase().includes('email') || result.message.toLowerCase().includes('user')) {
+        setErrors({ email: result.message })
+      } else {
+        setErrors({ global: result.message })
+      }
     }
-    
+
     setIsLoading(false)
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Back to main site link */}
         <div className="mb-6">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -52,7 +58,7 @@ function AdminLoginForm() {
 
         <Card className="shadow-xl border-0">
           <CardHeader className="text-center pb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
               <Lock className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900">
@@ -62,12 +68,12 @@ function AdminLoginForm() {
               Sign in to access the admin dashboard
             </p>
           </CardHeader>
-          
+
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
+              {errors['global'] && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                  <AlertDescription>{errors['global']}</AlertDescription>
                 </Alert>
               )}
 
@@ -80,11 +86,18 @@ function AdminLoginForm() {
                     type="email"
                     placeholder="admin@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                    }}
                     className="pl-10"
                     required
+                    error={!!errors.email}
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-sm font-medium text-red-500 mt-1.5 px-1">{errors.email}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -96,9 +109,13 @@ function AdminLoginForm() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
+                    }}
                     className="pl-10 pr-10"
                     required
+                    error={!!errors.password}
                   />
                   <button
                     type="button"
@@ -108,11 +125,14 @@ function AdminLoginForm() {
                     {showPassword ? <EyeOff /> : <Eye />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-sm font-medium text-red-500 mt-1.5 px-1">{errors.password}</p>
+                )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign In to Admin'}
@@ -127,7 +147,7 @@ function AdminLoginForm() {
           </CardContent>
         </Card>
 
-        
+
       </div>
     </div>
   )
