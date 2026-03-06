@@ -186,6 +186,9 @@ export async function PUT(
 
       // Invalidate cache
       formCache.delete(`form:${id}`)
+      if (formWithFields && formWithFields.slug) {
+        formCache.delete(`form:${formWithFields.slug}`)
+      }
 
       // Invalidate user forms cache for this user
       const userFormsCacheKeys = [
@@ -234,6 +237,9 @@ export async function DELETE(
 
       // Invalidate cache
       formCache.delete(`form:${id}`)
+      if (existingForm && existingForm.slug) {
+        formCache.delete(`form:${existingForm.slug}`)
+      }
 
       return NextResponse.json({
         success: true,

@@ -49,14 +49,18 @@ export default function PublishedFormPage() {
         // Use the API route instead of direct Supabase access
         const response = await fetch(`/api/forms/${formId}`)
 
+        const result = await response.json().catch(() => null)
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          if (response.status === 404) {
+            setError('Form not found. It may have been deleted or the URL is incorrect.')
+            return
+          }
+          throw new Error(result?.error || `HTTP ${response.status}: ${response.statusText}`)
         }
 
-        const result = await response.json()
-
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to fetch form')
+        if (!result || !result.success) {
+          throw new Error(result?.error || 'Failed to fetch form')
         }
 
         const formData = result.data

@@ -108,6 +108,9 @@ export async function PATCH(
         // Invalidate cache
         const { formCache } = await import('@/lib/cache')
         formCache.delete(`form:${id}`)
+        if (completeForm && completeForm.slug) {
+          formCache.delete(`form:${completeForm.slug}`)
+        }
 
         // Invalidate user forms cache for this user
         const userFormsCacheKeys = [
@@ -170,6 +173,9 @@ export async function DELETE(
         // Invalidate cache
         const { formCache } = await import('@/lib/cache')
         formCache.delete(`form:${id}`)
+        if (form && form.slug) {
+          formCache.delete(`form:${form.slug}`)
+        }
 
         // Invalidate user forms cache for this user
         const userFormsCacheKeys = [
