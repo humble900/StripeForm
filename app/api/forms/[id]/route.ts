@@ -116,6 +116,29 @@ export async function PUT(
         formUpdates.publishedAt = new Date()
       }
 
+      // Regenerate slug from title when:
+      // 1. Publishing and the current slug still contains "untitled-form"
+      // 2. Title explicitly changed and differs from what the slug was based on
+      const currentTitle = formUpdates.title || existingForm.title || ''
+      const currentSlug = existingForm.slug || ''
+      const isPublishing = formUpdates.status === 'published'
+      const slugIsStale = currentSlug.startsWith('untitled-form') && currentTitle.toLowerCase() !== 'untitled form'
+
+      if ((isPublishing || formUpdates.title) && slugIsStale && currentTitle.trim()) {
+        const baseSlug = currentTitle
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .trim()
+        const shortId = Math.random().toString(36).substring(2, 8)
+        formUpdates.slug = `${baseSlug}-${shortId}`
+        // Clear old publishedUrl so it regenerates with the new slug
+        formUpdates.publishedUrl = null
+        console.log(`🔄 Slug regenerated: "${currentSlug}" → "${formUpdates.slug}"`)
+      }
+
       console.log('📝 Updating form with data:', formUpdates)
 
       // Update the form properties

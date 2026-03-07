@@ -46,7 +46,9 @@ class MemoryFormStorage {
       settings: form.settings || {},
       theme: form.theme || {},
       userId: form.user_id || '',
-      slug: form.slug || this.generateSlug(form.title || 'Untitled Form'),
+      slug: form.slug && !form.slug.startsWith('untitled-form')
+        ? form.slug
+        : this.generateSlug(form.title || 'Untitled Form'),
       lastModified: Date.now(),
       isDraft: true
     }
