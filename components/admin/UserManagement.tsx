@@ -19,7 +19,8 @@ import {
   Calendar,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react'
 
 interface User {
@@ -38,9 +39,10 @@ interface User {
 
 interface UserManagementProps {
   userRole: 'admin' | 'super_admin'
+  onViewForms?: (userId: string) => void
 }
 
-export function UserManagement({ userRole }: UserManagementProps) {
+export function UserManagement({ userRole, onViewForms }: UserManagementProps) {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,7 +95,7 @@ export function UserManagement({ userRole }: UserManagementProps) {
     }
   }
 
-  const updateUserRole = async (userId: string, newRole: 'user' | 'admin' | 'super_admin') => {
+  const updateUser = async (userId: string, updates: { role?: string, status?: string, subscriptionTier?: string }) => {
     try {
       const token = localStorage.getItem('admin_token')
       if (!token) {
@@ -108,7 +110,7 @@ export function UserManagement({ userRole }: UserManagementProps) {
         },
         body: JSON.stringify({
           userId,
-          role: newRole
+          ...updates
         })
       })
 
@@ -123,7 +125,31 @@ export function UserManagement({ userRole }: UserManagementProps) {
         fetchUsers()
         setSelectedUser(null)
       } else {
-        throw new Error(data.message || 'Failed to update user role')
+        throw new Error(data.message || 'Failed to update user')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    }
+  }
+
+  const deleteUser = async (userId: string) => {
+    try {
+      const token = localStorage.getItem('admin_token')
+      if (!token) throw new Error('No admin token found')
+
+      const response = await fetch(`/api/admin/users?userId=${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      const data = await response.json()
+
+      if (data.success) {
+        fetchUsers()
+        setSelectedUser(null)
+      } else {
+        throw new Error(data.message || 'Failed to delete user')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -411,7 +437,9 @@ export function UserManagement({ userRole }: UserManagementProps) {
         <UserDetailsModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onUpdateRole={updateUserRole}
+          onUpdateUser={updateUser}
+          onDeleteUser={deleteUser}
+          onViewForms={onViewForms}
         />
       )}
 
@@ -449,17 +477,34 @@ export function UserManagement({ userRole }: UserManagementProps) {
 function UserDetailsModal({
   user,
   onClose,
-  onUpdateRole
+  onUpdateUser,
+  onDeleteUser,
+  onViewForms
 }: {
   user: User
   onClose: () => void
-  onUpdateRole: (userId: string, role: 'user' | 'admin' | 'super_admin') => void
+  onUpdateUser: (userId: string, updates: { role?: string, status?: string, subscriptionTier?: string }) => void
+  onDeleteUser: (userId: string) => void
+  onViewForms?: (userId: string) => void
 }) {
-  const [newRole, setNewRole] = useState(user.role)
+  const [newRole, setNewRole] = useState<'user' | 'admin' | 'super_admin'>(user.role as any)
+  const [newStatus, setNewStatus] = useState<'active' | 'inactive' | 'suspended'>((user.status as any) || 'active')
+  const [newTier, setNewTier] = useState<'free' | 'pro' | 'enterprise'>((user.subscriptionTier as any) || 'free')
 
-  const handleRoleUpdate = () => {
-    if (newRole !== user.role) {
-      onUpdateRole(user.id, newRole)
+  const handleUpdateUser = () => {
+    const updates: any = {}
+    if (newRole !== user.role) updates.role = newRole
+    if (newStatus !== user.status) updates.status = newStatus
+    if (newTier !== user.subscriptionTier) updates.subscriptionTier = newTier
+
+    if (Object.keys(updates).length > 0) {
+      onUpdateUser(user.id, updates)
+    }
+  }
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone and will delete all their forms.')) {
+      onDeleteUser(user.id)
     }
   }
 
@@ -512,39 +557,80 @@ function UserDetailsModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
               <p className="text-sm text-gray-900">{new Date(user.createdAt).toLocaleDateString()}</p>
             </div>
+            {onViewForms && (
+              <div className="md:col-span-2 pt-2">
+                <Button
+                  onClick={() => {
+                    onClose()
+                    onViewForms(user.id)
+                  }}
+                  variant="outline"
+                  className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  View User's Forms
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Role Management */}
+          {/* User Management Actions */}
           <div className="border-t pt-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Role Management</h3>
-            <div className="flex items-center space-x-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Manage User</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Current Role</label>
-                <Badge className="bg-blue-100 text-blue-800">
-                  {user.role.replace('_', ' ')}
-                </Badge>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Change Role</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
                 <select
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as 'user' | 'admin' | 'super_admin')}
-                  className="p-2 border rounded-md"
+                  onChange={(e) => setNewRole(e.target.value as any)}
+                  className="w-full p-2 border rounded-md"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
-              <div className="flex items-end">
-                <Button
-                  onClick={handleRoleUpdate}
-                  disabled={newRole === user.role}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value as any)}
+                  className="w-full p-2 border rounded-md"
                 >
-                  Update Role
-                </Button>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subscription</label>
+                <select
+                  value={newTier}
+                  onChange={(e) => setNewTier(e.target.value as any)}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="free">Free</option>
+                  <option value="pro">Pro</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+              <Button
+                onClick={handleDelete}
+                variant="outline"
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                Delete User
+              </Button>
+              <Button
+                onClick={handleUpdateUser}
+                disabled={newRole === user.role && newStatus === user.status && newTier === (user.subscriptionTier || 'free')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Save Changes
+              </Button>
             </div>
           </div>
         </CardContent>

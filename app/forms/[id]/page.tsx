@@ -66,7 +66,14 @@ export default function PublishedFormPage() {
         const formData = result.data
 
         // Check if form is published
-        if (!formData.isPublished || formData.status !== 'published') {
+        const isPreview = window.location.search.includes('preview=true')
+        let adminToken = null
+        try {
+          adminToken = localStorage.getItem('admin_token')
+        } catch (e) { }
+        const canPreview = isPreview && adminToken
+
+        if (!canPreview && (!formData.isPublished || formData.status !== 'published')) {
           setError('Form not found or not published')
           return
         }

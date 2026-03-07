@@ -46,15 +46,20 @@ interface Form {
 
 interface FormManagementProps {
   userRole: 'admin' | 'super_admin'
+  initialUserFilter?: string
 }
 
-export function FormManagement({ userRole }: FormManagementProps) {
+export function FormManagement({ userRole, initialUserFilter = '' }: FormManagementProps) {
   const [forms, setForms] = useState<Form[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [userFilter, setUserFilter] = useState('')
+  const [userFilter, setUserFilter] = useState(initialUserFilter)
+
+  useEffect(() => {
+    setUserFilter(initialUserFilter)
+  }, [initialUserFilter])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [selectedForm, setSelectedForm] = useState<Form | null>(null)
@@ -317,7 +322,7 @@ export function FormManagement({ userRole }: FormManagementProps) {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {form.publishedUrl && (
+                    {form.publishedUrl ? (
                       <Button
                         size="sm"
                         variant="outline"
@@ -325,6 +330,15 @@ export function FormManagement({ userRole }: FormManagementProps) {
                       >
                         <ExternalLink className="w-4 h-4 mr-1" />
                         View
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(`/forms/${form.id}?preview=true`, '_blank')}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        Preview
                       </Button>
                     )}
                     <Button

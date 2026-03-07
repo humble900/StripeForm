@@ -27,6 +27,8 @@ import {
 } from 'lucide-react'
 import { UserManagement } from '@/components/admin/UserManagement'
 import { FormManagement } from '@/components/admin/FormManagement'
+import { SupportTicketManagement } from '@/components/admin/SupportTicketManagement'
+import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard'
 
 interface AdminStats {
   period: string
@@ -120,17 +122,12 @@ interface Notification {
 export default function AdminClient() {
   const { user, isAuthenticated, logout } = useAdminAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [formAdminUserFilter, setFormAdminUserFilter] = useState('')
   const [stats, setStats] = useState<AdminStats | null>(null)
-  const [tickets, setTickets] = useState<SupportTicket[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState('month')
-  const [ticketFilters, setTicketFilters] = useState({
-    status: '',
-    priority: '',
-    category: ''
-  })
 
   const fetchAdminStats = async () => {
     if (!isAuthenticated || !user) return
@@ -169,43 +166,7 @@ export default function AdminClient() {
     }
   }
 
-  const fetchSupportTickets = async () => {
-    setLoading(true)
-    try {
-      const token = localStorage.getItem('admin_token')
-      if (!token) {
-        throw new Error('No admin token found')
-      }
-      const queryParams = new URLSearchParams()
 
-      if (ticketFilters.status) queryParams.append('status', ticketFilters.status)
-      if (ticketFilters.priority) queryParams.append('priority', ticketFilters.priority)
-      if (ticketFilters.category) queryParams.append('category', ticketFilters.category)
-
-      const response = await fetch(`/api/admin/support-tickets?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        setTickets(data.data)
-      } else {
-        throw new Error(data.message || 'Failed to fetch tickets')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const fetchNotifications = async () => {
     setLoading(true)
@@ -268,14 +229,12 @@ export default function AdminClient() {
     if (isAuthenticated && user) {
       if (activeTab === 'dashboard') {
         fetchAdminStats()
-      } else if (activeTab === 'tickets') {
-        fetchSupportTickets()
       } else if (activeTab === 'notifications') {
         fetchNotifications()
       }
       // Users and Forms tabs handle their own data fetching
     }
-  }, [isAuthenticated, user, period, activeTab, ticketFilters])
+  }, [isAuthenticated, user, period, activeTab])
 
   if (!isAuthenticated) {
     return (
@@ -393,10 +352,10 @@ export default function AdminClient() {
                   onClick={() => !isDisabled && setActiveTab(tab.id)}
                   disabled={isDisabled}
                   className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${activeTab === tab.id
-                      ? 'border-purple-500 text-purple-600'
-                      : isDisabled
-                        ? 'border-transparent text-gray-300 cursor-not-allowed'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-purple-500 text-purple-600'
+                    : isDisabled
+                      ? 'border-transparent text-gray-300 cursor-not-allowed'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -589,137 +548,26 @@ export default function AdminClient() {
 
         {/* Users Tab */}
         {activeTab === 'users' && (
-          <UserManagement userRole={user.role as 'admin' | 'super_admin'} />
+          <UserManagement
+            userRole={user.role as 'admin' | 'super_admin'}
+            onViewForms={(userId: string) => {
+              setFormAdminUserFilter(userId)
+              setActiveTab('forms')
+            }}
+          />
         )}
 
         {/* Forms Tab */}
         {activeTab === 'forms' && (
-          <FormManagement userRole={user.role as 'admin' | 'super_admin'} />
+          <FormManagement
+            userRole={user.role as 'admin' | 'super_admin'}
+            initialUserFilter={formAdminUserFilter}
+          />
         )}
 
         {/* Support Tickets Tab */}
         {activeTab === 'tickets' && (
-          <div className="space-y-6">
-            {/* Filters */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Filter Tickets</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Status</label>
-                    <select
-                      value={ticketFilters.status}
-                      onChange={(e) => setTicketFilters(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">All Statuses</option>
-                      <option value="open">Open</option>
-                      <option value="in_progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Priority</label>
-                    <select
-                      value={ticketFilters.priority}
-                      onChange={(e) => setTicketFilters(prev => ({ ...prev, priority: e.target.value }))}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">All Priorities</option>
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                      <option value="urgent">Urgent</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Category</label>
-                    <select
-                      value={ticketFilters.category}
-                      onChange={(e) => setTicketFilters(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="technical">Technical</option>
-                      <option value="billing">Billing</option>
-                      <option value="feature_request">Feature Request</option>
-                      <option value="bug_report">Bug Report</option>
-                      <option value="general">General</option>
-                      <option value="demo_request">Demo Request</option>
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tickets List */}
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>Support Tickets</CardTitle>
-                  <Button onClick={fetchSupportTickets} disabled={loading} variant="outline">
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <LoadingSpinner
-                      size="md"
-                      text="Loading tickets..."
-                    />
-                  </div>
-                ) : tickets.length > 0 ? (
-                  <div className="space-y-4">
-                    {tickets.map((ticket) => (
-                      <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium">{ticket.ticketNumber}</span>
-                            <Badge className={getStatusColor(ticket.status)}>
-                              {ticket.status}
-                            </Badge>
-                            <Badge className={getPriorityColor(ticket.priority)}>
-                              {ticket.priority}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600">{ticket.subject}</p>
-                          <p className="text-xs text-gray-500">{ticket.userEmail}</p>
-                          {ticket.tags && ticket.tags.length > 0 && (
-                            <div className="flex space-x-1 mt-1">
-                              {ticket.tags.map((tag, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">
-                            {new Date(ticket.createdAt).toLocaleDateString()}
-                          </p>
-                          <Button size="sm" variant="outline" className="mt-2">
-                            <Eye className="w-4 h-4 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No tickets found
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <SupportTicketManagement userRole={user.role as 'admin' | 'super_admin'} />
         )}
 
         {/* Notifications Tab */}
@@ -791,38 +639,7 @@ export default function AdminClient() {
 
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Analytics dashboard coming soon...
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Error Display */}
-        {error && (
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="pt-6">
-              <p className="text-red-600">{error}</p>
-              <Button
-                onClick={() => {
-                  if (activeTab === 'dashboard') fetchAdminStats()
-                  else if (activeTab === 'tickets') fetchSupportTickets()
-                  else if (activeTab === 'notifications') fetchNotifications()
-                }}
-                variant="outline"
-                className="mt-2"
-              >
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
+          <AnalyticsDashboard stats={stats} />
         )}
       </div>
     </div>

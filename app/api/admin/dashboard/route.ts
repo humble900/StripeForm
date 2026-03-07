@@ -7,17 +7,17 @@ import { authService } from '@/lib/auth/auth-service'
 // Helper function to get admin user from request
 async function getAdminUser(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
-  
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new AuthenticationError('Authentication required: No Bearer token found.')
   }
 
   const token = authHeader.replace('Bearer ', '')
-  
+
   try {
     // Verify the JWT token using auth service
     const user = await authService.verifyToken(token)
-    
+
     if (user.role !== 'admin' && user.role !== 'super_admin') {
       throw new AuthorizationError('Admin access required')
     }
@@ -34,15 +34,15 @@ export async function GET(request: NextRequest) {
       try {
         // Get current admin user
         const adminUser = await getAdminUser(request)
-        
+
         // Get query parameters
         const { searchParams } = new URL(request.url)
         const period = searchParams.get('period') || 'month'
-        
+
         // Calculate date range
         const now = new Date()
         let startDate: Date
-        
+
         switch (period) {
           case 'day':
             startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
           default:
             startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
         }
-        
+
         // Get system statistics using Drizzle
         const [
           totalUsers,
@@ -77,105 +77,150 @@ export async function GET(request: NextRequest) {
           dbService.getSupportTickets(),
           dbService.getNotifications()
         ])
-        
+
         const totalForms = totalFormsData || []
-        
+
         // Filter by date for period statistics
-        const newUsersThisPeriod = totalUsers.filter(user => 
+        const newUsersThisPeriod = totalUsers.filter(user =>
           new Date(user.createdAt) >= startDate
         )
-        
-        const newFormsThisPeriod = totalForms.filter(form => 
+
+        const newFormsThisPeriod = totalForms.filter(form =>
           new Date(form.createdAt) >= startDate
         )
-        
-        const newSubmissionsThisPeriod = totalSubmissions.filter(submission => 
+
+        const newSubmissionsThisPeriod = totalSubmissions.filter(submission =>
           new Date(submission.submittedAt) >= startDate
         )
-        
-        const newPaymentsThisPeriod = totalPaymentIntents.filter(payment => 
+
+        const newPaymentsThisPeriod = totalPaymentIntents.filter(payment =>
           new Date(payment.createdAt) >= startDate
         )
-        
-        const newTicketsThisPeriod = totalTickets.filter(ticket => 
+
+        const newTicketsThisPeriod = totalTickets.filter(ticket =>
           new Date(ticket.createdAt) >= startDate
         )
-        
-        const newNotificationsThisPeriod = totalNotifications.filter(notification => 
+
+        const newNotificationsThisPeriod = totalNotifications.filter(notification =>
           new Date(notification.createdAt) >= startDate
         )
-        
+
         // Get user statistics by role
         const userStats = totalUsers.reduce((acc, user) => {
           const role = user.role || 'user'
           acc[role] = (acc[role] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get form statistics by status
         const formStats = totalForms.reduce((acc, form) => {
           const status = form.status || 'draft'
           acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get submission statistics by status
         const submissionStats = totalSubmissions.reduce((acc, submission) => {
           const status = submission.status || 'pending'
           acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get payment statistics by status
         const paymentStats = totalPaymentIntents.reduce((acc, payment) => {
           const status = payment.status || 'pending'
           acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get ticket statistics by status
         const ticketStats = totalTickets.reduce((acc, ticket) => {
           const status = ticket.status || 'open'
           acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get ticket statistics by priority
         const ticketPriorityStats = totalTickets.reduce((acc, ticket) => {
           const priority = ticket.priority || 'medium'
           acc[priority] = (acc[priority] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get notification statistics by status
         const notificationStats = totalNotifications.reduce((acc, notification) => {
           const status = notification.status || 'unread'
           acc[status] = (acc[status] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
         // Get notification statistics by type
         const notificationTypeStats = totalNotifications.reduce((acc, notification) => {
           const type = notification.type || 'system_alert'
           acc[type] = (acc[type] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-        
+
+        // Helper to get time key based on period
+        const getTimeKey = (date: Date, period: string) => {
+          if (period === 'day' || period === 'week') {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          } else if (period === 'month') {
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          } else {
+            return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+          }
+        }
+
+        // Generate time-series data
+        const usersOverTime: Record<string, number> = {}
+        const submissionsOverTime: Record<string, number> = {}
+        const revenueOverTime: Record<string, number> = {}
+
+        // Initialize based on the period, but we'll do it purely from data for simplicity
+        totalUsers.forEach(user => {
+          const d = new Date(user.createdAt)
+          if (d >= startDate) {
+            const key = getTimeKey(d, period)
+            usersOverTime[key] = (usersOverTime[key] || 0) + 1
+          }
+        })
+
+        totalSubmissions.forEach(sub => {
+          const d = new Date(sub.submittedAt)
+          if (d >= startDate) {
+            const key = getTimeKey(d, period)
+            submissionsOverTime[key] = (submissionsOverTime[key] || 0) + 1
+          }
+        })
+
+        if (adminUser.role === 'super_admin') {
+          totalPaymentIntents.forEach(payment => {
+            if (payment.status === 'completed') {
+              const d = new Date(payment.createdAt)
+              if (d >= startDate) {
+                const key = getTimeKey(d, period)
+                revenueOverTime[key] = (revenueOverTime[key] || 0) + (payment.amount || 0)
+              }
+            }
+          })
+        }
+
         // Get top forms by submissions
         const topForms = totalForms.map(form => {
           const submissionCount = totalSubmissions.filter(
             submission => submission.formId === form.id
           ).length
-          
+
           return {
             formId: form.id,
             title: form.title,
             submissionCount
           }
         })
-        .sort((a, b) => b.submissionCount - a.submissionCount)
-        .slice(0, 10)
-        
+          .sort((a, b) => b.submissionCount - a.submissionCount)
+          .slice(0, 10)
+
         // Get recent activity
         const recentSubmissions = totalSubmissions
           .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
@@ -190,7 +235,7 @@ export async function GET(request: NextRequest) {
               status: submission.status
             }
           })
-        
+
         // Get recent tickets
         const recentTickets = totalTickets
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -204,7 +249,7 @@ export async function GET(request: NextRequest) {
             priority: ticket.priority,
             createdAt: ticket.createdAt
           }))
-        
+
         // Get recent notifications
         const recentNotifications = totalNotifications
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -217,7 +262,7 @@ export async function GET(request: NextRequest) {
             status: notification.status,
             createdAt: notification.createdAt
           }))
-        
+
         // Calculate revenue (if super admin)
         let revenue = null
         if (adminUser.role === 'super_admin') {
@@ -225,7 +270,7 @@ export async function GET(request: NextRequest) {
             .filter(payment => payment.status === 'completed')
             .reduce((sum, payment) => sum + (payment.amount || 0), 0)
         }
-        
+
         return NextResponse.json({
           success: true,
           data: {
@@ -264,10 +309,15 @@ export async function GET(request: NextRequest) {
             recentActivity: recentSubmissions,
             recentTickets,
             recentNotifications,
-            revenue
+            revenue,
+            charts: {
+              usersOverTime: Object.entries(usersOverTime).map(([date, count]) => ({ date, count })),
+              submissionsOverTime: Object.entries(submissionsOverTime).map(([date, count]) => ({ date, count })),
+              revenueOverTime: Object.entries(revenueOverTime).map(([date, amount]) => ({ date, amount: amount / 100 })), // Format to dollars
+            }
           }
         })
-        
+
       } catch (error) {
         if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
           return NextResponse.json({
@@ -275,7 +325,7 @@ export async function GET(request: NextRequest) {
             message: error.message
           }, { status: error.statusCode })
         }
-        
+
         console.error('Admin dashboard error:', error)
         return NextResponse.json({
           success: false,

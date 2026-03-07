@@ -194,8 +194,14 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
 
   const isMobilePreview = (state.current_form?.settings as any)?.previewDevice === 'mobile'
 
+  // Helpers for Typeform colors
+  const tfBg = state.current_form?.theme?.background_color || (state.current_form as any)?.brandKit?.colors?.pageBackground?.hex || '#f8fafc'
+  const tfText = state.current_form?.theme?.text_color || (state.current_form as any)?.brandKit?.colors?.text?.primary?.hex || '#1F2937'
+  const tfPrimary = state.current_form?.theme?.primary_color || (state.current_form as any)?.brandKit?.colors?.buttonPrimary?.hex || '#6C5CE7'
+  const tfFont = (state.current_form as any)?.brandKit?.typography?.fontFamily?.primary || state.current_form?.theme?.font_family || 'Inter, sans-serif'
+
   return (
-    <div className={`flex-1 w-full flex justify-center ${isMobilePreview ? 'items-start pt-6 bg-gray-100/50 sidebar-scroll overflow-y-auto' : 'items-center py-8'}`}>
+    <div className={`flex-1 w-full flex justify-center ${isMobilePreview ? 'items-start pt-6 bg-gray-100/50 sidebar-scroll overflow-y-auto' : 'items-center py-8'}`} style={{ fontFamily: tfFont }}>
       <div
         className={`${isMobilePreview ? 'mobile-preview-frame' : 'w-full max-w-[850px] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-200/50 overflow-hidden'} relative flex flex-col`}
         style={isMobilePreview ? {
@@ -308,17 +314,19 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
                                       value={title}
                                       onChange={(e) => handleUpdateField(field.id, { settings: { coverTitle: e.target.value } })}
                                       onInput={handleAutoResize}
-                                      className="w-full text-3xl md:text-5xl font-semibold text-gray-900 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-300 resize-none overflow-hidden m-0 p-0 mb-4 tracking-tight leading-tight"
+                                      className="w-full text-3xl md:text-5xl font-semibold border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 resize-none overflow-hidden m-0 p-0 mb-4 tracking-tight leading-tight"
                                       placeholder="Welcome to my form"
                                       rows={1}
+                                      style={{ color: tfText }}
                                     />
                                     <textarea
                                       value={subtitle}
                                       onChange={(e) => handleUpdateField(field.id, { settings: { coverSubtitle: e.target.value } })}
                                       onInput={handleAutoResize}
-                                      className="w-full text-lg md:text-xl text-gray-600 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-400 font-light resize-none overflow-hidden m-0 p-0 mb-8"
+                                      className="w-full text-lg md:text-xl border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 font-light resize-none overflow-hidden m-0 p-0 mb-8"
                                       placeholder="Description goes here..."
                                       rows={1}
+                                      style={{ color: tfText, opacity: 0.8 }}
                                     />
                                     <div className="flex items-center gap-3 mt-4">
                                       <button type="button" className="px-6 py-3 rounded-md text-white text-base md:text-lg font-bold shadow-sm hover:opacity-90 transition-opacity" style={{ background: ctaBg }}>{cta}</button>
@@ -346,45 +354,48 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
                                         value={(field.settings as any)?.endTitle || ''}
                                         onChange={(e) => handleUpdateField(field.id, { settings: { endTitle: e.target.value } })}
                                         onInput={handleAutoResize}
-                                        className="w-full text-center text-2xl md:text-4xl font-normal text-gray-900 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-300 resize-none overflow-hidden m-0 p-0 mb-4"
+                                        className="w-full text-center text-2xl md:text-4xl font-normal border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 resize-none overflow-hidden m-0 p-0 mb-4"
                                         placeholder="Thank you!"
                                         rows={1}
+                                        style={{ color: tfText }}
                                       />
                                       <textarea
                                         value={(field.settings as any)?.endSubtitle || ''}
                                         onChange={(e) => handleUpdateField(field.id, { settings: { endSubtitle: e.target.value } })}
                                         onInput={handleAutoResize}
-                                        className="w-full text-center text-lg text-gray-600 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-400 font-light resize-none overflow-hidden m-0 p-0 mb-6"
+                                        className="w-full text-center text-lg border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 font-light resize-none overflow-hidden m-0 p-0 mb-6"
                                         placeholder="We appreciate your time."
                                         rows={1}
+                                        style={{ color: tfText, opacity: 0.8 }}
                                       />
                                       {(field.settings as any)?.endButtonText && (
-                                        <button disabled className="px-6 py-3 bg-gray-900 text-white rounded-md text-base font-bold">{(field.settings as any)?.endButtonText}</button>
+                                        <button disabled className="px-6 py-3 text-white rounded-md text-base font-bold" style={{ backgroundColor: tfPrimary }}>{(field.settings as any)?.endButtonText}</button>
                                       )}
                                     </div>
                                   ) : (
                                     <div className="flex flex-col w-full relative">
                                       <div className="flex items-start relative mb-2">
-                                        <span className="text-[#6C5CE7] font-bold text-lg md:text-2xl mr-2 leading-tight select-none mt-1">{qNum}<span className="text-[#a78bfa] transition-colors ml-0.5 animate-pulse">→</span></span>
+                                        <span className="font-bold text-lg md:text-2xl mr-2 leading-tight select-none mt-1" style={{ color: tfPrimary }}>{qNum}<span className="transition-colors ml-0.5 animate-pulse" style={{ color: tfPrimary, opacity: 0.6 }}>→</span></span>
                                         <textarea
                                           value={field.label || ''}
                                           onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
                                           onInput={handleAutoResize}
-                                          className={`w-full text-xl md:text-3xl font-medium leading-tight border-none focus:ring-0 focus:outline-none bg-transparent resize-none overflow-hidden m-0 p-0 select-text ${shouldShowTitlePlaceholder(field) && !field.label ? 'italic text-gray-300' : 'text-gray-900'}`}
+                                          className={`w-full text-xl md:text-3xl font-medium leading-tight border-none focus:ring-0 focus:outline-none bg-transparent resize-none overflow-hidden m-0 p-0 select-text ${shouldShowTitlePlaceholder(field) && !field.label ? 'italic opacity-50' : ''}`}
                                           placeholder={defaultLabels[field.type] || 'Type your question here'}
                                           rows={1}
-                                          style={{ minHeight: '40px' }}
+                                          style={{ minHeight: '40px', color: tfText }}
                                         />
-                                        {field.required && <span className="text-[hsl(250,86%,66%)] absolute -right-4 top-0 text-2xl select-none">*</span>}
+                                        {field.required && <span className="absolute -right-4 top-0 text-2xl select-none" style={{ color: tfPrimary }}>*</span>}
                                       </div>
                                       {field.show_description && (
                                         <textarea
                                           value={field.description || ''}
                                           onChange={(e) => handleUpdateField(field.id, { description: e.target.value })}
                                           onInput={handleAutoResize}
-                                          className="w-full text-base md:text-lg text-gray-500 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-300 placeholder:italic resize-none overflow-hidden m-0 p-0 ml-8 md:ml-10 mb-4 max-w-[calc(100%-2.5rem)]"
+                                          className="w-full text-base md:text-lg border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 placeholder:italic resize-none overflow-hidden m-0 p-0 ml-8 md:ml-10 mb-4 max-w-[calc(100%-2.5rem)]"
                                           placeholder="add description"
                                           rows={1}
+                                          style={{ color: tfText, opacity: 0.7 }}
                                         />
                                       )}
                                     </div>
@@ -474,10 +485,10 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
                                             value={field.label || ''}
                                             onChange={(e) => handleUpdateField(field.id, { label: e.target.value })}
                                             onInput={handleAutoResize}
-                                            className={`w-full text-[11px] md:text-xs font-medium border-none focus:ring-0 focus:outline-none bg-transparent resize-none overflow-hidden m-0 p-0 ${(showPlaceholder && !field.label) ? 'text-gray-400 italic' : 'text-gray-800'}`}
+                                            className={`w-full text-[11px] md:text-xs font-medium border-none focus:ring-0 focus:outline-none bg-transparent resize-none overflow-hidden m-0 p-0 ${(showPlaceholder && !field.label) ? 'italic opacity-50' : ''}`}
                                             placeholder={showPlaceholder ? 'add question' : 'Question'}
                                             rows={1}
-                                            style={{ minHeight: '18px' }}
+                                            style={{ minHeight: '18px', color: tfText }}
                                           />
                                         </div>
                                       )
@@ -535,17 +546,19 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
                                           value={title}
                                           onChange={(e) => handleUpdateField(field.id, { settings: { coverTitle: e.target.value } })}
                                           onInput={handleAutoResize}
-                                          className="w-full text-3xl md:text-5xl font-semibold text-gray-900 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-300 resize-none overflow-hidden m-0 p-0 mb-4 tracking-tight leading-tight"
+                                          className="w-full text-3xl md:text-5xl font-semibold border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 resize-none overflow-hidden m-0 p-0 mb-4 tracking-tight leading-tight"
                                           placeholder="Welcome to my form"
                                           rows={1}
+                                          style={{ color: tfText }}
                                         />
                                         <textarea
                                           value={subtitle}
                                           onChange={(e) => handleUpdateField(field.id, { settings: { coverSubtitle: e.target.value } })}
                                           onInput={handleAutoResize}
-                                          className="w-full text-lg md:text-xl text-gray-600 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-400 font-light resize-none overflow-hidden m-0 p-0 mb-8"
+                                          className="w-full text-lg md:text-xl border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 font-light resize-none overflow-hidden m-0 p-0 mb-8"
                                           placeholder="Description goes here..."
                                           rows={1}
+                                          style={{ color: tfText, opacity: 0.8 }}
                                         />
                                       </div>
                                     )
@@ -560,20 +573,22 @@ export function FormBuilderCanvas({ isThemeMode = false }: FormBuilderCanvasProp
                                           value={(field.settings as any)?.endTitle || ''}
                                           onChange={(e) => handleUpdateField(field.id, { settings: { endTitle: e.target.value } })}
                                           onInput={handleAutoResize}
-                                          className="w-full text-center text-2xl md:text-4xl font-normal text-gray-900 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-300 resize-none overflow-hidden m-0 p-0 mb-4"
+                                          className="w-full text-center text-2xl md:text-4xl font-normal border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 resize-none overflow-hidden m-0 p-0 mb-4"
                                           placeholder="Thank you!"
                                           rows={1}
+                                          style={{ color: tfText }}
                                         />
                                         <textarea
                                           value={(field.settings as any)?.endSubtitle || ''}
                                           onChange={(e) => handleUpdateField(field.id, { settings: { endSubtitle: e.target.value } })}
                                           onInput={handleAutoResize}
-                                          className="w-full text-center text-lg text-gray-600 border-none focus:ring-0 focus:outline-none bg-transparent placeholder:text-gray-400 font-light resize-none overflow-hidden m-0 p-0 mb-6"
+                                          className="w-full text-center text-lg border-none focus:ring-0 focus:outline-none bg-transparent placeholder:opacity-50 font-light resize-none overflow-hidden m-0 p-0 mb-6"
                                           placeholder="We appreciate your time."
                                           rows={1}
+                                          style={{ color: tfText, opacity: 0.8 }}
                                         />
                                         {(field.settings as any)?.endButtonText && (
-                                          <button disabled className="px-6 py-3 bg-gray-900 text-white rounded-md text-base font-bold">{(field.settings as any)?.endButtonText}</button>
+                                          <button disabled className="px-6 py-3 text-white rounded-md text-base font-bold" style={{ backgroundColor: tfPrimary }}>{(field.settings as any)?.endButtonText}</button>
                                         )}
                                       </div>
                                     )

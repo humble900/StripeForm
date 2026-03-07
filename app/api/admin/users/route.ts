@@ -6,11 +6,11 @@ import { withErrorHandling, AuthenticationError, AuthorizationError } from '@/li
 import { z } from 'zod'
 
 // Validation schemas
-const updateRoleSchema = z.object({
+const updateUserSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
-  role: z.enum(['user', 'admin', 'super_admin'], {
-    errorMap: () => ({ message: 'Role must be user, admin, or super_admin' })
-  })
+  role: z.enum(['user', 'admin', 'super_admin']).optional(),
+  status: z.enum(['active', 'inactive', 'suspended']).optional(),
+  subscriptionTier: z.enum(['free', 'pro', 'enterprise']).optional()
 })
 
 const createUserSchema = z.object({
@@ -151,11 +151,15 @@ export async function PUT(request: NextRequest) {
         await verifySuperAdmin(request)
 
         const body = await request.json()
-        const validatedData = updateRoleSchema.parse(body)
+        const validatedData = updateUserSchema.parse(body)
 
-        const updatedUser = await dbService.updateUser(validatedData.userId, {
-          role: validatedData.role
-        })
+        // Filter out undefined values to only update what was provided
+        const updateData: any = {}
+        if (validatedData.role) updateData.role = validatedData.role
+        if (validatedData.status) updateData.status = validatedData.status
+        if (validatedData.subscriptionTier) updateData.subscriptionTier = validatedData.subscriptionTier
+
+        const updatedUser = await dbService.updateUser(validatedData.userId, updateData)
 
         if (!updatedUser) {
           return NextResponse.json({
@@ -178,6 +182,43 @@ export async function PUT(request: NextRequest) {
           }, { status: 400 })
         }
 
+        if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
+          return NextResponse.json({
+            success: false,
+            message: error.message
+          }, { status: error.statusCode })
+        }
+
+        throw error
+      }
+    })
+  )
+}
+
+// DELETE /api/admin/users - Delete user (superadmin only)
+export async function DELETE(request: NextRequest) {
+  return withRateLimit(request, apiRateLimit,
+    withErrorHandling(async (request: NextRequest) => {
+      try {
+        await verifySuperAdmin(request)
+
+        const { searchParams } = new URL(request.url)
+        const userId = searchParams.get('userId')
+
+        if (!userId) {
+          return NextResponse.json({
+            success: false,
+            message: 'User ID is required'
+          }, { status: 400 })
+        }
+
+        await dbService.deleteUser(userId)
+
+        return NextResponse.json({
+          success: true,
+          message: 'User deleted successfully'
+        })
+      } catch (error) {
         if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
           return NextResponse.json({
             success: false,

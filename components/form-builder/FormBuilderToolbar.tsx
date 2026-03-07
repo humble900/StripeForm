@@ -16,7 +16,8 @@ import {
   PaintBrushIcon,
   PlusIcon,
   ChevronDownIcon,
-  CheckIcon
+  CheckIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
 import { useNotifications } from '@/components/providers/NotificationProvider'
@@ -782,17 +783,17 @@ export function FormBuilderToolbar({
                               selectField(newField as any)
                               setShowAddQuestion(false)
                             }}
-                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${item.isSpecial ? 'bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100/50 mt-1 mb-1 shadow-sm' : 'hover:bg-[#6C5CE7]/5'
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${'isSpecial' in item && item.isSpecial ? 'bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100/50 mt-1 mb-1 shadow-sm' : 'hover:bg-[#6C5CE7]/5'
                               }`}
                           >
-                            {item.isSpecial ? (
+                            {'isSpecial' in item && item.isSpecial ? (
                               <div className="w-5 h-5 rounded-md bg-white border border-indigo-100 shadow-sm flex items-center justify-center flex-shrink-0">
                                 <SparklesIcon className="w-3 h-3 text-indigo-600" />
                               </div>
                             ) : (
                               <div className="w-2 h-2 rounded-full flex-shrink-0 opacity-60" style={{ backgroundColor: group.color }} />
                             )}
-                            <span className={`text-[12px] font-medium transition-colors ${item.isSpecial ? 'text-indigo-900 group-hover:text-indigo-700' : 'text-gray-700 group-hover:text-[#6C5CE7]'
+                            <span className={`text-[12px] font-medium transition-colors ${'isSpecial' in item && item.isSpecial ? 'text-indigo-900 group-hover:text-indigo-700' : 'text-gray-700 group-hover:text-[#6C5CE7]'
                               }`}>{item.label}</span>
                           </button>
                         ))}
