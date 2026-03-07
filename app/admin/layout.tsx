@@ -1,14 +1,15 @@
-import { Metadata } from 'next'
-import { generateMetadata as generateSEOMetadata, getSEOConfig } from '@/lib/seo'
+import { Metadata } from "next";
+import {
+  generateMetadata as generateSEOMetadata,
+  getSEOConfig,
+} from "@/lib/seo";
 
-export const metadata: Metadata = generateSEOMetadata(getSEOConfig('admin'))
+export const metadata: Metadata = generateSEOMetadata(getSEOConfig("admin"));
 
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  return <>{children}</>
+  return <>{children}</>;
 }
-
-

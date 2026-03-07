@@ -1,9 +1,9 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { 
-  EnvelopeIcon, 
-  PhoneIcon, 
+import { useState } from "react";
+import {
+  EnvelopeIcon,
+  PhoneIcon,
   ChatBubbleLeftRightIcon,
   ClockIcon,
   CheckCircleIcon,
@@ -13,128 +13,141 @@ import {
   QuestionMarkCircleIcon,
   DocumentTextIcon,
   VideoCameraIcon,
-  ChatBubbleOvalLeftEllipsisIcon
-} from '@heroicons/react/24/outline'
+  ChatBubbleOvalLeftEllipsisIcon,
+} from "@heroicons/react/24/outline";
 
 export default function ContactClient() {
-  const [activeTab, setActiveTab] = useState('support')
+  const [activeTab, setActiveTab] = useState("support");
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    phone: '',
-    subject: '',
-    message: '',
-    inquiryType: 'general',
-    preferredTime: '',
-    timezone: ''
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+    name: "",
+    email: "",
+    company: "",
+    phone: "",
+    subject: "",
+    message: "",
+    inquiryType: "general",
+    preferredTime: "",
+    timezone: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    
+    e.preventDefault();
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch('/api/support-tickets', {
-        method: 'POST',
+      const response = await fetch("/api/support-tickets", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userEmail: formData.email,
           userName: formData.name,
           subject: formData.subject,
           description: formData.message,
-          category: activeTab === 'demo' ? 'demo_request' : 
-                   formData.inquiryType === 'technical' ? 'technical' :
-                   formData.inquiryType === 'billing' ? 'billing' :
-                   formData.inquiryType === 'feature' ? 'feature_request' : 'general',
-          priority: 'medium',
+          category:
+            activeTab === "demo"
+              ? "demo_request"
+              : formData.inquiryType === "technical"
+                ? "technical"
+                : formData.inquiryType === "billing"
+                  ? "billing"
+                  : formData.inquiryType === "feature"
+                    ? "feature_request"
+                    : "general",
+          priority: "medium",
           metadata: {
             company: formData.company,
             phone: formData.phone,
             preferredTime: formData.preferredTime,
             inquiryType: formData.inquiryType,
-            formType: activeTab
-          }
-        })
-      })
+            formType: activeTab,
+          },
+        }),
+      });
 
-      const data = await response.json()
-      
+      const data = await response.json();
+
       if (data.success) {
-        setSubmitStatus('success')
+        setSubmitStatus("success");
         setFormData({
-          name: '',
-          email: '',
-          company: '',
-          phone: '',
-          subject: '',
-          message: '',
-          inquiryType: 'general',
-          preferredTime: '',
-          timezone: ''
-        })
+          name: "",
+          email: "",
+          company: "",
+          phone: "",
+          subject: "",
+          message: "",
+          inquiryType: "general",
+          preferredTime: "",
+          timezone: "",
+        });
       } else {
-        throw new Error(data.message || 'Failed to submit form')
+        throw new Error(data.message || "Failed to submit form");
       }
     } catch (error) {
-      console.error('Form submission error:', error)
-      setSubmitStatus('error')
+      console.error("Form submission error:", error);
+      setSubmitStatus("error");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const supportOptions = [
     {
       icon: DocumentTextIcon,
-      title: 'Help Center',
-      description: 'Browse our comprehensive knowledge base and tutorials',
-      action: 'Visit Help Center',
-      href: '/help',
-      color: 'bg-blue-500'
+      title: "Help Center",
+      description: "Browse our comprehensive knowledge base and tutorials",
+      action: "Visit Help Center",
+      href: "/help",
+      color: "bg-blue-500",
     },
     {
       icon: QuestionMarkCircleIcon,
-      title: 'FAQ',
-      description: 'Find quick answers to common questions',
-      action: 'View FAQs',
-      href: '/faq',
-      color: 'bg-green-500'
+      title: "FAQ",
+      description: "Find quick answers to common questions",
+      action: "View FAQs",
+      href: "/faq",
+      color: "bg-green-500",
     },
     {
       icon: ChatBubbleLeftRightIcon,
-      title: 'Live Chat',
-      description: 'Get instant help from our support team',
-      action: 'Start Chat',
-      href: '#',
-      color: 'bg-purple-500'
+      title: "Live Chat",
+      description: "Get instant help from our support team",
+      action: "Start Chat",
+      href: "#",
+      color: "bg-purple-500",
     },
     {
       icon: EnvelopeIcon,
-      title: 'Email Support',
-      description: 'Send us a detailed message and we\'ll respond within 24 hours',
-      action: 'Send Email',
-      href: 'mailto:support@stripeform.app',
-      color: 'bg-orange-500'
-    }
-  ]
+      title: "Email Support",
+      description:
+        "Send us a detailed message and we'll respond within 24 hours",
+      action: "Send Email",
+      href: "mailto:support@stripeform.app",
+      color: "bg-orange-500",
+    },
+  ];
 
   const demoFeatures = [
-    'Custom form builder walkthrough',
-    'Advanced features demonstration',
-    'Integration possibilities',
-    'Custom pricing discussion',
-    'Q&A session with our experts'
-  ]
+    "Custom form builder walkthrough",
+    "Advanced features demonstration",
+    "Integration possibilities",
+    "Custom pricing discussion",
+    "Q&A session with our experts",
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -146,7 +159,8 @@ export default function ContactClient() {
               Get in Touch
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We're here to help you succeed with StripeForm. Choose how you'd like to connect with our team.
+              We're here to help you succeed with StripeForm. Choose how you'd
+              like to connect with our team.
             </p>
           </div>
         </div>
@@ -157,11 +171,11 @@ export default function ContactClient() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             <button
-              onClick={() => setActiveTab('support')}
+              onClick={() => setActiveTab("support")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'support'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "support"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <div className="flex items-center space-x-2">
@@ -170,11 +184,11 @@ export default function ContactClient() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('demo')}
+              onClick={() => setActiveTab("demo")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'demo'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "demo"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <div className="flex items-center space-x-2">
@@ -183,11 +197,11 @@ export default function ContactClient() {
               </div>
             </button>
             <button
-              onClick={() => setActiveTab('contact')}
+              onClick={() => setActiveTab("contact")}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'contact'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                activeTab === "contact"
+                  ? "border-purple-500 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
               <div className="flex items-center space-x-2">
@@ -201,7 +215,7 @@ export default function ContactClient() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Support Tab */}
-        {activeTab === 'support' && (
+        {activeTab === "support" && (
           <div className="space-y-12">
             {/* Support Options */}
             <div>
@@ -210,14 +224,16 @@ export default function ContactClient() {
               </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {supportOptions.map((option, index) => {
-                  const Icon = option.icon
+                  const Icon = option.icon;
                   return (
                     <a
                       key={index}
                       href={option.href}
                       className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
                     >
-                      <div className={`w-12 h-12 ${option.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                      <div
+                        className={`w-12 h-12 ${option.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+                      >
                         <Icon className="w-6 h-6 text-white" />
                       </div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -230,7 +246,7 @@ export default function ContactClient() {
                         {option.action} →
                       </span>
                     </a>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -246,11 +262,18 @@ export default function ContactClient() {
                     Support Hours
                   </h3>
                   <div className="space-y-2 text-gray-600">
-                    <p><strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM EST</p>
-                    <p><strong>Saturday:</strong> 10:00 AM - 4:00 PM EST</p>
-                    <p><strong>Sunday:</strong> Closed</p>
+                    <p>
+                      <strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM EST
+                    </p>
+                    <p>
+                      <strong>Saturday:</strong> 10:00 AM - 4:00 PM EST
+                    </p>
+                    <p>
+                      <strong>Sunday:</strong> Closed
+                    </p>
                     <p className="text-sm text-gray-500 mt-2">
-                      Emergency support available 24/7 for Pro and Enterprise customers
+                      Emergency support available 24/7 for Pro and Enterprise
+                      customers
                     </p>
                   </div>
                 </div>
@@ -269,7 +292,8 @@ export default function ContactClient() {
                       Quick WhatsApp Support
                     </h3>
                     <p className="text-green-100 mb-4">
-                      Get instant help via WhatsApp. Our team responds within minutes during business hours.
+                      Get instant help via WhatsApp. Our team responds within
+                      minutes during business hours.
                     </p>
                     <div className="flex items-center space-x-2 text-sm">
                       <CheckCircleIcon className="w-4 h-4" />
@@ -292,14 +316,15 @@ export default function ContactClient() {
         )}
 
         {/* Demo Request Tab */}
-        {activeTab === 'demo' && (
+        {activeTab === "demo" && (
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
                 Request a Personalized Demo
               </h2>
               <p className="text-xl text-gray-600">
-                See StripeForm in action with a custom demonstration tailored to your needs
+                See StripeForm in action with a custom demonstration tailored to
+                your needs
               </p>
             </div>
 
@@ -326,7 +351,9 @@ export default function ContactClient() {
                         Perfect for Teams
                       </h4>
                       <p className="text-gray-600 text-sm">
-                        Invite your team members to join the demo. We'll answer questions from everyone and show how StripeForm can work for your entire organization.
+                        Invite your team members to join the demo. We'll answer
+                        questions from everyone and show how StripeForm can work
+                        for your entire organization.
                       </p>
                     </div>
                   </div>
@@ -338,7 +365,10 @@ export default function ContactClient() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Full Name *
                       </label>
                       <input
@@ -352,7 +382,10 @@ export default function ContactClient() {
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Email Address *
                       </label>
                       <input
@@ -369,7 +402,10 @@ export default function ContactClient() {
 
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="company"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Company
                       </label>
                       <input
@@ -382,7 +418,10 @@ export default function ContactClient() {
                       />
                     </div>
                     <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="phone"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Phone Number
                       </label>
                       <input
@@ -397,7 +436,10 @@ export default function ContactClient() {
                   </div>
 
                   <div>
-                    <label htmlFor="preferredTime" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="preferredTime"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Preferred Demo Time
                     </label>
                     <select
@@ -409,13 +451,18 @@ export default function ContactClient() {
                     >
                       <option value="">Select a time</option>
                       <option value="morning">Morning (9 AM - 12 PM)</option>
-                      <option value="afternoon">Afternoon (12 PM - 5 PM)</option>
+                      <option value="afternoon">
+                        Afternoon (12 PM - 5 PM)
+                      </option>
                       <option value="evening">Evening (5 PM - 8 PM)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="message"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Tell us about your use case *
                     </label>
                     <textarea
@@ -435,27 +482,29 @@ export default function ContactClient() {
                     disabled={isSubmitting}
                     className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isSubmitting ? 'Scheduling Demo...' : 'Request Demo'}
+                    {isSubmitting ? "Scheduling Demo..." : "Request Demo"}
                   </button>
                 </form>
 
-                {submitStatus === 'success' && (
+                {submitStatus === "success" && (
                   <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
                       <CheckCircleIcon className="w-5 h-5 text-green-600" />
                       <span className="text-green-800 font-medium">
-                        Demo request submitted successfully! We'll contact you within 24 hours.
+                        Demo request submitted successfully! We'll contact you
+                        within 24 hours.
                       </span>
                     </div>
                   </div>
                 )}
 
-                {submitStatus === 'error' && (
+                {submitStatus === "error" && (
                   <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
                       <XMarkIcon className="w-5 h-5 text-red-600" />
                       <span className="text-red-800 font-medium">
-                        Something went wrong. Please try again or contact us directly.
+                        Something went wrong. Please try again or contact us
+                        directly.
                       </span>
                     </div>
                   </div>
@@ -466,14 +515,15 @@ export default function ContactClient() {
         )}
 
         {/* General Contact Tab */}
-        {activeTab === 'contact' && (
+        {activeTab === "contact" && (
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
                 Send us a Message
               </h2>
               <p className="text-xl text-gray-600">
-                Have a question, suggestion, or need help? We'd love to hear from you.
+                Have a question, suggestion, or need help? We'd love to hear
+                from you.
               </p>
             </div>
 
@@ -490,7 +540,9 @@ export default function ContactClient() {
                         <EnvelopeIcon className="w-6 h-6 text-purple-600" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">Email Us</h4>
+                        <h4 className="font-semibold text-gray-900">
+                          Email Us
+                        </h4>
                         <p className="text-gray-600">support@stripeform.app</p>
                         <p className="text-gray-600">sales@stripeform.app</p>
                       </div>
@@ -501,8 +553,12 @@ export default function ContactClient() {
                         <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6 text-green-600" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">WhatsApp</h4>
-                        <p className="text-gray-600">Quick support via WhatsApp</p>
+                        <h4 className="font-semibold text-gray-900">
+                          WhatsApp
+                        </h4>
+                        <p className="text-gray-600">
+                          Quick support via WhatsApp
+                        </p>
                         <a
                           href="https://wa.me/message/AU6WGM7HEG63M1"
                           target="_blank"
@@ -519,9 +575,15 @@ export default function ContactClient() {
                         <ClockIcon className="w-6 h-6 text-blue-600" />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900">Response Time</h4>
-                        <p className="text-gray-600">We typically respond within 24 hours</p>
-                        <p className="text-gray-600">WhatsApp: Within minutes during business hours</p>
+                        <h4 className="font-semibold text-gray-900">
+                          Response Time
+                        </h4>
+                        <p className="text-gray-600">
+                          We typically respond within 24 hours
+                        </p>
+                        <p className="text-gray-600">
+                          WhatsApp: Within minutes during business hours
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -534,8 +596,12 @@ export default function ContactClient() {
                       <ChatBubbleOvalLeftEllipsisIcon className="w-6 h-6" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold mb-1">Need immediate help?</h4>
-                      <p className="text-green-100 text-sm">Chat with us on WhatsApp for instant support</p>
+                      <h4 className="font-semibold mb-1">
+                        Need immediate help?
+                      </h4>
+                      <p className="text-green-100 text-sm">
+                        Chat with us on WhatsApp for instant support
+                      </p>
                     </div>
                     <a
                       href="https://wa.me/message/AU6WGM7HEG63M1"
@@ -554,7 +620,10 @@ export default function ContactClient() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Full Name *
                       </label>
                       <input
@@ -568,7 +637,10 @@ export default function ContactClient() {
                       />
                     </div>
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
                         Email Address *
                       </label>
                       <input
@@ -584,7 +656,10 @@ export default function ContactClient() {
                   </div>
 
                   <div>
-                    <label htmlFor="inquiryType" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="inquiryType"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Inquiry Type
                     </label>
                     <select
@@ -604,7 +679,10 @@ export default function ContactClient() {
                   </div>
 
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="subject"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Subject *
                     </label>
                     <input
@@ -619,7 +697,10 @@ export default function ContactClient() {
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="message"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       Message *
                     </label>
                     <textarea
@@ -639,11 +720,11 @@ export default function ContactClient() {
                     disabled={isSubmitting}
                     className="w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {isSubmitting ? 'Sending...' : 'Send Message'}
+                    {isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
 
-                {submitStatus === 'success' && (
+                {submitStatus === "success" && (
                   <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
                       <CheckCircleIcon className="w-5 h-5 text-green-600" />
@@ -654,12 +735,13 @@ export default function ContactClient() {
                   </div>
                 )}
 
-                {submitStatus === 'error' && (
+                {submitStatus === "error" && (
                   <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
                       <XMarkIcon className="w-5 h-5 text-red-600" />
                       <span className="text-red-800 font-medium">
-                        Something went wrong. Please try again or contact us directly.
+                        Something went wrong. Please try again or contact us
+                        directly.
                       </span>
                     </div>
                   </div>
@@ -670,5 +752,5 @@ export default function ContactClient() {
         )}
       </div>
     </div>
-  )
+  );
 }

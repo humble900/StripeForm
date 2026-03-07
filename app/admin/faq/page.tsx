@@ -1,146 +1,146 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import LoadingSpinner from '@/components/ui/loading-spinner'
-import { PlusIcon, PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import React, { useState, useEffect } from "react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  EyeIcon,
+  EyeSlashIcon,
+} from "@heroicons/react/24/outline";
 
 interface FAQ {
-  id: string
-  question: string
-  answer: string
-  category: string
-  order: number
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function AdminFAQPage() {
-  const [faqs, setFaqs] = useState<FAQ[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null)
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
   const [formData, setFormData] = useState({
-    question: '',
-    answer: '',
-    category: 'general',
+    question: "",
+    answer: "",
+    category: "general",
     order: 0,
     isActive: true,
-  })
+  });
 
   useEffect(() => {
-    fetchFAQs()
-  }, [])
+    fetchFAQs();
+  }, []);
 
   const fetchFAQs = async () => {
     try {
-      const response = await fetch('/api/admin/faq')
+      const response = await fetch("/api/admin/faq");
       if (response.ok) {
-        const data = await response.json()
-        setFaqs(data)
+        const data = await response.json();
+        setFaqs(data);
       }
     } catch (error) {
-      console.error('Error fetching FAQs:', error)
+      console.error("Error fetching FAQs:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     try {
-      const url = editingFAQ ? `/api/faq/${editingFAQ.id}` : '/api/faq'
-      const method = editingFAQ ? 'PUT' : 'POST'
-      
+      const url = editingFAQ ? `/api/faq/${editingFAQ.id}` : "/api/faq";
+      const method = editingFAQ ? "PUT" : "POST";
+
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...formData,
-          updatedBy: 'admin', // In real app, use actual user ID
+          updatedBy: "admin", // In real app, use actual user ID
         }),
-      })
+      });
 
       if (response.ok) {
-        await fetchFAQs()
-        setShowModal(false)
-        setEditingFAQ(null)
+        await fetchFAQs();
+        setShowModal(false);
+        setEditingFAQ(null);
         setFormData({
-          question: '',
-          answer: '',
-          category: 'general',
+          question: "",
+          answer: "",
+          category: "general",
           order: 0,
           isActive: true,
-        })
+        });
       }
     } catch (error) {
-      console.error('Error saving FAQ:', error)
+      console.error("Error saving FAQ:", error);
     }
-  }
+  };
 
   const handleEdit = (faq: FAQ) => {
-    setEditingFAQ(faq)
+    setEditingFAQ(faq);
     setFormData({
       question: faq.question,
       answer: faq.answer,
       category: faq.category,
       order: faq.order,
       isActive: faq.is_active,
-    })
-    setShowModal(true)
-  }
+    });
+    setShowModal(true);
+  };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this FAQ?')) return
+    if (!confirm("Are you sure you want to delete this FAQ?")) return;
 
     try {
       const response = await fetch(`/api/faq/${id}`, {
-        method: 'DELETE',
-      })
+        method: "DELETE",
+      });
 
       if (response.ok) {
-        await fetchFAQs()
+        await fetchFAQs();
       }
     } catch (error) {
-      console.error('Error deleting FAQ:', error)
+      console.error("Error deleting FAQ:", error);
     }
-  }
+  };
 
   const handleToggleActive = async (faq: FAQ) => {
     try {
       const response = await fetch(`/api/faq/${faq.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           ...faq,
           isActive: !faq.is_active,
-          updatedBy: 'admin',
+          updatedBy: "admin",
         }),
-      })
+      });
 
       if (response.ok) {
-        await fetchFAQs()
+        await fetchFAQs();
       }
     } catch (error) {
-      console.error('Error toggling FAQ status:', error)
+      console.error("Error toggling FAQ status:", error);
     }
-  }
+  };
 
-  const categories = ['general', 'billing', 'features', 'technical', 'account']
+  const categories = ["general", "billing", "features", "technical", "account"];
 
   if (loading) {
-    return (
-      <LoadingSpinner 
-        size="xl" 
-        centered 
-        text="Loading FAQs..." 
-      />
-    )
+    return <LoadingSpinner size="xl" centered text="Loading FAQs..." />;
   }
 
   return (
@@ -150,20 +150,24 @@ export default function AdminFAQPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">FAQ Management</h1>
-              <p className="text-gray-600 mt-2">Manage frequently asked questions</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                FAQ Management
+              </h1>
+              <p className="text-gray-600 mt-2">
+                Manage frequently asked questions
+              </p>
             </div>
             <button
               onClick={() => {
-                setEditingFAQ(null)
+                setEditingFAQ(null);
                 setFormData({
-                  question: '',
-                  answer: '',
-                  category: 'general',
+                  question: "",
+                  answer: "",
+                  category: "general",
                   order: 0,
                   isActive: true,
-                })
-                setShowModal(true)
+                });
+                setShowModal(true);
               }}
               className="bg-[#6C5CE7] text-white px-4 py-2 rounded-lg hover:bg-opacity-90 transition-colors flex items-center space-x-2"
             >
@@ -213,12 +217,14 @@ export default function AdminFAQPage() {
                       {faq.order}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        faq.is_active 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {faq.is_active ? 'Active' : 'Inactive'}
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          faq.is_active
+                            ? "bg-green-100 text-green-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {faq.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -230,9 +236,17 @@ export default function AdminFAQPage() {
                       </button>
                       <button
                         onClick={() => handleToggleActive(faq)}
-                        className={faq.is_active ? "text-red-600 hover:text-red-800" : "text-green-600 hover:text-green-800"}
+                        className={
+                          faq.is_active
+                            ? "text-red-600 hover:text-red-800"
+                            : "text-green-600 hover:text-green-800"
+                        }
                       >
-                        {faq.is_active ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                        {faq.is_active ? (
+                          <EyeSlashIcon className="h-4 w-4" />
+                        ) : (
+                          <EyeIcon className="h-4 w-4" />
+                        )}
                       </button>
                       <button
                         onClick={() => handleDelete(faq.id)}
@@ -254,9 +268,9 @@ export default function AdminFAQPage() {
             <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  {editingFAQ ? 'Edit FAQ' : 'Add New FAQ'}
+                  {editingFAQ ? "Edit FAQ" : "Add New FAQ"}
                 </h2>
-                
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -265,7 +279,9 @@ export default function AdminFAQPage() {
                     <input
                       type="text"
                       value={formData.question}
-                      onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, question: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]"
                       required
                     />
@@ -277,7 +293,9 @@ export default function AdminFAQPage() {
                     </label>
                     <textarea
                       value={formData.answer}
-                      onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, answer: e.target.value })
+                      }
                       rows={6}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]"
                       required
@@ -291,12 +309,15 @@ export default function AdminFAQPage() {
                       </label>
                       <select
                         value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, category: e.target.value })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]"
                       >
                         {categories.map((category) => (
                           <option key={category} value={category}>
-                            {category.charAt(0).toUpperCase() + category.slice(1)}
+                            {category.charAt(0).toUpperCase() +
+                              category.slice(1)}
                           </option>
                         ))}
                       </select>
@@ -309,7 +330,12 @@ export default function AdminFAQPage() {
                       <input
                         type="number"
                         value={formData.order}
-                        onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            order: parseInt(e.target.value) || 0,
+                          })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6C5CE7]"
                       />
                     </div>
@@ -320,10 +346,15 @@ export default function AdminFAQPage() {
                       type="checkbox"
                       id="isActive"
                       checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, isActive: e.target.checked })
+                      }
                       className="h-4 w-4 text-[#6C5CE7] focus:ring-[#6C5CE7] border-gray-300 rounded"
                     />
-                    <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                    <label
+                      htmlFor="isActive"
+                      className="ml-2 block text-sm text-gray-900"
+                    >
                       Active
                     </label>
                   </div>
@@ -340,7 +371,7 @@ export default function AdminFAQPage() {
                       type="submit"
                       className="px-4 py-2 bg-[#6C5CE7] text-white rounded-md hover:bg-opacity-90 transition-colors"
                     >
-                      {editingFAQ ? 'Update FAQ' : 'Create FAQ'}
+                      {editingFAQ ? "Update FAQ" : "Create FAQ"}
                     </button>
                   </div>
                 </form>
@@ -350,6 +381,5 @@ export default function AdminFAQPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
-

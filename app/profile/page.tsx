@@ -1,10 +1,10 @@
-'use client'
-import React, { useState, useEffect, Suspense } from 'react'
-import { BrandKitContent } from '@/components/brand-kit/BrandKitContent'
-import InlineLoading from '@/components/ui/inline-loading'
-import { BrandKitProvider } from '@/components/providers/BrandKitProvider'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/components/providers/AuthProvider'
+"use client";
+import React, { useState, useEffect, Suspense } from "react";
+import { BrandKitContent } from "@/components/brand-kit/BrandKitContent";
+import InlineLoading from "@/components/ui/inline-loading";
+import { BrandKitProvider } from "@/components/providers/BrandKitProvider";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -25,50 +25,51 @@ import {
   StarIcon,
   LockClosedIcon,
   InformationCircleIcon,
-  DocumentDuplicateIcon
-} from '@heroicons/react/24/outline'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { PhoneInput } from '@/components/ui/PhoneInput'
+  DocumentDuplicateIcon,
+} from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 
 function ProfileContent() {
-  const { user, updateUserProfile, updateDisplayName, signOut, isLoading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const { user, updateUserProfile, updateDisplayName, signOut, isLoading } =
+    useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('profile')
-  const [isEditing, setIsEditing] = useState(false)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [success, setSuccess] = useState('')
+  const [activeTab, setActiveTab] = useState("profile");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState("");
 
   // Form states
-  const [displayName, setDisplayName] = useState('')
-  const [company, setCompany] = useState('')
-  const [website, setWebsite] = useState('')
-  const [phone, setPhone] = useState('')
-  const [countryCode, setCountryCode] = useState('US')
-  const [timezone, setTimezone] = useState('')
-  const [language, setLanguage] = useState('en')
+  const [displayName, setDisplayName] = useState("");
+  const [company, setCompany] = useState("");
+  const [website, setWebsite] = useState("");
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("US");
+  const [timezone, setTimezone] = useState("");
+  const [language, setLanguage] = useState("en");
 
   // Advanced settings state
   const [advancedSettings, setAdvancedSettings] = useState({
     performance: {
-      cacheStrategy: 'aggressive',
-      compressionLevel: 'high',
+      cacheStrategy: "aggressive",
+      compressionLevel: "high",
     },
     customization: {
       enableCustomCSS: false,
-      customCSS: '',
+      customCSS: "",
       enableCustomJS: false,
-      customJS: '',
+      customJS: "",
       enableThemeEngine: true,
       enableAnimationLibrary: true,
-      enableIconLibrary: true
+      enableIconLibrary: true,
     },
     security: {
       enableCSP: true,
@@ -81,61 +82,71 @@ function ProfileContent() {
     experimental: {
       enableBetaFeatures: false,
       enableAITools: true,
-    }
-  })
+    },
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !user) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, router]);
 
   // Initialize form data when user loads
   useEffect(() => {
     if (user) {
-      setDisplayName(user.name || '')
-      setCompany(user.company || '')
-      setWebsite(user.website || '')
-      setPhone(user.phone || '')
-      setCountryCode(user.countryCode || 'US')
-      setTimezone(user.timezone || '')
-      setLanguage(user.language || 'en')
+      setDisplayName(user.name || "");
+      setCompany(user.company || "");
+      setWebsite(user.website || "");
+      setPhone(user.phone || "");
+      setCountryCode(user.countryCode || "US");
+      setTimezone(user.timezone || "");
+      setLanguage(user.language || "en");
     }
-  }, [user])
+  }, [user]);
 
   // Set active tab from URL parameter
   useEffect(() => {
     if (searchParams) {
-      const tab = searchParams.get('tab')
-      if (tab && ['profile', 'security', 'subscription', 'preferences', 'advanced', 'brand-kit'].includes(tab)) {
-        setActiveTab(tab)
+      const tab = searchParams.get("tab");
+      if (
+        tab &&
+        [
+          "profile",
+          "security",
+          "subscription",
+          "preferences",
+          "advanced",
+          "brand-kit",
+        ].includes(tab)
+      ) {
+        setActiveTab(tab);
       }
     }
-  }, [searchParams])
+  }, [searchParams]);
 
   // Advanced settings update function
   const updateAdvancedSetting = (category: string, key: string, value: any) => {
-    setAdvancedSettings(prev => ({
+    setAdvancedSettings((prev) => ({
       ...prev,
       [category]: {
         ...prev[category as keyof typeof prev],
-        [key]: value
-      }
-    }))
-  }
+        [key]: value,
+      },
+    }));
+  };
 
   const handleSaveProfile = async () => {
-    if (!user) return
+    if (!user) return;
 
-    setIsLoadingProfile(true)
-    setErrors({})
-    setSuccess('')
+    setIsLoadingProfile(true);
+    setErrors({});
+    setSuccess("");
 
     try {
       // Update display name in Firebase if changed
       if (displayName !== user.name) {
-        await updateDisplayName(displayName)
+        await updateDisplayName(displayName);
       }
 
       // Update profile in database
@@ -146,55 +157,51 @@ function ProfileContent() {
         phone,
         countryCode,
         timezone,
-        language
-      })
+        language,
+      });
 
-      setSuccess('Profile updated successfully!')
-      setIsEditing(false)
+      setSuccess("Profile updated successfully!");
+      setIsEditing(false);
     } catch (error: any) {
-      setErrors({ global: error.message || 'Failed to update profile' })
+      setErrors({ global: error.message || "Failed to update profile" });
     } finally {
-      setIsLoadingProfile(false)
+      setIsLoadingProfile(false);
     }
-  }
+  };
 
   const handleCancelEdit = () => {
     // Reset form to original values
     if (user) {
-      setDisplayName(user.name || '')
-      setCompany(user.company || '')
-      setWebsite(user.website || '')
-      setPhone(user.phone || '')
-      setCountryCode(user.countryCode || 'US')
-      setTimezone(user.timezone || '')
-      setLanguage(user.language || 'en')
+      setDisplayName(user.name || "");
+      setCompany(user.company || "");
+      setWebsite(user.website || "");
+      setPhone(user.phone || "");
+      setCountryCode(user.countryCode || "US");
+      setTimezone(user.timezone || "");
+      setLanguage(user.language || "en");
     }
-    setIsEditing(false)
-  }
+    setIsEditing(false);
+  };
 
   const handleSignOut = async () => {
     try {
-      await signOut()
-      router.push('/')
+      await signOut();
+      router.push("/");
     } catch (error) {
-      console.error('Error signing out:', error)
+      console.error("Error signing out:", error);
     }
-  }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <InlineLoading
-          variant="dots"
-          size="lg"
-          text="Loading profile..."
-        />
+        <InlineLoading variant="dots" size="lg" text="Loading profile..." />
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
   return (
@@ -203,7 +210,9 @@ function ProfileContent() {
         {/* Header */}
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage your account settings and preferences</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage your account settings and preferences
+          </p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
@@ -213,20 +222,40 @@ function ProfileContent() {
               <CardContent className="p-2">
                 <nav className="space-y-1">
                   {[
-                    { value: 'profile', label: 'Profile', icon: UserIcon },
-                    { value: 'security', label: 'Security', icon: ShieldCheckIcon },
-                    { value: 'subscription', label: 'Subscription', icon: CreditCardIcon },
-                    { value: 'preferences', label: 'Preferences', icon: Cog6ToothIcon },
-                    { value: 'advanced', label: 'Advanced', icon: RocketLaunchIcon },
-                    { value: 'brand-kit', label: 'Brand Kit', icon: PaintBrushIcon },
+                    { value: "profile", label: "Profile", icon: UserIcon },
+                    {
+                      value: "security",
+                      label: "Security",
+                      icon: ShieldCheckIcon,
+                    },
+                    {
+                      value: "subscription",
+                      label: "Subscription",
+                      icon: CreditCardIcon,
+                    },
+                    {
+                      value: "preferences",
+                      label: "Preferences",
+                      icon: Cog6ToothIcon,
+                    },
+                    {
+                      value: "advanced",
+                      label: "Advanced",
+                      icon: RocketLaunchIcon,
+                    },
+                    {
+                      value: "brand-kit",
+                      label: "Brand Kit",
+                      icon: PaintBrushIcon,
+                    },
                   ].map((item) => (
                     <Button
                       key={item.value}
                       variant={activeTab === item.value ? "secondary" : "ghost"}
                       className="w-full justify-start text-sm py-2 px-3"
                       onClick={() => {
-                        setActiveTab(item.value)
-                        router.replace(`/profile?tab=${item.value}`)
+                        setActiveTab(item.value);
+                        router.replace(`/profile?tab=${item.value}`);
                       }}
                     >
                       <item.icon className="w-4 h-4 mr-2" />
@@ -238,7 +267,11 @@ function ProfileContent() {
             </Card>
             {/* Sign Out Button in Sidebar for better visibility */}
             <div className="mt-4 p-2 text-center">
-              <Button variant="outline" onClick={handleSignOut} className="text-sm w-full">
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="text-sm w-full"
+              >
                 Sign Out
               </Button>
             </div>
@@ -252,20 +285,36 @@ function ProfileContent() {
                 <div className="flex items-center space-x-4">
                   <div className="relative">
                     <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                      {user.name ? user.name.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                      {user.name
+                        ? user.name.charAt(0).toUpperCase()
+                        : user.email.charAt(0).toUpperCase()}
                     </div>
                     <button className="absolute -bottom-0.5 -right-0.5 bg-white rounded-full p-1 shadow-md hover:shadow-lg transition-shadow">
                       <CameraIcon className="w-3 h-3 text-gray-600" />
                     </button>
                   </div>
                   <div className="flex-1">
-                    <h2 className="text-lg font-semibold text-gray-900">{user.name || 'No name set'}</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {user.name || "No name set"}
+                    </h2>
                     <p className="text-sm text-gray-600">{user.email}</p>
                     <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          user.subscription_status === "active"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
                         {user.subscription_tier} Plan
                       </Badge>
-                      <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          user.subscription_status === "active"
+                            ? "default"
+                            : "secondary"
+                        }
+                      >
                         {user.subscription_status}
                       </Badge>
                     </div>
@@ -281,7 +330,7 @@ function ProfileContent() {
             </Card>
 
             {/* Conditionally rendered content */}
-            {activeTab === 'profile' && (
+            {activeTab === "profile" && (
               <Card className="space-y-4">
                 <CardHeader>
                   <CardTitle className="flex items-center text-base">
@@ -290,17 +339,21 @@ function ProfileContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {errors['global'] && (
+                  {errors["global"] && (
                     <Alert variant="destructive">
                       <ExclamationTriangleIcon className="h-4 w-4 text-red-600 mr-2" />
-                      <AlertDescription className="text-xs">{errors['global']}</AlertDescription>
+                      <AlertDescription className="text-xs">
+                        {errors["global"]}
+                      </AlertDescription>
                     </Alert>
                   )}
 
                   {success && (
                     <Alert variant="success">
                       <CheckCircleIcon className="h-4 w-4 text-green-600 mr-2" />
-                      <AlertDescription className="text-xs">{success}</AlertDescription>
+                      <AlertDescription className="text-xs">
+                        {success}
+                      </AlertDescription>
                     </Alert>
                   )}
 
@@ -312,8 +365,9 @@ function ProfileContent() {
                       <Input
                         value={displayName}
                         onChange={(e) => {
-                          setDisplayName(e.target.value)
-                          if (errors.displayName) setErrors(prev => ({ ...prev, displayName: '' }))
+                          setDisplayName(e.target.value);
+                          if (errors.displayName)
+                            setErrors((prev) => ({ ...prev, displayName: "" }));
                         }}
                         placeholder="Enter your display name"
                         disabled={!isEditing}
@@ -321,7 +375,9 @@ function ProfileContent() {
                         error={!!errors.displayName}
                       />
                       {errors.displayName && (
-                        <p className="text-xs font-medium text-red-500 mt-1">{errors.displayName}</p>
+                        <p className="text-xs font-medium text-red-500 mt-1">
+                          {errors.displayName}
+                        </p>
                       )}
                     </div>
 
@@ -332,8 +388,9 @@ function ProfileContent() {
                       <Input
                         value={company}
                         onChange={(e) => {
-                          setCompany(e.target.value)
-                          if (errors.company) setErrors(prev => ({ ...prev, company: '' }))
+                          setCompany(e.target.value);
+                          if (errors.company)
+                            setErrors((prev) => ({ ...prev, company: "" }));
                         }}
                         placeholder="Enter your company"
                         disabled={!isEditing}
@@ -341,7 +398,9 @@ function ProfileContent() {
                         error={!!errors.company}
                       />
                       {errors.company && (
-                        <p className="text-xs font-medium text-red-500 mt-1">{errors.company}</p>
+                        <p className="text-xs font-medium text-red-500 mt-1">
+                          {errors.company}
+                        </p>
                       )}
                     </div>
 
@@ -352,8 +411,9 @@ function ProfileContent() {
                       <Input
                         value={website}
                         onChange={(e) => {
-                          setWebsite(e.target.value)
-                          if (errors.website) setErrors(prev => ({ ...prev, website: '' }))
+                          setWebsite(e.target.value);
+                          if (errors.website)
+                            setErrors((prev) => ({ ...prev, website: "" }));
                         }}
                         placeholder="https://yourwebsite.com"
                         disabled={!isEditing}
@@ -361,7 +421,9 @@ function ProfileContent() {
                         error={!!errors.website}
                       />
                       {errors.website && (
-                        <p className="text-xs font-medium text-red-500 mt-1">{errors.website}</p>
+                        <p className="text-xs font-medium text-red-500 mt-1">
+                          {errors.website}
+                        </p>
                       )}
                     </div>
 
@@ -373,9 +435,10 @@ function ProfileContent() {
                         value={phone}
                         countryCode={countryCode}
                         onChange={(phoneNumber, country) => {
-                          setPhone(phoneNumber)
-                          setCountryCode(country)
-                          if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
+                          setPhone(phoneNumber);
+                          setCountryCode(country);
+                          if (errors.phone)
+                            setErrors((prev) => ({ ...prev, phone: "" }));
                         }}
                         placeholder="Enter your phone number"
                         disabled={!isEditing}
@@ -383,7 +446,9 @@ function ProfileContent() {
                         error={!!errors.phone}
                       />
                       {errors.phone && (
-                        <p className="text-xs font-medium text-red-500 mt-1">{errors.phone}</p>
+                        <p className="text-xs font-medium text-red-500 mt-1">
+                          {errors.phone}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -396,7 +461,11 @@ function ProfileContent() {
                       </Button>
                     ) : (
                       <>
-                        <Button variant="outline" onClick={handleCancelEdit} size="sm">
+                        <Button
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                          size="sm"
+                        >
                           Cancel
                         </Button>
                         <Button
@@ -404,7 +473,7 @@ function ProfileContent() {
                           disabled={isLoadingProfile}
                           size="sm"
                         >
-                          {isLoadingProfile ? 'Saving...' : 'Save Changes'}
+                          {isLoadingProfile ? "Saving..." : "Save Changes"}
                         </Button>
                       </>
                     )}
@@ -413,7 +482,7 @@ function ProfileContent() {
               </Card>
             )}
 
-            {activeTab === 'security' && (
+            {activeTab === "security" && (
               <Card className="space-y-4">
                 <CardHeader>
                   <CardTitle className="flex items-center text-base">
@@ -425,8 +494,12 @@ function ProfileContent() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Password</h3>
-                        <p className="text-xs text-gray-600">Last changed 30 days ago</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Password
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Last changed 30 days ago
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         Change Password
@@ -435,8 +508,12 @@ function ProfileContent() {
 
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Two-Factor Authentication</h3>
-                        <p className="text-xs text-gray-600">Add an extra layer of security</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Two-Factor Authentication
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Add an extra layer of security
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         Enable 2FA
@@ -445,8 +522,12 @@ function ProfileContent() {
 
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Login Sessions</h3>
-                        <p className="text-xs text-gray-600">Manage your active sessions</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Login Sessions
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Manage your active sessions
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         View Sessions
@@ -457,7 +538,7 @@ function ProfileContent() {
               </Card>
             )}
 
-            {activeTab === 'subscription' && (
+            {activeTab === "subscription" && (
               <Card className="space-y-4">
                 <CardHeader>
                   <CardTitle className="flex items-center text-base">
@@ -470,27 +551,37 @@ function ProfileContent() {
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-base font-semibold text-gray-900">
-                          {user.subscription_tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                          {user.subscription_tier === "pro"
+                            ? "Pro Plan"
+                            : "Free Plan"}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {user.subscription_tier === 'pro'
-                            ? 'Unlimited forms, advanced analytics, and priority support'
-                            : 'Basic features with form limits'
-                          }
+                          {user.subscription_tier === "pro"
+                            ? "Unlimited forms, advanced analytics, and priority support"
+                            : "Basic features with form limits"}
                         </p>
                       </div>
-                      <Badge variant={user.subscription_status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                      <Badge
+                        variant={
+                          user.subscription_status === "active"
+                            ? "default"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
                         {user.subscription_status}
                       </Badge>
                     </div>
 
                     <div className="mt-3">
-                      <p className="text-sm text-gray-600 mb-2">Form Limit: {user.form_limit} forms</p>
-                      {user.subscription_tier === 'free' && (
+                      <p className="text-sm text-gray-600 mb-2">
+                        Form Limit: {user.form_limit} forms
+                      </p>
+                      {user.subscription_tier === "free" && (
                         <Button
                           className="bg-blue-600 hover:bg-blue-700"
                           size="sm"
-                          onClick={() => router.push('/pricing')}
+                          onClick={() => router.push("/pricing")}
                         >
                           Upgrade to Pro
                           <ArrowRightIcon className="w-3 h-3 ml-1" />
@@ -502,8 +593,12 @@ function ProfileContent() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Billing History</h3>
-                        <p className="text-xs text-gray-600">View your past invoices</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Billing History
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          View your past invoices
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         View History
@@ -512,8 +607,12 @@ function ProfileContent() {
 
                     <div className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Payment Method</h3>
-                        <p className="text-xs text-gray-600">Manage your payment options</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Payment Method
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Manage your payment options
+                        </p>
                       </div>
                       <Button variant="outline" size="sm">
                         Manage
@@ -524,7 +623,7 @@ function ProfileContent() {
               </Card>
             )}
 
-            {activeTab === 'preferences' && (
+            {activeTab === "preferences" && (
               <Card className="space-y-4">
                 <CardHeader>
                   <CardTitle className="flex items-center text-base">
@@ -548,7 +647,9 @@ function ProfileContent() {
                         <option value="America/New_York">Eastern Time</option>
                         <option value="America/Chicago">Central Time</option>
                         <option value="America/Denver">Mountain Time</option>
-                        <option value="America/Los_Angeles">Pacific Time</option>
+                        <option value="America/Los_Angeles">
+                          Pacific Time
+                        </option>
                         <option value="Europe/London">London</option>
                         <option value="Europe/Paris">Paris</option>
                         <option value="Asia/Tokyo">Tokyo</option>
@@ -580,10 +681,18 @@ function ProfileContent() {
                   <div className="pt-4 border-t">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-medium text-sm text-gray-900">Delete Account</h3>
-                        <p className="text-xs text-gray-600">Permanently delete your account and all data</p>
+                        <h3 className="font-medium text-sm text-gray-900">
+                          Delete Account
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          Permanently delete your account and all data
+                        </p>
                       </div>
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-300 hover:bg-red-50">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-300 hover:bg-red-50"
+                      >
                         Delete Account
                       </Button>
                     </div>
@@ -592,7 +701,7 @@ function ProfileContent() {
               </Card>
             )}
 
-            {activeTab === 'advanced' && (
+            {activeTab === "advanced" && (
               <Card className="space-y-4">
                 {/* Performance Settings */}
                 <Card>
@@ -606,34 +715,65 @@ function ProfileContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Cache Strategy</span>
+                          <span className="text-sm font-medium">
+                            Cache Strategy
+                          </span>
                           <div className="flex space-x-1">
-                            {['conservative', 'balanced', 'aggressive'].map((strategy) => (
-                              <Button
-                                key={strategy}
-                                variant={advancedSettings.performance.cacheStrategy === strategy ? "default" : "outline"}
-                                size="xs"
-                                onClick={() => updateAdvancedSetting('performance', 'cacheStrategy', strategy)}
-                                className={`text-xs ${advancedSettings.performance.cacheStrategy === strategy ? "bg-blue-600 hover:bg-blue-700" : ""}`}
-                              >
-                                {strategy.charAt(0).toUpperCase() + strategy.slice(1)}
-                              </Button>
-                            ))}
+                            {["conservative", "balanced", "aggressive"].map(
+                              (strategy) => (
+                                <Button
+                                  key={strategy}
+                                  variant={
+                                    advancedSettings.performance
+                                      .cacheStrategy === strategy
+                                      ? "default"
+                                      : "outline"
+                                  }
+                                  size="xs"
+                                  onClick={() =>
+                                    updateAdvancedSetting(
+                                      "performance",
+                                      "cacheStrategy",
+                                      strategy,
+                                    )
+                                  }
+                                  className={`text-xs ${advancedSettings.performance.cacheStrategy === strategy ? "bg-blue-600 hover:bg-blue-700" : ""}`}
+                                >
+                                  {strategy.charAt(0).toUpperCase() +
+                                    strategy.slice(1)}
+                                </Button>
+                              ),
+                            )}
                           </div>
                         </div>
-                        <p className="text-xs text-gray-600">Choose how aggressively to cache form assets</p>
+                        <p className="text-xs text-gray-600">
+                          Choose how aggressively to cache form assets
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Compression Level</span>
+                          <span className="text-sm font-medium">
+                            Compression Level
+                          </span>
                           <div className="flex space-x-1">
-                            {['low', 'medium', 'high'].map((level) => (
+                            {["low", "medium", "high"].map((level) => (
                               <Button
                                 key={level}
-                                variant={advancedSettings.performance.compressionLevel === level ? "default" : "outline"}
+                                variant={
+                                  advancedSettings.performance
+                                    .compressionLevel === level
+                                    ? "default"
+                                    : "outline"
+                                }
                                 size="xs"
-                                onClick={() => updateAdvancedSetting('performance', 'compressionLevel', level)}
+                                onClick={() =>
+                                  updateAdvancedSetting(
+                                    "performance",
+                                    "compressionLevel",
+                                    level,
+                                  )
+                                }
                                 className={`text-xs ${advancedSettings.performance.compressionLevel === level ? "bg-blue-600 hover:bg-blue-700" : ""}`}
                               >
                                 {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -641,7 +781,9 @@ function ProfileContent() {
                             ))}
                           </div>
                         </div>
-                        <p className="text-xs text-gray-600">Balance between compression and processing speed</p>
+                        <p className="text-xs text-gray-600">
+                          Balance between compression and processing speed
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -659,60 +801,113 @@ function ProfileContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Enable Custom CSS</span>
+                          <span className="text-sm font-medium">
+                            Enable Custom CSS
+                          </span>
                           <Button
-                            variant={advancedSettings.customization.enableCustomCSS ? "default" : "outline"}
+                            variant={
+                              advancedSettings.customization.enableCustomCSS
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('customization', 'enableCustomCSS', !advancedSettings.customization.enableCustomCSS)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "customization",
+                                "enableCustomCSS",
+                                !advancedSettings.customization.enableCustomCSS,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.customization.enableCustomCSS ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.customization.enableCustomCSS ? "Enabled" : "Disabled"}
+                            {advancedSettings.customization.enableCustomCSS
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Inject custom CSS for advanced styling</p>
+                        <p className="text-xs text-gray-600">
+                          Inject custom CSS for advanced styling
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Enable Custom JavaScript</span>
+                          <span className="text-sm font-medium">
+                            Enable Custom JavaScript
+                          </span>
                           <Button
-                            variant={advancedSettings.customization.enableCustomJS ? "default" : "outline"}
+                            variant={
+                              advancedSettings.customization.enableCustomJS
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('customization', 'enableCustomJS', !advancedSettings.customization.enableCustomJS)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "customization",
+                                "enableCustomJS",
+                                !advancedSettings.customization.enableCustomJS,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.customization.enableCustomJS ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.customization.enableCustomJS ? "Enabled" : "Disabled"}
+                            {advancedSettings.customization.enableCustomJS
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Add custom JavaScript functionality</p>
+                        <p className="text-xs text-gray-600">
+                          Add custom JavaScript functionality
+                        </p>
                       </div>
                     </div>
 
                     {advancedSettings.customization.enableCustomCSS && (
                       <div className="space-y-2">
-                        <span className="text-sm font-medium">Custom CSS Code</span>
+                        <span className="text-sm font-medium">
+                          Custom CSS Code
+                        </span>
                         <textarea
                           placeholder="/* Add your custom CSS here */"
                           value={advancedSettings.customization.customCSS}
-                          onChange={(e) => updateAdvancedSetting('customization', 'customCSS', e.target.value)}
+                          onChange={(e) =>
+                            updateAdvancedSetting(
+                              "customization",
+                              "customCSS",
+                              e.target.value,
+                            )
+                          }
                           className="w-full border border-gray-300 rounded-md p-2 font-mono text-xs"
                           rows={3}
                         />
-                        <p className="text-xs text-gray-600">CSS will be automatically minified and optimized</p>
+                        <p className="text-xs text-gray-600">
+                          CSS will be automatically minified and optimized
+                        </p>
                       </div>
                     )}
 
                     {advancedSettings.customization.enableCustomJS && (
                       <div className="space-y-2">
-                        <span className="text-sm font-medium">Custom JavaScript Code</span>
+                        <span className="text-sm font-medium">
+                          Custom JavaScript Code
+                        </span>
                         <textarea
                           placeholder="// Add your custom JavaScript here"
                           value={advancedSettings.customization.customJS}
-                          onChange={(e) => updateAdvancedSetting('customization', 'customJS', e.target.value)}
+                          onChange={(e) =>
+                            updateAdvancedSetting(
+                              "customization",
+                              "customJS",
+                              e.target.value,
+                            )
+                          }
                           className="w-full border border-gray-300 rounded-md p-2 font-mono text-xs"
                           rows={3}
                         />
-                        <p className="text-xs text-gray-600">JavaScript will be automatically minified and optimized</p>
+                        <p className="text-xs text-gray-600">
+                          JavaScript will be automatically minified and
+                          optimized
+                        </p>
                       </div>
                     )}
                   </CardContent>
@@ -730,32 +925,64 @@ function ProfileContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Content Security Policy</span>
+                          <span className="text-sm font-medium">
+                            Content Security Policy
+                          </span>
                           <Button
-                            variant={advancedSettings.security.enableCSP ? "default" : "outline"}
+                            variant={
+                              advancedSettings.security.enableCSP
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('security', 'enableCSP', !advancedSettings.security.enableCSP)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "security",
+                                "enableCSP",
+                                !advancedSettings.security.enableCSP,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.security.enableCSP ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.security.enableCSP ? "Enabled" : "Disabled"}
+                            {advancedSettings.security.enableCSP
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Protect against XSS and injection attacks</p>
+                        <p className="text-xs text-gray-600">
+                          Protect against XSS and injection attacks
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">HTTP Strict Transport Security</span>
+                          <span className="text-sm font-medium">
+                            HTTP Strict Transport Security
+                          </span>
                           <Button
-                            variant={advancedSettings.security.enableHSTS ? "default" : "outline"}
+                            variant={
+                              advancedSettings.security.enableHSTS
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('security', 'enableHSTS', !advancedSettings.security.enableHSTS)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "security",
+                                "enableHSTS",
+                                !advancedSettings.security.enableHSTS,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.security.enableHSTS ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.security.enableHSTS ? "Enabled" : "Disabled"}
+                            {advancedSettings.security.enableHSTS
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Force HTTPS connections</p>
+                        <p className="text-xs text-gray-600">
+                          Force HTTPS connections
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -775,30 +1002,58 @@ function ProfileContent() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Webhooks</span>
                           <Button
-                            variant={advancedSettings.integration.enableWebhooks ? "default" : "outline"}
+                            variant={
+                              advancedSettings.integration.enableWebhooks
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('integration', 'enableWebhooks', !advancedSettings.integration.enableWebhooks)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "integration",
+                                "enableWebhooks",
+                                !advancedSettings.integration.enableWebhooks,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.integration.enableWebhooks ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.integration.enableWebhooks ? "Enabled" : "Disabled"}
+                            {advancedSettings.integration.enableWebhooks
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Real-time data synchronization</p>
+                        <p className="text-xs text-gray-600">
+                          Real-time data synchronization
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">REST API</span>
                           <Button
-                            variant={advancedSettings.integration.enableAPI ? "default" : "outline"}
+                            variant={
+                              advancedSettings.integration.enableAPI
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('integration', 'enableAPI', !advancedSettings.integration.enableAPI)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "integration",
+                                "enableAPI",
+                                !advancedSettings.integration.enableAPI,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.integration.enableAPI ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.integration.enableAPI ? "Enabled" : "Disabled"}
+                            {advancedSettings.integration.enableAPI
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Programmatic access to forms</p>
+                        <p className="text-xs text-gray-600">
+                          Programmatic access to forms
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -817,9 +1072,13 @@ function ProfileContent() {
                       <div className="flex items-start space-x-2">
                         <ExclamationTriangleIcon className="h-3 w-3 text-orange-600 mt-0.5" />
                         <div>
-                          <h4 className="text-xs font-medium text-orange-800">Experimental Features Warning</h4>
+                          <h4 className="text-xs font-medium text-orange-800">
+                            Experimental Features Warning
+                          </h4>
                           <p className="text-[0.65rem] text-orange-700 mt-1">
-                            These features are in early development and may be unstable. Use with caution in production environments.
+                            These features are in early development and may be
+                            unstable. Use with caution in production
+                            environments.
                           </p>
                         </div>
                       </div>
@@ -828,32 +1087,65 @@ function ProfileContent() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Beta Features</span>
+                          <span className="text-sm font-medium">
+                            Beta Features
+                          </span>
                           <Button
-                            variant={advancedSettings.experimental.enableBetaFeatures ? "default" : "outline"}
+                            variant={
+                              advancedSettings.experimental.enableBetaFeatures
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('experimental', 'enableBetaFeatures', !advancedSettings.experimental.enableBetaFeatures)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "experimental",
+                                "enableBetaFeatures",
+                                !advancedSettings.experimental
+                                  .enableBetaFeatures,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.experimental.enableBetaFeatures ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.experimental.enableBetaFeatures ? "Enabled" : "Disabled"}
+                            {advancedSettings.experimental.enableBetaFeatures
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Access to cutting-edge features</p>
+                        <p className="text-xs text-gray-600">
+                          Access to cutting-edge features
+                        </p>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">AI-Powered Tools</span>
+                          <span className="text-sm font-medium">
+                            AI-Powered Tools
+                          </span>
                           <Button
-                            variant={advancedSettings.experimental.enableAITools ? "default" : "outline"}
+                            variant={
+                              advancedSettings.experimental.enableAITools
+                                ? "default"
+                                : "outline"
+                            }
                             size="xs"
-                            onClick={() => updateAdvancedSetting('experimental', 'enableAITools', !advancedSettings.experimental.enableAITools)}
+                            onClick={() =>
+                              updateAdvancedSetting(
+                                "experimental",
+                                "enableAITools",
+                                !advancedSettings.experimental.enableAITools,
+                              )
+                            }
                             className={`text-xs ${advancedSettings.experimental.enableAITools ? "bg-green-600 hover:bg-green-700" : ""}`}
                           >
-                            {advancedSettings.experimental.enableAITools ? "Enabled" : "Disabled"}
+                            {advancedSettings.experimental.enableAITools
+                              ? "Enabled"
+                              : "Disabled"}
                           </Button>
                         </div>
-                        <p className="text-xs text-gray-600">Machine learning enhancements</p>
+                        <p className="text-xs text-gray-600">
+                          Machine learning enhancements
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -861,7 +1153,7 @@ function ProfileContent() {
               </Card>
             )}
 
-            {activeTab === 'brand-kit' && (
+            {activeTab === "brand-kit" && (
               <Card className="space-y-4">
                 <CardHeader>
                   <CardTitle className="flex items-center text-base">
@@ -880,7 +1172,7 @@ function ProfileContent() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export default function ProfilePage() {
@@ -890,5 +1182,5 @@ export default function ProfilePage() {
         <ProfileContent />
       </Suspense>
     </BrandKitProvider>
-  )
+  );
 }

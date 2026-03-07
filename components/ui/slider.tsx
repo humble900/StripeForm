@@ -1,14 +1,14 @@
-'use client'
+"use client";
 
-import React from 'react'
+import React from "react";
 
 interface SliderProps {
-  value: number[]
-  onValueChange: (value: number[]) => void
-  max: number
-  min: number
-  step: number
-  className?: string
+  value: number[];
+  onValueChange: (value: number[]) => void;
+  max: number;
+  min: number;
+  step: number;
+  className?: string;
 }
 
 const Slider: React.FC<SliderProps> = ({
@@ -17,11 +17,11 @@ const Slider: React.FC<SliderProps> = ({
   max,
   min,
   step,
-  className = ''
+  className = "",
 }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onValueChange([parseInt(e.target.value)])
-  }
+    onValueChange([parseInt(e.target.value)]);
+  };
 
   return (
     <input
@@ -33,10 +33,10 @@ const Slider: React.FC<SliderProps> = ({
       onChange={handleChange}
       className={`w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer ${className}`}
       style={{
-        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(value[0] / max) * 100}%, #e5e7eb ${(value[0] / max) * 100}%, #e5e7eb 100%)`
+        background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(value[0] / max) * 100}%, #e5e7eb ${(value[0] / max) * 100}%, #e5e7eb 100%)`,
       }}
     />
-  )
-}
+  );
+};
 
-export default Slider
+export default Slider;

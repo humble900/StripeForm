@@ -1,191 +1,235 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { dbService } from '@/lib/db/service'
-import { authService } from '@/lib/auth/auth-service'
-import { withRateLimit, apiRateLimit } from '@/lib/rate-limit'
-import { withErrorHandling, AuthenticationError, AuthorizationError } from '@/lib/error-handler'
-import { z } from 'zod'
+import { NextRequest, NextResponse } from "next/server";
+import { dbService } from "@/lib/db/service";
+import { authService } from "@/lib/auth/auth-service";
+import { withRateLimit, apiRateLimit } from "@/lib/rate-limit";
+import {
+  withErrorHandling,
+  AuthenticationError,
+  AuthorizationError,
+} from "@/lib/error-handler";
+import { z } from "zod";
 
 // Validation schemas
 const updateFormSchema = z.object({
-  status: z.enum(['draft', 'published', 'archived']).optional(),
+  status: z.enum(["draft", "published", "archived"]).optional(),
   title: z.string().min(1).optional(),
-  description: z.string().optional()
-})
+  description: z.string().optional(),
+});
 
 // Helper function to verify admin access
 async function verifyAdminAccess(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    throw new AuthenticationError('Authentication required')
+  const authHeader = request.headers.get("authorization");
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new AuthenticationError("Authentication required");
   }
 
-  const token = authHeader.replace('Bearer ', '')
-  const user = await authService.verifyToken(token)
-  
-  if (user.role !== 'admin' && user.role !== 'super_admin') {
-    throw new AuthorizationError('Admin access required')
+  const token = authHeader.replace("Bearer ", "");
+  const user = await authService.verifyToken(token);
+
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    throw new AuthorizationError("Admin access required");
   }
 
-  return user
+  return user;
 }
 
 // GET /api/admin/forms/[id] - Get specific form (admin/superadmin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  return withRateLimit(request, apiRateLimit,
+  return withRateLimit(
+    request,
+    apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       try {
-        await verifyAdminAccess(request)
-        
-        const { id } = await params
-        
-        const form = await dbService.getForm(id)
-        
+        await verifyAdminAccess(request);
+
+        const { id } = await params;
+
+        const form = await dbService.getForm(id);
+
         if (!form) {
-          return NextResponse.json({
-            success: false,
-            message: 'Form not found'
-          }, { status: 404 })
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Form not found",
+            },
+            { status: 404 },
+          );
         }
 
         // Get user information
-        let userInfo = null
+        let userInfo = null;
         try {
-          const user = await dbService.getUser(form.userId)
+          const user = await dbService.getUser(form.userId);
           userInfo = {
             email: user?.email,
-            name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined
-          }
+            name: user
+              ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+              : undefined,
+          };
         } catch {
           userInfo = {
-            email: 'Unknown user',
-            name: undefined
-          }
+            email: "Unknown user",
+            name: undefined,
+          };
         }
 
         return NextResponse.json({
           success: true,
           data: {
             ...form,
-            userInfo
-          }
-        })
+            userInfo,
+          },
+        });
       } catch (error) {
-        if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-          return NextResponse.json({
-            success: false,
-            message: error.message
-          }, { status: error.statusCode })
+        if (
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: error.message,
+            },
+            { status: error.statusCode },
+          );
         }
-        
-        throw error
+
+        throw error;
       }
-    })
-  )
+    }),
+  );
 }
 
 // PUT /api/admin/forms/[id] - Update form (admin/superadmin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  return withRateLimit(request, apiRateLimit,
+  return withRateLimit(
+    request,
+    apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       try {
-        await verifyAdminAccess(request)
-        
-        const { id } = await params
-        const body = await request.json()
-        const validatedData = updateFormSchema.parse(body)
-        
-        const updatedForm = await dbService.updateForm(id, validatedData)
+        await verifyAdminAccess(request);
+
+        const { id } = await params;
+        const body = await request.json();
+        const validatedData = updateFormSchema.parse(body);
+
+        const updatedForm = await dbService.updateForm(id, validatedData);
 
         if (!updatedForm) {
-          return NextResponse.json({
-            success: false,
-            message: 'Form not found'
-          }, { status: 404 })
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Form not found",
+            },
+            { status: 404 },
+          );
         }
 
         return NextResponse.json({
           success: true,
           data: updatedForm,
-          message: 'Form updated successfully'
-        })
+          message: "Form updated successfully",
+        });
       } catch (error) {
         if (error instanceof z.ZodError) {
-          return NextResponse.json({
-            success: false,
-            message: 'Validation error',
-            errors: error.errors
-          }, { status: 400 })
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Validation error",
+              errors: error.errors,
+            },
+            { status: 400 },
+          );
         }
-        
-        if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-          return NextResponse.json({
-            success: false,
-            message: error.message
-          }, { status: error.statusCode })
+
+        if (
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: error.message,
+            },
+            { status: error.statusCode },
+          );
         }
-        
-        throw error
+
+        throw error;
       }
-    })
-  )
+    }),
+  );
 }
 
 // DELETE /api/admin/forms/[id] - Delete form (superadmin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  return withRateLimit(request, apiRateLimit,
+  return withRateLimit(
+    request,
+    apiRateLimit,
     withErrorHandling(async (request: NextRequest) => {
       try {
-        const authHeader = request.headers.get('authorization')
-        
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          throw new AuthenticationError('Authentication required')
+        const authHeader = request.headers.get("authorization");
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          throw new AuthenticationError("Authentication required");
         }
 
-        const token = authHeader.replace('Bearer ', '')
-        const user = await authService.verifyToken(token)
-        
-        if (user.role !== 'super_admin') {
-          throw new AuthorizationError('Super admin access required for form deletion')
+        const token = authHeader.replace("Bearer ", "");
+        const user = await authService.verifyToken(token);
+
+        if (user.role !== "super_admin") {
+          throw new AuthorizationError(
+            "Super admin access required for form deletion",
+          );
         }
-        
-        const { id } = await params
-        
+
+        const { id } = await params;
+
         // Check if form exists first
-        const existingForm = await dbService.getForm(id)
+        const existingForm = await dbService.getForm(id);
         if (!existingForm) {
-          return NextResponse.json({
-            success: false,
-            message: 'Form not found'
-          }, { status: 404 })
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Form not found",
+            },
+            { status: 404 },
+          );
         }
-        
+
         // Delete the form
-        await dbService.deleteForm(id)
+        await dbService.deleteForm(id);
 
         return NextResponse.json({
           success: true,
-          message: 'Form deleted successfully'
-        })
+          message: "Form deleted successfully",
+        });
       } catch (error) {
-        if (error instanceof AuthenticationError || error instanceof AuthorizationError) {
-          return NextResponse.json({
-            success: false,
-            message: error.message
-          }, { status: error.statusCode })
+        if (
+          error instanceof AuthenticationError ||
+          error instanceof AuthorizationError
+        ) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: error.message,
+            },
+            { status: error.statusCode },
+          );
         }
-        
-        throw error
+
+        throw error;
       }
-    })
-  )
+    }),
+  );
 }

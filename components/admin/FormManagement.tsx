@@ -1,11 +1,11 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import LoadingSpinner from '@/components/ui/loading-spinner'
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import {
   FileText,
   Search,
@@ -23,181 +23,199 @@ import {
   XCircle,
   AlertCircle,
   Globe,
-  Lock
-} from 'lucide-react'
+  Lock,
+} from "lucide-react";
 
 interface Form {
-  id: string
-  title: string
-  description?: string
-  status: 'draft' | 'published' | 'archived'
-  isPublished: boolean
-  publishedUrl?: string
-  responseCount: number
-  userId: string
-  userEmail?: string
-  userName?: string
-  createdAt: string
-  updatedAt: string
-  fields?: any[]
-  settings?: any
-  theme?: any
+  id: string;
+  title: string;
+  description?: string;
+  status: "draft" | "published" | "archived";
+  isPublished: boolean;
+  publishedUrl?: string;
+  responseCount: number;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  createdAt: string;
+  updatedAt: string;
+  fields?: any[];
+  settings?: any;
+  theme?: any;
 }
 
 interface FormManagementProps {
-  userRole: 'admin' | 'super_admin'
-  initialUserFilter?: string
+  userRole: "admin" | "super_admin";
+  initialUserFilter?: string;
 }
 
-export function FormManagement({ userRole, initialUserFilter = '' }: FormManagementProps) {
-  const [forms, setForms] = useState<Form[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [userFilter, setUserFilter] = useState(initialUserFilter)
+export function FormManagement({
+  userRole,
+  initialUserFilter = "",
+}: FormManagementProps) {
+  const [forms, setForms] = useState<Form[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [userFilter, setUserFilter] = useState(initialUserFilter);
 
   useEffect(() => {
-    setUserFilter(initialUserFilter)
-  }, [initialUserFilter])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [selectedForm, setSelectedForm] = useState<Form | null>(null)
+    setUserFilter(initialUserFilter);
+  }, [initialUserFilter]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [selectedForm, setSelectedForm] = useState<Form | null>(null);
 
   const fetchForms = async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
-      const token = localStorage.getItem('admin_token')
+      const token = localStorage.getItem("admin_token");
       if (!token) {
-        throw new Error('No admin token found')
+        throw new Error("No admin token found");
       }
 
-      const queryParams = new URLSearchParams()
-      queryParams.append('page', currentPage.toString())
-      queryParams.append('limit', '20')
-      if (statusFilter) queryParams.append('status', statusFilter)
-      if (userFilter) queryParams.append('userId', userFilter)
+      const queryParams = new URLSearchParams();
+      queryParams.append("page", currentPage.toString());
+      queryParams.append("limit", "20");
+      if (statusFilter) queryParams.append("status", statusFilter);
+      if (userFilter) queryParams.append("userId", userFilter);
 
-      const response = await fetch(`/api/admin/forms?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await fetch(
+        `/api/admin/forms?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
-        setForms(data.data.forms || [])
-        setTotalPages(data.data.pagination?.totalPages || 1)
+        setForms(data.data.forms || []);
+        setTotalPages(data.data.pagination?.totalPages || 1);
       } else {
-        throw new Error(data.message || 'Failed to fetch forms')
+        throw new Error(data.message || "Failed to fetch forms");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const updateFormStatus = async (formId: string, newStatus: 'draft' | 'published' | 'archived') => {
+  const updateFormStatus = async (
+    formId: string,
+    newStatus: "draft" | "published" | "archived",
+  ) => {
     try {
-      const token = localStorage.getItem('admin_token')
+      const token = localStorage.getItem("admin_token");
       if (!token) {
-        throw new Error('No admin token found')
+        throw new Error("No admin token found");
       }
 
       const response = await fetch(`/api/admin/forms/${formId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          status: newStatus
-        })
-      })
+          status: newStatus,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
         // Refresh forms list
-        fetchForms()
-        setSelectedForm(null)
+        fetchForms();
+        setSelectedForm(null);
       } else {
-        throw new Error(data.message || 'Failed to update form status')
+        throw new Error(data.message || "Failed to update form status");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
-  }
+  };
 
   const deleteForm = async (formId: string) => {
-    if (!confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this form? This action cannot be undone.",
+      )
+    ) {
+      return;
     }
 
     try {
-      const token = localStorage.getItem('admin_token')
+      const token = localStorage.getItem("admin_token");
       if (!token) {
-        throw new Error('No admin token found')
+        throw new Error("No admin token found");
       }
 
       const response = await fetch(`/api/admin/forms/${formId}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success) {
         // Refresh forms list
-        fetchForms()
-        setSelectedForm(null)
+        fetchForms();
+        setSelectedForm(null);
       } else {
-        throw new Error(data.message || 'Failed to delete form')
+        throw new Error(data.message || "Failed to delete form");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
-  }
+  };
 
   useEffect(() => {
-    fetchForms()
-  }, [currentPage, statusFilter, userFilter])
+    fetchForms();
+  }, [currentPage, statusFilter, userFilter]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'published': return 'bg-green-100 text-green-800'
-      case 'draft': return 'bg-yellow-100 text-yellow-800'
-      case 'archived': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case "published":
+        return "bg-green-100 text-green-800";
+      case "draft":
+        return "bg-yellow-100 text-yellow-800";
+      case "archived":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
-  }
+  };
 
-  const filteredForms = forms.filter(form => {
-    const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredForms = forms.filter((form) => {
+    const matchesSearch =
+      form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       form.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      form.userEmail?.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
-  })
+      form.userEmail?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
   return (
     <div className="space-y-6">
@@ -205,7 +223,9 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Form Management</h2>
-          <p className="text-gray-600 mt-1">Manage forms, view analytics, and moderate content</p>
+          <p className="text-gray-600 mt-1">
+            Manage forms, view analytics, and moderate content
+          </p>
         </div>
       </div>
 
@@ -253,8 +273,15 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={fetchForms} disabled={loading} variant="outline" className="w-full">
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <Button
+                onClick={fetchForms}
+                disabled={loading}
+                variant="outline"
+                className="w-full"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+                />
                 Refresh
               </Button>
             </div>
@@ -273,21 +300,25 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
         <CardContent>
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <LoadingSpinner
-                size="md"
-                text="Loading forms..."
-              />
+              <LoadingSpinner size="md" text="Loading forms..." />
             </div>
           ) : filteredForms.length > 0 ? (
             <div className="space-y-4">
               {filteredForms.map((form) => (
-                <div key={form.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                <div
+                  key={form.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                >
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-2">
                       <div>
-                        <h3 className="font-medium text-gray-900">{form.title}</h3>
+                        <h3 className="font-medium text-gray-900">
+                          {form.title}
+                        </h3>
                         {form.description && (
-                          <p className="text-sm text-gray-600 line-clamp-1">{form.description}</p>
+                          <p className="text-sm text-gray-600 line-clamp-1">
+                            {form.description}
+                          </p>
                         )}
                       </div>
                       <Badge className={getStatusColor(form.status)}>
@@ -303,7 +334,7 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span className="flex items-center">
                         <User className="w-3 h-3 mr-1" />
-                        {form.userEmail || 'Unknown user'}
+                        {form.userEmail || "Unknown user"}
                       </span>
                       <span className="flex items-center">
                         <BarChart3 className="w-3 h-3 mr-1" />
@@ -326,7 +357,7 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.open(form.publishedUrl, '_blank')}
+                        onClick={() => window.open(form.publishedUrl, "_blank")}
                       >
                         <ExternalLink className="w-4 h-4 mr-1" />
                         View
@@ -335,7 +366,12 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => window.open(`/forms/${form.id}?preview=true`, '_blank')}
+                        onClick={() =>
+                          window.open(
+                            `/forms/${form.id}?preview=true`,
+                            "_blank",
+                          )
+                        }
                       >
                         <ExternalLink className="w-4 h-4 mr-1" />
                         Preview
@@ -362,9 +398,7 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              No forms found
-            </div>
+            <div className="text-center py-8 text-gray-500">No forms found</div>
           )}
         </CardContent>
       </Card>
@@ -374,7 +408,7 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
         <div className="flex justify-center space-x-2">
           <Button
             variant="outline"
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
             disabled={currentPage === 1}
           >
             Previous
@@ -384,7 +418,9 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
           </span>
           <Button
             variant="outline"
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+            }
             disabled={currentPage === totalPages}
           >
             Next
@@ -410,18 +446,14 @@ export function FormManagement({ userRole, initialUserFilter = '' }: FormManagem
               <AlertCircle className="w-5 h-5 text-red-500" />
               <p className="text-red-600">{error}</p>
             </div>
-            <Button
-              onClick={fetchForms}
-              variant="outline"
-              className="mt-2"
-            >
+            <Button onClick={fetchForms} variant="outline" className="mt-2">
               Retry
             </Button>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }
 
 // Form Details Modal Component
@@ -429,26 +461,33 @@ function FormDetailsModal({
   form,
   onClose,
   onUpdateStatus,
-  onDeleteForm
+  onDeleteForm,
 }: {
-  form: Form
-  onClose: () => void
-  onUpdateStatus: (formId: string, status: 'draft' | 'published' | 'archived') => void
-  onDeleteForm: (formId: string) => void
+  form: Form;
+  onClose: () => void;
+  onUpdateStatus: (
+    formId: string,
+    status: "draft" | "published" | "archived",
+  ) => void;
+  onDeleteForm: (formId: string) => void;
 }) {
-  const [newStatus, setNewStatus] = useState(form.status)
+  const [newStatus, setNewStatus] = useState(form.status);
 
   const handleStatusUpdate = () => {
     if (newStatus !== form.status) {
-      onUpdateStatus(form.id, newStatus)
+      onUpdateStatus(form.id, newStatus);
     }
-  }
+  };
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
-      onDeleteForm(form.id)
+    if (
+      confirm(
+        "Are you sure you want to delete this form? This action cannot be undone.",
+      )
+    ) {
+      onDeleteForm(form.id);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -465,25 +504,43 @@ function FormDetailsModal({
           {/* Form Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
               <p className="text-sm text-gray-900">{form.title}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <Badge className={form.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <Badge
+                className={
+                  form.status === "published"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-yellow-100 text-yellow-800"
+                }
+              >
                 {form.status}
               </Badge>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-              <p className="text-sm text-gray-900">{form.userEmail || 'Unknown user'}</p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Owner
+              </label>
+              <p className="text-sm text-gray-900">
+                {form.userEmail || "Unknown user"}
+              </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Responses</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Responses
+              </label>
               <p className="text-sm text-gray-900">{form.responseCount}</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Published URL</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Published URL
+              </label>
               {form.publishedUrl ? (
                 <a
                   href={form.publishedUrl}
@@ -499,12 +556,18 @@ function FormDetailsModal({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
-              <p className="text-sm text-gray-900">{new Date(form.createdAt).toLocaleDateString()}</p>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Created
+              </label>
+              <p className="text-sm text-gray-900">
+                {new Date(form.createdAt).toLocaleDateString()}
+              </p>
             </div>
             {form.description && (
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
                 <p className="text-sm text-gray-900">{form.description}</p>
               </div>
             )}
@@ -513,16 +576,25 @@ function FormDetailsModal({
           {/* Form Fields Preview */}
           {form.fields && form.fields.length > 0 && (
             <div className="border-t pt-4">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Form Fields ({form.fields.length})</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Form Fields ({form.fields.length})
+              </h3>
               <div className="space-y-2">
                 {form.fields.slice(0, 10).map((field, index) => (
-                  <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                  <div
+                    key={index}
+                    className="flex items-center space-x-2 p-2 bg-gray-50 rounded"
+                  >
                     <span className="text-sm font-medium">{field.type}</span>
-                    <span className="text-sm text-gray-600">{field.label || field.placeholder || 'Untitled field'}</span>
+                    <span className="text-sm text-gray-600">
+                      {field.label || field.placeholder || "Untitled field"}
+                    </span>
                   </div>
                 ))}
                 {form.fields.length > 10 && (
-                  <p className="text-sm text-gray-500">... and {form.fields.length - 10} more fields</p>
+                  <p className="text-sm text-gray-500">
+                    ... and {form.fields.length - 10} more fields
+                  </p>
                 )}
               </div>
             </div>
@@ -530,19 +602,29 @@ function FormDetailsModal({
 
           {/* Status Management */}
           <div className="border-t pt-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Form Management</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Form Management
+            </h3>
             <div className="flex items-center space-x-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Status
+                </label>
                 <Badge className="bg-blue-100 text-blue-800">
                   {form.status}
                 </Badge>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Change Status</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Change Status
+                </label>
                 <select
                   value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value as 'draft' | 'published' | 'archived')}
+                  onChange={(e) =>
+                    setNewStatus(
+                      e.target.value as "draft" | "published" | "archived",
+                    )
+                  }
                   className="p-2 border rounded-md"
                 >
                   <option value="draft">Draft</option>
@@ -572,5 +654,5 @@ function FormDetailsModal({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

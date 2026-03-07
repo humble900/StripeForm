@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ const DashboardNoProviders = () => {
         <h1 className="text-2xl font-bold mb-4">Dashboard Without Providers</h1>
         <Card>
           <CardContent className="p-6">
-            <p className="mb-4">This page uses the layout but not the complex providers.</p>
+            <p className="mb-4">
+              This page uses the layout but not the complex providers.
+            </p>
             <Button onClick={() => setCount(count + 1)}>
               Clicked {count} times
             </Button>
@@ -24,4 +26,4 @@ const DashboardNoProviders = () => {
   );
 };
 
-export default DashboardNoProviders; 
+export default DashboardNoProviders;

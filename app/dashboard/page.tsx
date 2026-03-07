@@ -1,21 +1,21 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Form as DashboardForm } from '@/types'
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { useNotifications } from '@/components/providers/NotificationProvider';
-import { useUserType, userTypeHelpers } from '@/hooks/useUserType';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import type { Form as DashboardForm } from "@/types";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { useNotifications } from "@/components/providers/NotificationProvider";
+import { useUserType, userTypeHelpers } from "@/hooks/useUserType";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import InlineLoading from '@/components/ui/inline-loading';
+import InlineLoading from "@/components/ui/inline-loading";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import {
   AlertDialog,
@@ -47,14 +47,19 @@ import {
   CalendarIcon,
   UsersIcon,
   CloudArrowUpIcon,
-  MagnifyingGlassIcon
-} from '@heroicons/react/24/outline';
-import { Input } from '@/components/ui/input';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatDate } from '@/lib/utils';
-import { getPublishedFormUrl } from '@/lib/utils/url';
-import LoadingSpinner from '@/components/ui/loading-spinner';
-import { ThemeArtBackground } from '@/components/form-builder/ThemeArtBackground';
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { formatDate } from "@/lib/utils";
+import { getPublishedFormUrl } from "@/lib/utils/url";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { ThemeArtBackground } from "@/components/form-builder/ThemeArtBackground";
 
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -72,42 +77,45 @@ const Dashboard = () => {
   const { type: userType, firebaseUser, userId, isLoading } = useUserType();
 
   // Helper function to make authenticated API calls with cached user ID
-  const makeAuthenticatedRequest = useCallback(async (url: string, options: RequestInit = {}) => {
-    try {
-      // Get user ID with proper fallback logic
-      let requestUserId: string | null = userId;
+  const makeAuthenticatedRequest = useCallback(
+    async (url: string, options: RequestInit = {}) => {
+      try {
+        // Get user ID with proper fallback logic
+        let requestUserId: string | null = userId;
 
-      if (!requestUserId && firebaseUser) {
-        requestUserId = firebaseUser.uid;
+        if (!requestUserId && firebaseUser) {
+          requestUserId = firebaseUser.uid;
+        }
+
+        if (!requestUserId) {
+          // For guest users, get tracking data unconditionally if userId is missing
+          const userTrackingData = await getUserTrackingData();
+          requestUserId = userTrackingData?.fingerprint || null;
+        }
+
+        if (!requestUserId) {
+          throw new Error("No user ID available for authentication");
+        }
+
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${requestUserId}`,
+          "x-fingerprint": requestUserId,
+          ...(options.headers as Record<string, string> | undefined),
+        };
+
+        return fetch(url, {
+          ...options,
+          headers,
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("Dashboard: Error in makeAuthenticatedRequest:", error);
+        throw error;
       }
-
-      if (!requestUserId) {
-        // For guest users, get tracking data unconditionally if userId is missing
-        const userTrackingData = await getUserTrackingData();
-        requestUserId = userTrackingData?.fingerprint || null;
-      }
-
-      if (!requestUserId) {
-        throw new Error('No user ID available for authentication');
-      }
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${requestUserId}`,
-        'x-fingerprint': requestUserId,
-        ...(options.headers as Record<string, string> | undefined),
-      };
-
-      return fetch(url, {
-        ...options,
-        headers,
-        credentials: 'include'
-      });
-    } catch (error) {
-      console.error('Dashboard: Error in makeAuthenticatedRequest:', error);
-      throw error;
-    }
-  }, [firebaseUser, userId, getUserTrackingData]);
+    },
+    [firebaseUser, userId, getUserTrackingData],
+  );
   const [deleteFormId, setDeleteFormId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [forms, setForms] = useState<DashboardForm[]>([]);
@@ -116,72 +124,70 @@ const Dashboard = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState<number>(0);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('recent');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
   const [expandedForms, setExpandedForms] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [copiedFormId, setCopiedFormId] = useState<string | null>(null);
   const [dashboardStats, setDashboardStats] = useState({
     totalForms: 0,
     publishedForms: 0,
     totalResponses: 0,
-    conversionRate: 0
+    conversionRate: 0,
   });
 
   // Debug user type state
   useEffect(() => {
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
-    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
-  }, [userType, firebaseUser, userId, isLoading])
-
-
+    const storedToken =
+      typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+    const storedUser =
+      typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  }, [userType, firebaseUser, userId, isLoading]);
 
   // Stable fetch function to prevent memory leaks
   const fetchDashboardData = useCallback(async () => {
     try {
-      setIsFetching(true)
-      setFetchError(null)
+      setIsFetching(true);
+      setFetchError(null);
 
       // Get user ID with proper fallback logic
-      let requestUserId: string | null = null
+      let requestUserId: string | null = null;
 
       if (firebaseUser) {
-        requestUserId = firebaseUser.uid
+        requestUserId = firebaseUser.uid;
       } else {
         // For guest users, get tracking data
-        const userTrackingData = await getUserTrackingData()
-        requestUserId = userTrackingData?.fingerprint || null
+        const userTrackingData = await getUserTrackingData();
+        requestUserId = userTrackingData?.fingerprint || null;
       }
 
       if (!requestUserId) {
-
-        setFetchError('No user ID available for fetching data')
-        return
+        setFetchError("No user ID available for fetching data");
+        return;
       }
-
-
 
       // Fetch forms using authenticated endpoint (summary for speed)
-      const formsResponse = await makeAuthenticatedRequest(`/api/user/forms?summary=true`)
+      const formsResponse = await makeAuthenticatedRequest(
+        `/api/user/forms?summary=true`,
+      );
       if (!formsResponse.ok) {
-        throw new Error(`Forms API error! status: ${formsResponse.status}`)
+        throw new Error(`Forms API error! status: ${formsResponse.status}`);
       }
-      const formsData = await formsResponse.json()
-
+      const formsData = await formsResponse.json();
 
       // Update forms state with proper validation
-      const fetchedForms = formsData.data || formsData.forms || []
+      const fetchedForms = formsData.data || formsData.forms || [];
 
       // Validate and clean form data
       const validatedForms = fetchedForms.map((form: any) => ({
         id: form.id,
-        title: form.title || 'Untitled Form',
-        description: form.description || '',
-        slug: form.slug || '',
-        status: form.status || 'draft',
+        title: form.title || "Untitled Form",
+        description: form.description || "",
+        slug: form.slug || "",
+        status: form.status || "draft",
         isPublished: form.isPublished || false,
-        publishedUrl: form.publishedUrl || '',
+        publishedUrl: form.publishedUrl || "",
         publishedAt: form.publishedAt || null,
         createdAt: form.createdAt || new Date().toISOString(),
         updatedAt: form.updatedAt || new Date().toISOString(),
@@ -189,564 +195,668 @@ const Dashboard = () => {
         submissionCount: form.submissionCount || 0,
         viewCount: form.viewCount || 0,
         theme: form.theme || {},
-        brandKit: form.brandKit || {}
-      }))
+        brandKit: form.brandKit || {},
+      }));
 
-
-      setForms(validatedForms)
+      setForms(validatedForms);
 
       // Set basic stats immediately from forms data
-      const totalResponses = validatedForms.reduce((sum: number, f: any) => sum + (f.submissionCount || f.submission_count || 0), 0);
-      const totalViews = validatedForms.reduce((sum: number, f: any) => sum + (f.viewCount || f.view_count || 0), 0);
+      const totalResponses = validatedForms.reduce(
+        (sum: number, f: any) =>
+          sum + (f.submissionCount || f.submission_count || 0),
+        0,
+      );
+      const totalViews = validatedForms.reduce(
+        (sum: number, f: any) => sum + (f.viewCount || f.view_count || 0),
+        0,
+      );
 
       setDashboardStats({
         totalForms: validatedForms.length,
-        publishedForms: validatedForms.filter((f: any) => f.status === 'published').length,
+        publishedForms: validatedForms.filter(
+          (f: any) => f.status === "published",
+        ).length,
         totalResponses: totalResponses,
-        conversionRate: totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0
-      })
+        conversionRate:
+          totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0,
+      });
 
       // Fetch detailed analytics/stats in background (non-blocking)
       setTimeout(async () => {
         try {
-          const analyticsResponse = await makeAuthenticatedRequest(`/api/analytics?userId=${userId}&period=30d`)
+          const analyticsResponse = await makeAuthenticatedRequest(
+            `/api/analytics?userId=${userId}&period=30d`,
+          );
 
           if (analyticsResponse.ok) {
-            const analyticsData = await analyticsResponse.json()
+            const analyticsData = await analyticsResponse.json();
             if (analyticsData.success) {
               setDashboardStats({
-                totalForms: analyticsData.analytics.totalForms || validatedForms.length,
-                publishedForms: analyticsData.analytics.publishedForms || validatedForms.filter((f: any) => f.status === 'published').length,
-                totalResponses: analyticsData.analytics.totalSubmissions || totalResponses,
-                conversionRate: analyticsData.analytics.conversionRate !== undefined ? Math.round(parseFloat(analyticsData.analytics.conversionRate)) : (totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0)
-              })
+                totalForms:
+                  analyticsData.analytics.totalForms || validatedForms.length,
+                publishedForms:
+                  analyticsData.analytics.publishedForms ||
+                  validatedForms.filter((f: any) => f.status === "published")
+                    .length,
+                totalResponses:
+                  analyticsData.analytics.totalSubmissions || totalResponses,
+                conversionRate:
+                  analyticsData.analytics.conversionRate !== undefined
+                    ? Math.round(
+                        parseFloat(analyticsData.analytics.conversionRate),
+                      )
+                    : totalViews > 0
+                      ? Math.round((totalResponses / totalViews) * 100)
+                      : 0,
+              });
             }
           }
-        } catch (analyticsError) {
+        } catch (analyticsError) {}
+      }, 100); // Small delay to let UI render first
 
-        }
-      }, 100) // Small delay to let UI render first
-
-
-      setHasFetchedOnce(true)
-      setFetchError(null)
+      setHasFetchedOnce(true);
+      setFetchError(null);
     } catch (error: any) {
-      console.error('Dashboard: Error fetching data:', error)
-      const errorMessage = error?.message?.includes('Forms API error!')
-        ? 'Failed to load forms data. Please check your network connection and try again.'
-        : 'Failed to load dashboard data. Please try again later.'
+      console.error("Dashboard: Error fetching data:", error);
+      const errorMessage = error?.message?.includes("Forms API error!")
+        ? "Failed to load forms data. Please check your network connection and try again."
+        : "Failed to load dashboard data. Please try again later.";
 
-      setFetchError(errorMessage)
+      setFetchError(errorMessage);
 
       // Auto-retry for network errors (up to 3 times)
-      if (retryCount < 3 && (error?.message?.includes('network') || error?.message?.includes('fetch'))) {
-
-        setRetryCount(prev => prev + 1)
-        setTimeout(() => {
-          fetchDashboardData()
-        }, 2000 * (retryCount + 1)) // Exponential backoff
+      if (
+        retryCount < 3 &&
+        (error?.message?.includes("network") ||
+          error?.message?.includes("fetch"))
+      ) {
+        setRetryCount((prev) => prev + 1);
+        setTimeout(
+          () => {
+            fetchDashboardData();
+          },
+          2000 * (retryCount + 1),
+        ); // Exponential backoff
       } else {
         addNotification({
-          type: 'error',
-          title: 'Load Failed',
+          type: "error",
+          title: "Load Failed",
           message: errorMessage,
-          duration: 5000
-        })
+          duration: 5000,
+        });
       }
     } finally {
-      setIsFetching(false)
+      setIsFetching(false);
     }
-  }, [firebaseUser, userType, getUserTrackingData, makeAuthenticatedRequest, addNotification, retryCount])
+  }, [
+    firebaseUser,
+    userType,
+    getUserTrackingData,
+    makeAuthenticatedRequest,
+    addNotification,
+    retryCount,
+  ]);
 
   // Debounced fetch function to prevent excessive API calls
   const debouncedFetchForms = useMemo(
     () => debounce(fetchDashboardData, 1000),
-    [fetchDashboardData]
-  )
+    [fetchDashboardData],
+  );
 
   // Manual retry function
   const retryFetch = useCallback(() => {
-    setRetryCount(0)
-    setFetchError(null)
-    fetchDashboardData()
-  }, [fetchDashboardData])
+    setRetryCount(0);
+    setFetchError(null);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Fetch forms and dashboard data
   useEffect(() => {
     const fetchWhenReady = async () => {
       // Wait for user type to be determined
-      if (isLoading) return
+      if (isLoading) return;
 
       // For guest users, ensure we have tracking data before fetching
       if (userTypeHelpers.isGuest(userType)) {
         try {
-          const trackingData = await getUserTrackingData()
+          const trackingData = await getUserTrackingData();
           if (!trackingData?.fingerprint) {
-
-            return
+            return;
           }
         } catch (error) {
-          console.warn('Could not get user tracking data:', error)
-          return
+          console.warn("Could not get user tracking data:", error);
+          return;
         }
       }
 
       // Fetch forms when ready
       if (firebaseUser || userTypeHelpers.isGuest(userType)) {
-        debouncedFetchForms()
+        debouncedFetchForms();
       }
-    }
+    };
 
-    fetchWhenReady()
-  }, [firebaseUser, userType, isLoading, getUserTrackingData, debouncedFetchForms])
+    fetchWhenReady();
+  }, [
+    firebaseUser,
+    userType,
+    isLoading,
+    getUserTrackingData,
+    debouncedFetchForms,
+  ]);
 
   // Listen for form updates and page visibility changes
   useEffect(() => {
     const handleStorageChange = () => {
-      debouncedFetchForms()
-    }
+      debouncedFetchForms();
+    };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-
         // Check if there are any pending form updates
-        const formUpdated = localStorage.getItem('form-updated')
-        const formPublished = localStorage.getItem('form-published')
-        const formMigrated = localStorage.getItem('form-migrated')
+        const formUpdated = localStorage.getItem("form-updated");
+        const formPublished = localStorage.getItem("form-published");
+        const formMigrated = localStorage.getItem("form-migrated");
 
         if (formUpdated || formPublished || formMigrated) {
-
-          debouncedFetchForms()
+          debouncedFetchForms();
           // Clear the flags
-          localStorage.removeItem('form-updated')
-          localStorage.removeItem('form-published')
-          localStorage.removeItem('form-migrated')
+          localStorage.removeItem("form-updated");
+          localStorage.removeItem("form-published");
+          localStorage.removeItem("form-migrated");
         }
       }
-    }
+    };
 
     // Consolidated handler for all visibility/focus events to reduce redundancy
     const handleVisibilityOrFocus = () => {
-
       // Check if there are any pending form updates
-      const formUpdated = localStorage.getItem('form-updated')
-      const formPublished = localStorage.getItem('form-published')
-      const formMigrated = localStorage.getItem('form-migrated')
+      const formUpdated = localStorage.getItem("form-updated");
+      const formPublished = localStorage.getItem("form-published");
+      const formMigrated = localStorage.getItem("form-migrated");
 
       if (formUpdated || formPublished || formMigrated) {
-
-        debouncedFetchForms()
+        debouncedFetchForms();
         // Clear the flags
-        localStorage.removeItem('form-updated')
-        localStorage.removeItem('form-published')
-        localStorage.removeItem('form-migrated')
+        localStorage.removeItem("form-updated");
+        localStorage.removeItem("form-published");
+        localStorage.removeItem("form-migrated");
       }
-    }
+    };
 
-    window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('formUpdated', handleStorageChange)
-    window.addEventListener('formMigrated', handleStorageChange) // Listen for form migration events
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleVisibilityOrFocus)
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("formUpdated", handleStorageChange);
+    window.addEventListener("formMigrated", handleStorageChange); // Listen for form migration events
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityOrFocus);
 
     // Mobile-specific event listeners (reduced frequency)
-    window.addEventListener('pageshow', handleVisibilityOrFocus)
+    window.addEventListener("pageshow", handleVisibilityOrFocus);
     // Removed pagehide listener as it was causing excessive reloads
 
     // Reduced frequency mobile support: Check for updates every 2 minutes on mobile
     const mobileRefreshInterval = setInterval(() => {
-      const formUpdated = localStorage.getItem('form-updated')
-      const formPublished = localStorage.getItem('form-published')
-      const formMigrated = localStorage.getItem('form-migrated')
+      const formUpdated = localStorage.getItem("form-updated");
+      const formPublished = localStorage.getItem("form-published");
+      const formMigrated = localStorage.getItem("form-migrated");
 
       if (formUpdated || formPublished || formMigrated) {
-
-        debouncedFetchForms() // Use debounced version
-        localStorage.removeItem('form-updated')
-        localStorage.removeItem('form-published')
-        localStorage.removeItem('form-migrated')
+        debouncedFetchForms(); // Use debounced version
+        localStorage.removeItem("form-updated");
+        localStorage.removeItem("form-published");
+        localStorage.removeItem("form-migrated");
       }
-    }, 120000) // 2 minutes instead of 30 seconds
+    }, 120000); // 2 minutes instead of 30 seconds
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('formUpdated', handleStorageChange)
-      window.removeEventListener('formMigrated', handleStorageChange)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleVisibilityOrFocus)
-      window.removeEventListener('pageshow', handleVisibilityOrFocus)
-      clearInterval(mobileRefreshInterval)
-    }
-  }, [])
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("formUpdated", handleStorageChange);
+      window.removeEventListener("formMigrated", handleStorageChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      window.removeEventListener("pageshow", handleVisibilityOrFocus);
+      clearInterval(mobileRefreshInterval);
+    };
+  }, []);
 
   // Update dashboard stats when forms change
   useEffect(() => {
-    const totalResponses = forms.reduce((sum, f) => sum + (f.submissionCount || f.submission_count || 0), 0);
-    const totalViews = forms.reduce((sum, f) => sum + (f.viewCount || f.view_count || 0), 0);
+    const totalResponses = forms.reduce(
+      (sum, f) => sum + (f.submissionCount || f.submission_count || 0),
+      0,
+    );
+    const totalViews = forms.reduce(
+      (sum, f) => sum + (f.viewCount || f.view_count || 0),
+      0,
+    );
 
     setDashboardStats({
       totalForms: forms.length,
-      publishedForms: forms.filter(f => f.status === 'published').length,
+      publishedForms: forms.filter((f) => f.status === "published").length,
       totalResponses,
-      conversionRate: totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0
-    })
-  }, [forms])
+      conversionRate:
+        totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0,
+    });
+  }, [forms]);
 
   // Real-time updates for form submissions and changes
   useEffect(() => {
-    let subscription: any
+    let subscription: any;
 
     const setupRealtimeSubscription = async () => {
       try {
-        const userTrackingData = await getUserTrackingData()
-        const subscriptionUserId = firebaseUser?.uid || userTrackingData?.fingerprint
+        const userTrackingData = await getUserTrackingData();
+        const subscriptionUserId =
+          firebaseUser?.uid || userTrackingData?.fingerprint;
 
-        if (!subscriptionUserId) return
+        if (!subscriptionUserId) return;
 
         // Subscribe to form changes
         subscription = supabase
-          .channel('dashboard-updates')
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'forms',
-            filter: `user_id=eq.${subscriptionUserId}`
-          }, (payload) => {
-
-
-            // Apply granular updates without full refetch
-            const type = payload.eventType as string
-            const rowNew: any = (payload as any)?.new || {}
-            const rowOld: any = (payload as any)?.old || {}
-            if (type === 'INSERT' && rowNew?.id) {
-              setForms((prev: any[]) => {
-                // Avoid duplicates
-                if (prev.some((f: any) => f.id === rowNew.id)) return prev
-                return [{
-                  ...rowNew,
-                  view_count: rowNew.view_count ?? rowNew.viewCount,
-                  submission_count: rowNew.submission_count ?? rowNew.submissionCount,
-                } as any, ...prev]
-              })
-            } else if (type === 'UPDATE' && rowNew?.id) {
-              setForms((prev: any[]) => prev.map((f: any) => f.id === rowNew.id ? {
-                ...f,
-                ...rowNew,
-                view_count: rowNew.view_count ?? rowNew.viewCount ?? f.view_count,
-                submission_count: rowNew.submission_count ?? rowNew.submissionCount ?? f.submission_count,
-              } : f))
-            } else if (type === 'DELETE' && rowOld?.id) {
-              setForms((prev: any[]) => prev.filter((f: any) => f.id !== rowOld.id))
-            }
-          })
-          .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'form_submissions',
-            filter: `form_id=in.(${forms.map(f => f.id).join(',')})`
-          }, (payload) => {
-
-
-            // Update specific form submission count
-            if (payload.eventType === 'INSERT' && payload.new) {
-              setForms((prev: DashboardForm[]) => prev.map((form) =>
-                (form as any).id === (payload as any).new.form_id
-                  ? {
-                    ...(form as any),
-                    submissionCount: ((form as any).submissionCount || (form as any).submission_count || 0) + 1,
-                    submission_count: ((form as any).submission_count || (form as any).submissionCount || 0) + 1
-                  }
-                  : (form as any)
-              ) as any)
-            }
-          })
-          .subscribe()
-
-
+          .channel("dashboard-updates")
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "forms",
+              filter: `user_id=eq.${subscriptionUserId}`,
+            },
+            (payload) => {
+              // Apply granular updates without full refetch
+              const type = payload.eventType as string;
+              const rowNew: any = (payload as any)?.new || {};
+              const rowOld: any = (payload as any)?.old || {};
+              if (type === "INSERT" && rowNew?.id) {
+                setForms((prev: any[]) => {
+                  // Avoid duplicates
+                  if (prev.some((f: any) => f.id === rowNew.id)) return prev;
+                  return [
+                    {
+                      ...rowNew,
+                      view_count: rowNew.view_count ?? rowNew.viewCount,
+                      submission_count:
+                        rowNew.submission_count ?? rowNew.submissionCount,
+                    } as any,
+                    ...prev,
+                  ];
+                });
+              } else if (type === "UPDATE" && rowNew?.id) {
+                setForms((prev: any[]) =>
+                  prev.map((f: any) =>
+                    f.id === rowNew.id
+                      ? {
+                          ...f,
+                          ...rowNew,
+                          view_count:
+                            rowNew.view_count ??
+                            rowNew.viewCount ??
+                            f.view_count,
+                          submission_count:
+                            rowNew.submission_count ??
+                            rowNew.submissionCount ??
+                            f.submission_count,
+                        }
+                      : f,
+                  ),
+                );
+              } else if (type === "DELETE" && rowOld?.id) {
+                setForms((prev: any[]) =>
+                  prev.filter((f: any) => f.id !== rowOld.id),
+                );
+              }
+            },
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "form_submissions",
+              filter: `form_id=in.(${forms.map((f) => f.id).join(",")})`,
+            },
+            (payload) => {
+              // Update specific form submission count
+              if (payload.eventType === "INSERT" && payload.new) {
+                setForms(
+                  (prev: DashboardForm[]) =>
+                    prev.map((form) =>
+                      (form as any).id === (payload as any).new.form_id
+                        ? {
+                            ...(form as any),
+                            submissionCount:
+                              ((form as any).submissionCount ||
+                                (form as any).submission_count ||
+                                0) + 1,
+                            submission_count:
+                              ((form as any).submission_count ||
+                                (form as any).submissionCount ||
+                                0) + 1,
+                          }
+                        : (form as any),
+                    ) as any,
+                );
+              }
+            },
+          )
+          .subscribe();
       } catch (error) {
-        console.error('Error setting up real-time subscription:', error)
+        console.error("Error setting up real-time subscription:", error);
       }
-    }
+    };
 
     if (firebaseUser || userTypeHelpers.isGuest(userType)) {
-      setupRealtimeSubscription()
+      setupRealtimeSubscription();
     }
 
     return () => {
       if (subscription) {
-        supabase.removeChannel(subscription)
-
+        supabase.removeChannel(subscription);
       }
-    }
-  }, [firebaseUser, userType, getUserTrackingData, forms])
+    };
+  }, [firebaseUser, userType, getUserTrackingData, forms]);
 
   // Filter and sort forms
   const filteredAndSortedForms = forms
-    .filter(form => {
-      const matchesSearch = form.title.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = filterStatus === 'all' || form.status === filterStatus
-      return matchesSearch && matchesStatus
+    .filter((form) => {
+      const matchesSearch = form.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" || form.status === filterStatus;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'name':
-          return a.title.localeCompare(b.title)
-        case 'responses':
-          return (b.submission_count || b.submissionCount || 0) - (a.submission_count || a.submissionCount || 0)
-        case 'views':
-          return (b.view_count || b.viewCount || 0) - (a.view_count || a.viewCount || 0)
-        case 'recent':
+        case "name":
+          return a.title.localeCompare(b.title);
+        case "responses":
+          return (
+            (b.submission_count || b.submissionCount || 0) -
+            (a.submission_count || a.submissionCount || 0)
+          );
+        case "views":
+          return (
+            (b.view_count || b.viewCount || 0) -
+            (a.view_count || a.viewCount || 0)
+          );
+        case "recent":
         default:
-          return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime()
+          return (
+            new Date(b.updated_at || b.created_at).getTime() -
+            new Date(a.updated_at || a.created_at).getTime()
+          );
       }
-    })
+    });
 
   // Form action handlers
   const handleEditForm = (formId: string) => {
-    router.push(`/builder?form=${formId}`)
+    router.push(`/builder?form=${formId}`);
     addNotification({
-      type: 'info',
-      title: 'Edit Form',
-      message: 'Opening form builder...',
-      duration: 2000
-    })
-  }
+      type: "info",
+      title: "Edit Form",
+      message: "Opening form builder...",
+      duration: 2000,
+    });
+  };
 
   const handleViewForm = (formId: string) => {
-    const form = forms.find(f => f.id === formId)
-    if (form && form.status === 'published') {
-      window.open(`/forms/${formId}`, '_blank')
+    const form = forms.find((f) => f.id === formId);
+    if (form && form.status === "published") {
+      window.open(`/forms/${formId}`, "_blank");
     } else {
       addNotification({
-        type: 'warning',
-        title: 'Form Not Published',
-        message: 'Please publish the form first to view it.',
-        duration: 3000
-      })
+        type: "warning",
+        title: "Form Not Published",
+        message: "Please publish the form first to view it.",
+        duration: 3000,
+      });
     }
-  }
+  };
 
   const handleCloneForm = async (formId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`/api/user/forms/${formId}/clone`, {
-        method: 'POST'
-      })
+      const response = await makeAuthenticatedRequest(
+        `/api/user/forms/${formId}/clone`,
+        {
+          method: "POST",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to clone form: ${response.statusText}`)
+        throw new Error(`Failed to clone form: ${response.statusText}`);
       }
 
-      const result = await response.json()
+      const result = await response.json();
       addNotification({
-        type: 'success',
-        title: 'Form Cloned',
-        message: 'Form has been cloned successfully! You can now edit it.',
-        duration: 3000
-      })
+        type: "success",
+        title: "Form Cloned",
+        message: "Form has been cloned successfully! You can now edit it.",
+        duration: 3000,
+      });
 
       // Refresh forms list
-      const userTrackingData = await getUserTrackingData()
-      const refreshUserId = firebaseUser?.uid || userTrackingData?.fingerprint
+      const userTrackingData = await getUserTrackingData();
+      const refreshUserId = firebaseUser?.uid || userTrackingData?.fingerprint;
 
       if (refreshUserId) {
-        const formsResponse = await fetch(`/api/forms?userId=${refreshUserId}&limit=100`)
+        const formsResponse = await fetch(
+          `/api/forms?userId=${refreshUserId}&limit=100`,
+        );
         if (formsResponse.ok) {
-          const data = await formsResponse.json()
-          setForms(data.forms || [])
+          const data = await formsResponse.json();
+          setForms(data.forms || []);
         }
       }
     } catch (error: any) {
-      console.error('Clone error:', error)
+      console.error("Clone error:", error);
       addNotification({
-        type: 'error',
-        title: 'Clone Failed',
-        message: error?.message?.includes('limit reached') ? 'You have reached your form limit. Please upgrade to create more forms.' : 'Failed to clone form. Please try again.',
-        duration: 5000
-      })
+        type: "error",
+        title: "Clone Failed",
+        message: error?.message?.includes("limit reached")
+          ? "You have reached your form limit. Please upgrade to create more forms."
+          : "Failed to clone form. Please try again.",
+        duration: 5000,
+      });
     }
-  }
+  };
 
   const handleArchiveForm = async (formId: string) => {
     try {
-      const response = await makeAuthenticatedRequest(`/api/user/forms/${formId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'archived' })
-      })
+      const response = await makeAuthenticatedRequest(
+        `/api/user/forms/${formId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: "archived" }),
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to archive form: ${response.statusText}`)
+        throw new Error(`Failed to archive form: ${response.statusText}`);
       }
 
       addNotification({
-        type: 'success',
-        title: 'Form Archived',
-        message: 'Form has been archived successfully! You can find it in your archived forms.',
-        duration: 3000
-      })
+        type: "success",
+        title: "Form Archived",
+        message:
+          "Form has been archived successfully! You can find it in your archived forms.",
+        duration: 3000,
+      });
 
       // Update local state
-      setForms(prev => prev.map(form =>
-        form.id === formId ? { ...form, status: 'archived' } : form
-      ))
+      setForms((prev) =>
+        prev.map((form) =>
+          form.id === formId ? { ...form, status: "archived" } : form,
+        ),
+      );
     } catch (error: any) {
-      console.error('Archive error:', error)
+      console.error("Archive error:", error);
       addNotification({
-        type: 'error',
-        title: 'Archive Failed',
-        message: 'Failed to archive form. Please try again.',
-        duration: 5000
-      })
+        type: "error",
+        title: "Archive Failed",
+        message: "Failed to archive form. Please try again.",
+        duration: 5000,
+      });
     }
-  }
+  };
 
   const confirmDelete = (formId: string) => {
-    setDeleteFormId(formId)
-    setDeleteDialogOpen(true)
-  }
+    setDeleteFormId(formId);
+    setDeleteDialogOpen(true);
+  };
 
   const handleDeleteForm = async () => {
-    if (!deleteFormId) return
+    if (!deleteFormId) return;
 
     // Check if form still exists in local state
-    const formExists = forms.find((f: any) => f.id === deleteFormId)
+    const formExists = forms.find((f: any) => f.id === deleteFormId);
     if (!formExists) {
-      console.log('⚠️ Dashboard: Form not found in local state:', deleteFormId)
-      setDeleteDialogOpen(false)
-      setDeleteFormId(null)
-      return
+      console.log("⚠️ Dashboard: Form not found in local state:", deleteFormId);
+      setDeleteDialogOpen(false);
+      setDeleteFormId(null);
+      return;
     }
 
-    console.log('🗑️ Dashboard: Attempting to delete form:', {
+    console.log("🗑️ Dashboard: Attempting to delete form:", {
       formId: deleteFormId,
       formTitle: formExists.title,
       formStatus: formExists.status,
-      userId: firebaseUser?.uid || 'anonymous'
-    })
+      userId: firebaseUser?.uid || "anonymous",
+    });
 
     try {
-      const response = await makeAuthenticatedRequest(`/api/user/forms/${deleteFormId}`, {
-        method: 'DELETE'
-      })
+      const response = await makeAuthenticatedRequest(
+        `/api/user/forms/${deleteFormId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
-        let errorMessage = response.statusText
-        let errorData = null
+        let errorMessage = response.statusText;
+        let errorData = null;
         try {
-          errorData = await response.json()
+          errorData = await response.json();
           if (errorData?.message) {
-            errorMessage = errorData.message
+            errorMessage = errorData.message;
           }
         } catch (jsonError) {
           // Failed to parse error response as JSON, use status text
         }
 
-        console.error('❌ Dashboard: Delete API error:', {
+        console.error("❌ Dashboard: Delete API error:", {
           status: response.status,
           statusText: response.statusText,
           errorData,
           formId: deleteFormId,
-          userId: firebaseUser?.uid || 'anonymous'
-        })
+          userId: firebaseUser?.uid || "anonymous",
+        });
 
-        throw new Error(`Failed to delete form: ${errorMessage}`)
+        throw new Error(`Failed to delete form: ${errorMessage}`);
       }
 
       // Success - parse result if available
-      let result = null
+      let result = null;
       try {
-        result = await response.json()
+        result = await response.json();
       } catch (jsonError) {
         // Some delete endpoints may not return JSON, that's okay
       }
 
       addNotification({
-        type: 'success',
-        title: 'Form Deleted',
-        message: 'Form has been deleted successfully! It is permanently removed.',
-        duration: 3000
-      })
+        type: "success",
+        title: "Form Deleted",
+        message:
+          "Form has been deleted successfully! It is permanently removed.",
+        duration: 3000,
+      });
 
       // Update local state
-      setForms((prev: any[]) => prev.filter((form: any) => form.id !== deleteFormId))
+      setForms((prev: any[]) =>
+        prev.filter((form: any) => form.id !== deleteFormId),
+      );
     } catch (error: any) {
-      console.error('❌ Delete error:', error)
+      console.error("❌ Delete error:", error);
       addNotification({
-        type: 'error',
-        title: 'Delete Failed',
-        message: 'Failed to delete form. Please ensure you have permission and try again.',
-        duration: 5000
-      })
+        type: "error",
+        title: "Delete Failed",
+        message:
+          "Failed to delete form. Please ensure you have permission and try again.",
+        duration: 5000,
+      });
     } finally {
-      setDeleteDialogOpen(false)
-      setDeleteFormId(null)
+      setDeleteDialogOpen(false);
+      setDeleteFormId(null);
     }
-  }
+  };
 
   const handleShareForm = async (formId: string) => {
-    const form = forms.find(f => f.id === formId)
-    if (!form || form.status !== 'published') {
+    const form = forms.find((f) => f.id === formId);
+    if (!form || form.status !== "published") {
       addNotification({
-        type: 'warning',
-        title: 'Form Not Published',
-        message: 'Please publish the form first to share it.',
-        duration: 3000
-      })
-      return
+        type: "warning",
+        title: "Form Not Published",
+        message: "Please publish the form first to share it.",
+        duration: 3000,
+      });
+      return;
     }
 
-    const formUrl = form.publishedUrl
-      || getPublishedFormUrl(formId, form.slug)
+    const formUrl = form.publishedUrl || getPublishedFormUrl(formId, form.slug);
 
     try {
-      await navigator.clipboard.writeText(formUrl)
-      setCopiedFormId(formId)
+      await navigator.clipboard.writeText(formUrl);
+      setCopiedFormId(formId);
       addNotification({
-        type: 'success',
-        title: 'Link Copied',
-        message: 'Form link copied to clipboard!',
-        duration: 2000
-      })
+        type: "success",
+        title: "Link Copied",
+        message: "Form link copied to clipboard!",
+        duration: 2000,
+      });
 
       // Reset copied state after 2 seconds
-      setTimeout(() => setCopiedFormId(null), 2000)
+      setTimeout(() => setCopiedFormId(null), 2000);
     } catch (error: any) {
-      console.error('❌ Copy error:', error)
+      console.error("❌ Copy error:", error);
       addNotification({
-        type: 'error',
-        title: 'Copy Failed',
-        message: 'Failed to copy link to clipboard. Please try again or copy manually.',
-        duration: 3000
-      })
+        type: "error",
+        title: "Copy Failed",
+        message:
+          "Failed to copy link to clipboard. Please try again or copy manually.",
+        duration: 3000,
+      });
     }
-  }
+  };
 
   const toggleFormExpansion = (formId: string) => {
-    setExpandedForms(prev => {
-      const newSet = new Set(prev)
+    setExpandedForms((prev) => {
+      const newSet = new Set(prev);
       if (newSet.has(formId)) {
-        newSet.delete(formId)
+        newSet.delete(formId);
       } else {
-        newSet.add(formId)
+        newSet.add(formId);
       }
-      return newSet
-    })
-  }
+      return newSet;
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      published: { color: 'bg-green-100 text-green-800', text: 'Published' },
-      draft: { color: 'bg-yellow-100 text-yellow-800', text: 'Draft' },
-      archived: { color: 'bg-gray-100 text-gray-800', text: 'Archived' }
-    }
+      published: { color: "bg-green-100 text-green-800", text: "Published" },
+      draft: { color: "bg-yellow-100 text-yellow-800", text: "Draft" },
+      archived: { color: "bg-gray-100 text-gray-800", text: "Archived" },
+    };
 
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
 
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}
+      >
         {config.text}
       </span>
-    )
-  }
+    );
+  };
 
   // Show loading spinner while checking authentication or fetching data
   if (isLoading || isFetching) {
@@ -769,7 +879,11 @@ const Dashboard = () => {
         {/* Content with inline loading */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-center min-h-[400px]">
-            <InlineLoading size="lg" text="Loading dashboard data..." variant="dots" />
+            <InlineLoading
+              size="lg"
+              text="Loading dashboard data..."
+              variant="dots"
+            />
           </div>
         </div>
       </div>
@@ -786,7 +900,7 @@ const Dashboard = () => {
               <div className="flex-1"></div>
               <div className="flex items-center space-x-4">
                 <Button
-                  onClick={() => router.push('/builder')}
+                  onClick={() => router.push("/builder")}
                   className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300 px-2.5 py-1 text-xs h-8"
                 >
                   <PlusIcon className="h-3 w-3 mr-1" />
@@ -891,7 +1005,6 @@ const Dashboard = () => {
 
               {/* Main Content Area: Filters & Forms */}
               <div className="flex flex-col gap-6 mb-8">
-
                 {/* Horizontal Filter Bar - Compact Grid-like Array */}
                 <div className="inline-flex flex-wrap items-center gap-4 bg-white/40 backdrop-blur-md p-3 rounded-2xl border border-white/40 shadow-sm w-fit max-w-full">
                   {/* Search */}
@@ -908,7 +1021,10 @@ const Dashboard = () => {
 
                   {/* Status Filter */}
                   <div className="w-[140px] shrink-0">
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <Select
+                      value={filterStatus}
+                      onValueChange={setFilterStatus}
+                    >
                       <SelectTrigger className="w-full bg-white/80 backdrop-blur-sm border-white/50 focus:border-blue-500/50 focus:ring-blue-500/20 shadow-sm h-9 rounded-xl text-sm">
                         <SelectValue />
                       </SelectTrigger>
@@ -930,7 +1046,9 @@ const Dashboard = () => {
                       <SelectContent className="rounded-xl">
                         <SelectItem value="recent">Most Recent</SelectItem>
                         <SelectItem value="name">Alphabetical</SelectItem>
-                        <SelectItem value="responses">Most Responses</SelectItem>
+                        <SelectItem value="responses">
+                          Most Responses
+                        </SelectItem>
                         <SelectItem value="views">Most Views</SelectItem>
                       </SelectContent>
                     </Select>
@@ -941,9 +1059,9 @@ const Dashboard = () => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                          variant={viewMode === "grid" ? "default" : "ghost"}
                           size="sm"
-                          onClick={() => setViewMode('grid')}
+                          onClick={() => setViewMode("grid")}
                           className="h-full px-2.5 rounded-lg"
                         >
                           <ViewColumnsIcon className="h-4 w-4" />
@@ -956,9 +1074,9 @@ const Dashboard = () => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant={viewMode === 'list' ? 'default' : 'ghost'}
+                          variant={viewMode === "list" ? "default" : "ghost"}
                           size="sm"
-                          onClick={() => setViewMode('list')}
+                          onClick={() => setViewMode("list")}
                           className="h-full px-2.5 rounded-lg"
                         >
                           <ListBulletIcon className="h-4 w-4" />
@@ -974,7 +1092,7 @@ const Dashboard = () => {
                 {/* Right Area: Forms List */}
                 <div className="w-full min-w-0">
                   {/* Forms List */}
-                  {viewMode === 'grid' ? (
+                  {viewMode === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 -mt-2">
                       {filteredAndSortedForms.length === 0 ? (
                         <div className="col-span-full text-center py-10 -mt-4">
@@ -988,22 +1106,45 @@ const Dashboard = () => {
                             No forms found
                           </h3>
                           <p className="text-gray-600 text-xs mb-6 max-w-md mx-auto leading-relaxed">
-                            Try adjusting your search or filters to find what you're looking for
+                            Try adjusting your search or filters to find what
+                            you're looking for
                           </p>
                           <div className="flex justify-center space-x-2 mt-8">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div
+                              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
                           </div>
                         </div>
                       ) : (
                         filteredAndSortedForms.map((form) => (
-                          <Card key={form.id} className="group relative overflow-hidden flex flex-col h-[280px] border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-default">
+                          <Card
+                            key={form.id}
+                            className="group relative overflow-hidden flex flex-col h-[280px] border-none shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl cursor-default"
+                          >
                             {/* Full Card Theme Background */}
-                            <div className="absolute inset-0 z-0 w-full h-full pointer-events-none" style={{ backgroundColor: form.theme?.background_color || '#F9FAFB' }}>
+                            <div
+                              className="absolute inset-0 z-0 w-full h-full pointer-events-none"
+                              style={{
+                                backgroundColor:
+                                  form.theme?.background_color || "#F9FAFB",
+                              }}
+                            >
                               <ThemeArtBackground
-                                themeId={form.theme?.gallery_theme_id || 'default'}
-                                backgroundColor={form.theme?.background_color || 'transparent'}
+                                themeId={
+                                  form.theme?.gallery_theme_id || "default"
+                                }
+                                backgroundColor={
+                                  form.theme?.background_color || "transparent"
+                                }
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80"
                               />
                               {/* Overlay to ensure text legibility while letting design pop */}
@@ -1012,31 +1153,47 @@ const Dashboard = () => {
 
                             {/* Content Wrapper */}
                             <CardContent className="relative z-10 p-4 flex-1 flex flex-col h-full h-full">
-
                               <div className="flex-1 flex flex-col justify-between w-full h-full bg-white/70 backdrop-blur-md rounded-xl p-4 border border-white/60 shadow-sm">
                                 {/* Top Content Info */}
                                 <div className="w-full overflow-hidden">
-                                  <h3 className="text-xl font-bold text-gray-900 mb-2 truncate max-w-full drop-shadow-sm" title={form.title}>{form.title}</h3>
+                                  <h3
+                                    className="text-xl font-bold text-gray-900 mb-2 truncate max-w-full drop-shadow-sm"
+                                    title={form.title}
+                                  >
+                                    {form.title}
+                                  </h3>
                                   <div className="flex items-center space-x-2 mb-3">
-                                    {getStatusBadge(form.status || 'draft')}
-                                    {form.status === 'published' && (
+                                    {getStatusBadge(form.status || "draft")}
+                                    {form.status === "published" && (
                                       <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-white/80 text-green-700 border border-green-200/50 shadow-sm">
                                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1 animate-pulse"></div>
                                         Live
                                       </span>
                                     )}
                                     <span className="text-xs text-gray-700 font-medium">
-                                      {formatDate(String(form.updatedAt || form.updated_at || form.createdAt || form.created_at || new Date().toISOString()))}
+                                      {formatDate(
+                                        String(
+                                          form.updatedAt ||
+                                            form.updated_at ||
+                                            form.createdAt ||
+                                            form.created_at ||
+                                            new Date().toISOString(),
+                                        ),
+                                      )}
                                     </span>
                                   </div>
                                   <div className="flex items-center space-x-4 text-xs font-semibold text-gray-700">
                                     <span className="flex items-center bg-white/60 px-2.5 py-1 rounded-lg">
                                       <EyeIcon className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
-                                      {(form.viewCount || form.view_count || 0)} views
+                                      {form.viewCount || form.view_count || 0}{" "}
+                                      views
                                     </span>
                                     <span className="flex items-center bg-white/60 px-2.5 py-1 rounded-lg">
                                       <ClipboardDocumentListIcon className="h-3.5 w-3.5 mr-1.5 text-purple-600" />
-                                      {(form.submissionCount || form.submission_count || 0)} responses
+                                      {form.submissionCount ||
+                                        form.submission_count ||
+                                        0}{" "}
+                                      responses
                                     </span>
                                   </div>
                                 </div>
@@ -1044,13 +1201,15 @@ const Dashboard = () => {
                                 {/* Form Actions (Card Footer) */}
                                 <div className="pt-3 mt-4 border-t border-gray-300/30 flex items-center justify-between gap-1 overflow-x-auto hide-scrollbar">
                                   <div className="flex items-center space-x-2">
-                                    {form.status !== 'published' && (
+                                    {form.status !== "published" && (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleEditForm(form.id)}
+                                            onClick={() =>
+                                              handleEditForm(form.id)
+                                            }
                                             className="h-8 w-8 p-0 hover:bg-blue-50"
                                           >
                                             <PencilIcon className="h-4 w-4 text-blue-600" />
@@ -1062,13 +1221,17 @@ const Dashboard = () => {
                                       </Tooltip>
                                     )}
 
-                                    {form.status !== 'draft' && (
+                                    {form.status !== "draft" && (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => router.push(`/dashboard/responses/${form.id}`)}
+                                            onClick={() =>
+                                              router.push(
+                                                `/dashboard/responses/${form.id}`,
+                                              )
+                                            }
                                             className="h-8 w-8 p-0 hover:bg-indigo-50"
                                           >
                                             <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-600" />
@@ -1085,7 +1248,9 @@ const Dashboard = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleViewForm(form.id)}
+                                          onClick={() =>
+                                            handleViewForm(form.id)
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-green-50"
                                         >
                                           <EyeIcon className="h-4 w-4 text-green-600" />
@@ -1096,13 +1261,15 @@ const Dashboard = () => {
                                       </TooltipContent>
                                     </Tooltip>
 
-                                    {form.status === 'published' && (
+                                    {form.status === "published" && (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleShareForm(form.id)}
+                                            onClick={() =>
+                                              handleShareForm(form.id)
+                                            }
                                             className="h-8 w-8 p-0 hover:bg-purple-50"
                                           >
                                             {copiedFormId === form.id ? (
@@ -1113,7 +1280,11 @@ const Dashboard = () => {
                                           </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>{copiedFormId === form.id ? 'Link copied!' : 'Share form URL'}</p>
+                                          <p>
+                                            {copiedFormId === form.id
+                                              ? "Link copied!"
+                                              : "Share form URL"}
+                                          </p>
                                         </TooltipContent>
                                       </Tooltip>
                                     )}
@@ -1123,7 +1294,9 @@ const Dashboard = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleCloneForm(form.id)}
+                                          onClick={() =>
+                                            handleCloneForm(form.id)
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-orange-50"
                                         >
                                           <DocumentDuplicateIcon className="h-4 w-4 text-orange-600" />
@@ -1139,7 +1312,9 @@ const Dashboard = () => {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleArchiveForm(form.id)}
+                                          onClick={() =>
+                                            handleArchiveForm(form.id)
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-gray-50"
                                         >
                                           <ArchiveBoxIcon className="h-4 w-4 text-gray-600" />
@@ -1187,21 +1362,34 @@ const Dashboard = () => {
                             No forms found
                           </h3>
                           <p className="text-gray-600 text-xs mb-6 max-w-md mx-auto leading-relaxed">
-                            Try adjusting your search or filters to find what you're looking for
+                            Try adjusting your search or filters to find what
+                            you're looking for
                           </p>
                           <div className="flex justify-center space-x-2 mt-8">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                            <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div
+                              className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
                           </div>
                         </div>
                       ) : (
                         filteredAndSortedForms.map((form) => {
-                          const isExpanded = expandedForms.has(form.id)
-                          const responses = form.submissions || []
+                          const isExpanded = expandedForms.has(form.id);
+                          const responses = form.submissions || [];
 
                           return (
-                            <div key={form.id} className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-sm hover:shadow-md transition-all duration-200 p-6">
+                            <div
+                              key={form.id}
+                              className="bg-white/80 backdrop-blur-sm rounded-xl border border-white/30 shadow-sm hover:shadow-md transition-all duration-200 p-6"
+                            >
                               {/* Form Header */}
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-4">
@@ -1209,7 +1397,15 @@ const Dashboard = () => {
                                     className="cursor-pointer p-3 hover:bg-white/50 rounded-xl transition-all duration-200 group relative overflow-hidden"
                                     onClick={() => toggleFormExpansion(form.id)}
                                   >
-                                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: form.brandKit?.colors?.primary || form.theme?.primary_color || '#2B65F8' }} />
+                                    <div
+                                      className="absolute left-0 top-0 bottom-0 w-1"
+                                      style={{
+                                        backgroundColor:
+                                          form.brandKit?.colors?.primary ||
+                                          form.theme?.primary_color ||
+                                          "#2B65F8",
+                                      }}
+                                    />
                                     {isExpanded ? (
                                       <ChevronDownIcon className="h-5 w-5 text-gray-600 group-hover:text-blue-600 transition-colors" />
                                     ) : (
@@ -1218,11 +1414,19 @@ const Dashboard = () => {
                                   </div>
 
                                   <div>
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{form.title}</h3>
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                      {form.title}
+                                    </h3>
                                     <div className="flex items-center space-x-4">
-                                      {getStatusBadge(form.status || 'draft')}
+                                      {getStatusBadge(form.status || "draft")}
                                       <span className="text-xs text-gray-500 font-medium">
-                                        {formatDate(String(form.updated_at || form.created_at || new Date().toISOString()))}
+                                        {formatDate(
+                                          String(
+                                            form.updated_at ||
+                                              form.created_at ||
+                                              new Date().toISOString(),
+                                          ),
+                                        )}
                                       </span>
                                       <span className="text-xs text-gray-500 font-medium flex items-center">
                                         <EyeIcon className="h-3 w-3 mr-1" />
@@ -1237,13 +1441,15 @@ const Dashboard = () => {
                                 </div>
 
                                 <div className="flex items-center space-x-1">
-                                  {form.status !== 'published' && (
+                                  {form.status !== "published" && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleEditForm(form.id)}
+                                          onClick={() =>
+                                            handleEditForm(form.id)
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-blue-50"
                                         >
                                           <PencilIcon className="h-4 w-4 text-blue-600" />
@@ -1255,13 +1461,17 @@ const Dashboard = () => {
                                     </Tooltip>
                                   )}
 
-                                  {form.status !== 'draft' && (
+                                  {form.status !== "draft" && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => router.push(`/dashboard/responses/${form.id}`)}
+                                          onClick={() =>
+                                            router.push(
+                                              `/dashboard/responses/${form.id}`,
+                                            )
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-indigo-50"
                                         >
                                           <ClipboardDocumentListIcon className="h-4 w-4 text-indigo-600" />
@@ -1289,13 +1499,15 @@ const Dashboard = () => {
                                     </TooltipContent>
                                   </Tooltip>
 
-                                  {form.status === 'published' && (
+                                  {form.status === "published" && (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => handleShareForm(form.id)}
+                                          onClick={() =>
+                                            handleShareForm(form.id)
+                                          }
                                           className="h-8 w-8 p-0 hover:bg-purple-50"
                                         >
                                           {copiedFormId === form.id ? (
@@ -1306,7 +1518,11 @@ const Dashboard = () => {
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>{copiedFormId === form.id ? 'Link copied!' : 'Share form URL'}</p>
+                                        <p>
+                                          {copiedFormId === form.id
+                                            ? "Link copied!"
+                                            : "Share form URL"}
+                                        </p>
                                       </TooltipContent>
                                     </Tooltip>
                                   )}
@@ -1332,7 +1548,9 @@ const Dashboard = () => {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleArchiveForm(form.id)}
+                                        onClick={() =>
+                                          handleArchiveForm(form.id)
+                                        }
                                         className="h-8 w-8 p-0 hover:bg-gray-50"
                                       >
                                         <ArchiveBoxIcon className="h-4 w-4 text-gray-600" />
@@ -1370,48 +1588,67 @@ const Dashboard = () => {
                                     </h4>
                                     {responses.length > 0 ? (
                                       <div className="space-y-3">
-                                        {responses.slice(0, 5).map((response: any, index: number) => (
-                                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
-                                            <div className="flex items-center space-x-3">
-                                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                <UsersIcon className="h-4 w-4 text-blue-600" />
+                                        {responses
+                                          .slice(0, 5)
+                                          .map(
+                                            (response: any, index: number) => (
+                                              <div
+                                                key={index}
+                                                className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200"
+                                              >
+                                                <div className="flex items-center space-x-3">
+                                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                    <UsersIcon className="h-4 w-4 text-blue-600" />
+                                                  </div>
+                                                  <div>
+                                                    <p className="text-sm font-medium text-gray-900">
+                                                      Response #{index + 1}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500">
+                                                      {formatDate(
+                                                        response.created_at ||
+                                                          response.submitted_at,
+                                                      )}
+                                                    </p>
+                                                  </div>
+                                                </div>
+                                                <div className="text-xs text-gray-500">
+                                                  {response.fields?.length || 0}{" "}
+                                                  fields
+                                                </div>
                                               </div>
-                                              <div>
-                                                <p className="text-sm font-medium text-gray-900">
-                                                  Response #{index + 1}
-                                                </p>
-                                                <p className="text-xs text-gray-500">
-                                                  {formatDate(response.created_at || response.submitted_at)}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                              {response.fields?.length || 0} fields
-                                            </div>
-                                          </div>
-                                        ))}
-                                        {responses.length > 5 && form.status !== 'draft' && (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => router.push(`/dashboard/responses/${form.id}`)}
-                                            className="w-full mt-3"
-                                          >
-                                            View All Responses ({responses.length})
-                                          </Button>
-                                        )}
+                                            ),
+                                          )}
+                                        {responses.length > 5 &&
+                                          form.status !== "draft" && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() =>
+                                                router.push(
+                                                  `/dashboard/responses/${form.id}`,
+                                                )
+                                              }
+                                              className="w-full mt-3"
+                                            >
+                                              View All Responses (
+                                              {responses.length})
+                                            </Button>
+                                          )}
                                       </div>
                                     ) : (
                                       <div className="text-center py-6">
                                         <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-500">No responses yet</p>
+                                        <p className="text-sm text-gray-500">
+                                          No responses yet
+                                        </p>
                                       </div>
                                     )}
                                   </div>
                                 </div>
                               )}
                             </div>
-                          )
+                          );
                         })
                       )}
                     </div>
@@ -1432,8 +1669,14 @@ const Dashboard = () => {
                 {/* Floating Background Elements */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-100 rounded-full blur-3xl opacity-40 animate-pulse"></div>
-                  <div className="absolute top-1/3 right-1/4 w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full blur-2xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
-                  <div className="absolute bottom-1/3 left-1/3 w-20 h-20 bg-blue-100 rounded-full blur-xl opacity-50 animate-pulse" style={{ animationDelay: '2s' }}></div>
+                  <div
+                    className="absolute top-1/3 right-1/4 w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full blur-2xl opacity-30 animate-pulse"
+                    style={{ animationDelay: "1s" }}
+                  ></div>
+                  <div
+                    className="absolute bottom-1/3 left-1/3 w-20 h-20 bg-blue-100 rounded-full blur-xl opacity-50 animate-pulse"
+                    style={{ animationDelay: "2s" }}
+                  ></div>
                 </div>
 
                 {/* Main Icon Container */}
@@ -1446,14 +1689,17 @@ const Dashboard = () => {
 
                   {/* Clickable Icon */}
                   <button
-                    onClick={() => router.push('/builder')}
+                    onClick={() => router.push("/builder")}
                     className="relative bg-blue-600 hover:bg-blue-700 rounded-full p-6 w-20 h-20 mx-auto flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 transform cursor-pointer group border-2 border-white/20 backdrop-blur-sm"
                   >
                     <DocumentIcon className="h-8 w-8 text-white animate-bounce drop-shadow-md" />
 
                     {/* Sparkle Effects */}
                     <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-yellow-300 rounded-full animate-ping opacity-75"></div>
-                    <div className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-pink-300 rounded-full animate-ping opacity-60" style={{ animationDelay: '0.5s' }}></div>
+                    <div
+                      className="absolute -bottom-0.5 -left-0.5 w-1.5 h-1.5 bg-pink-300 rounded-full animate-ping opacity-60"
+                      style={{ animationDelay: "0.5s" }}
+                    ></div>
                   </button>
                 </div>
 
@@ -1470,7 +1716,7 @@ const Dashboard = () => {
                 {/* CTA Button */}
                 <div className="mb-4">
                   <Button
-                    onClick={() => router.push('/builder')}
+                    onClick={() => router.push("/builder")}
                     className="relative bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 px-6 py-2.5 text-sm font-semibold rounded-xl border border-white/20 backdrop-blur-sm group overflow-hidden"
                   >
                     <PlusIcon className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
@@ -1482,7 +1728,8 @@ const Dashboard = () => {
                 {/* Professional Description */}
                 <div className="mb-6 max-w-xl mx-auto">
                   <p className="text-sm text-gray-600 leading-relaxed font-medium mb-4">
-                    Create stunning, interactive forms that capture hearts and data with our powerful form builder.
+                    Create stunning, interactive forms that capture hearts and
+                    data with our powerful form builder.
                   </p>
                   <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                     <div className="flex items-center">
@@ -1507,13 +1754,18 @@ const Dashboard = () => {
                 {/* Animated Dots */}
                 <div className="flex justify-center space-x-2 mb-6">
                   <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce shadow-md"></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce shadow-md" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce shadow-md" style={{ animationDelay: '0.4s' }}></div>
+                  <div
+                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce shadow-md"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-blue-600 rounded-full animate-bounce shadow-md"
+                    style={{ animationDelay: "0.4s" }}
+                  ></div>
                 </div>
 
                 {/* Feature Highlights */}
-                <div className="grid grid-cols-3 gap-4 text-center">
-                </div>
+                <div className="grid grid-cols-3 gap-4 text-center"></div>
               </div>
             </div>
           </div>
@@ -1526,19 +1778,23 @@ const Dashboard = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Form</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this form? This action cannot be undone and will permanently remove the form and all its responses.
+              Are you sure you want to delete this form? This action cannot be
+              undone and will permanently remove the form and all its responses.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteForm} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={handleDeleteForm}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </TooltipProvider>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

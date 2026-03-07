@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
-import { ReactNode } from 'react'
-import { AuthProvider } from './AuthProvider'
-import { FormBuilderProvider } from './FormBuilderProvider'
-import { NotificationProvider } from './NotificationProvider'
-import { PageCacheProvider } from './PageCacheProvider'
+import { ReactNode } from "react";
+import { AuthProvider } from "./AuthProvider";
+import { FormBuilderProvider } from "./FormBuilderProvider";
+import { NotificationProvider } from "./NotificationProvider";
+import { PageCacheProvider } from "./PageCacheProvider";
 
 interface ProvidersProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function Providers({ children }: ProvidersProps) {
@@ -15,11 +15,9 @@ export function Providers({ children }: ProvidersProps) {
     <PageCacheProvider>
       <NotificationProvider>
         <AuthProvider>
-          <FormBuilderProvider>
-            {children}
-          </FormBuilderProvider>
+          <FormBuilderProvider>{children}</FormBuilderProvider>
         </AuthProvider>
       </NotificationProvider>
     </PageCacheProvider>
-  )
-} 
+  );
+}

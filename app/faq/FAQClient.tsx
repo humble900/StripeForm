@@ -1,58 +1,62 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import React, { useState, useEffect } from "react";
+import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 
 interface FAQ {
-  id: string
-  question: string
-  answer: string
-  category: string
-  order: number
-  isActive: boolean
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  order: number;
+  isActive: boolean;
 }
 
 export default function FAQClient() {
-  const [faqs, setFaqs] = useState<FAQ[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
-    fetchFAQs()
-  }, [])
+    fetchFAQs();
+  }, []);
 
   const fetchFAQs = async () => {
     try {
-      const response = await fetch('/api/faq')
+      const response = await fetch("/api/faq");
       if (!response.ok) {
-        throw new Error('Failed to fetch FAQs')
+        throw new Error("Failed to fetch FAQs");
       }
-      const data = await response.json()
-      setFaqs(data)
+      const data = await response.json();
+      setFaqs(data);
     } catch (err) {
-      setError('Failed to load FAQs')
-      console.error('Error fetching FAQs:', err)
+      setError("Failed to load FAQs");
+      console.error("Error fetching FAQs:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const toggleExpanded = (id: string) => {
-    const newExpanded = new Set(expandedItems)
+    const newExpanded = new Set(expandedItems);
     if (newExpanded.has(id)) {
-      newExpanded.delete(id)
+      newExpanded.delete(id);
     } else {
-      newExpanded.add(id)
+      newExpanded.add(id);
     }
-    setExpandedItems(newExpanded)
-  }
+    setExpandedItems(newExpanded);
+  };
 
-  const categories = ['all', ...Array.from(new Set(faqs.map(faq => faq.category)))]
-  const filteredFAQs = selectedCategory === 'all' 
-    ? faqs 
-    : faqs.filter(faq => faq.category === selectedCategory)
+  const categories = [
+    "all",
+    ...Array.from(new Set(faqs.map((faq) => faq.category))),
+  ];
+  const filteredFAQs =
+    selectedCategory === "all"
+      ? faqs
+      : faqs.filter((faq) => faq.category === selectedCategory);
 
   if (loading) {
     return (
@@ -64,7 +68,7 @@ export default function FAQClient() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -73,7 +77,7 @@ export default function FAQClient() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <p className="text-red-600">{error}</p>
-            <button 
+            <button
               onClick={fetchFAQs}
               className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
             >
@@ -82,7 +86,7 @@ export default function FAQClient() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -94,8 +98,12 @@ export default function FAQClient() {
             Frequently Asked Questions
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Find answers to common questions about StripeForm. Can't find what you're looking for? 
-            <a href="/contact" className="text-purple-600 hover:text-purple-700 ml-1">
+            Find answers to common questions about StripeForm. Can't find what
+            you're looking for?
+            <a
+              href="/contact"
+              className="text-purple-600 hover:text-purple-700 ml-1"
+            >
               Contact us
             </a>
           </p>
@@ -110,8 +118,8 @@ export default function FAQClient() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    ? "bg-purple-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
                 {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -130,7 +138,7 @@ export default function FAQClient() {
             filteredFAQs
               .sort((a, b) => a.order - b.order)
               .map((faq) => {
-                const isExpanded = expandedItems.has(faq.id)
+                const isExpanded = expandedItems.has(faq.id);
                 return (
                   <div
                     key={faq.id}
@@ -159,7 +167,7 @@ export default function FAQClient() {
                       </div>
                     )}
                   </div>
-                )
+                );
               })
           )}
         </div>
@@ -171,7 +179,8 @@ export default function FAQClient() {
               Still have questions?
             </h2>
             <p className="text-gray-600 mb-6">
-              Our support team is here to help you get the most out of StripeForm.
+              Our support team is here to help you get the most out of
+              StripeForm.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
@@ -191,6 +200,5 @@ export default function FAQClient() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

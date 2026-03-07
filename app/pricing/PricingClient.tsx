@@ -1,109 +1,115 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Check, Crown, Zap, Shield } from 'lucide-react'
-import { useAuth } from '@/components/providers/AuthProvider'
+import { useState } from "react";
+import { Check, Crown, Zap, Shield } from "lucide-react";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function PricingClient() {
-  const { user, isAuthenticated } = useAuth()
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+  const { user, isAuthenticated } = useAuth();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  const handleUpgrade = async (plan: 'pro_monthly' | 'pro_yearly' = 'pro_monthly') => {
-    setLoadingPlan(plan)
+  const handleUpgrade = async (
+    plan: "pro_monthly" | "pro_yearly" = "pro_monthly",
+  ) => {
+    setLoadingPlan(plan);
     try {
-      const envMonthly = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID
-      const envYearly = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID
-      const candidate = plan === 'pro_yearly' ? envYearly : envMonthly
-      const priceId = typeof candidate === 'string' && candidate.trim().length > 0 ? candidate : undefined
-      const resp = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const envMonthly = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID;
+      const envYearly = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID;
+      const candidate = plan === "pro_yearly" ? envYearly : envMonthly;
+      const priceId =
+        typeof candidate === "string" && candidate.trim().length > 0
+          ? candidate
+          : undefined;
+      const resp = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ plan, priceId }),
-      })
-      const data = await resp.json()
-      if (!resp.ok || !data?.url) throw new Error(data?.error || 'Failed to create checkout session')
-      window.location.href = data.url
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data?.url)
+        throw new Error(data?.error || "Failed to create checkout session");
+      window.location.href = data.url;
     } catch (error) {
-      console.error('Upgrade failed:', error)
+      console.error("Upgrade failed:", error);
     } finally {
-      setLoadingPlan(null)
+      setLoadingPlan(null);
     }
-  }
+  };
 
-  const isOnFree = !user || user.subscription_tier !== 'pro'
+  const isOnFree = !user || user.subscription_tier !== "pro";
 
   const plans = [
     {
-      name: 'Freemium',
-      planId: 'freemium',
-      price: '$0',
-      period: 'Free',
-      description: 'For guest users and new users',
+      name: "Freemium",
+      planId: "freemium",
+      price: "$0",
+      period: "Free",
+      description: "For guest users and new users",
       features: [
-        'Up to 5 published forms',
-        'Unlimited drafts',
-        'Basic form fields',
-        'Form responses',
-        'Basic analytics',
-        'Mobile responsive',
-        'Email support'
+        "Up to 5 published forms",
+        "Unlimited drafts",
+        "Basic form fields",
+        "Form responses",
+        "Basic analytics",
+        "Mobile responsive",
+        "Email support",
       ],
-      cta: isOnFree ? 'Current Plan' : 'Start Free',
+      cta: isOnFree ? "Current Plan" : "Start Free",
       disabled: true,
-      ctaAction: () => { },
+      ctaAction: () => {},
       popular: false,
-      icon: Zap
+      icon: Zap,
     },
     {
-      name: 'Pro Monthly',
-      planId: 'pro_monthly',
-      price: '$5',
-      period: 'per month',
-      description: 'For growing businesses',
+      name: "Pro Monthly",
+      planId: "pro_monthly",
+      price: "$5",
+      period: "per month",
+      description: "For growing businesses",
       features: [
-        'Unlimited form publishing',
-        'Advanced form fields',
-        'Custom branding',
-        'Advanced analytics',
-        'Payment integration',
-        'Conditional logic',
-        'API access',
-        'Priority support',
-        'Form templates',
-        'Data export'
+        "Unlimited form publishing",
+        "Advanced form fields",
+        "Custom branding",
+        "Advanced analytics",
+        "Payment integration",
+        "Conditional logic",
+        "API access",
+        "Priority support",
+        "Form templates",
+        "Data export",
       ],
-      cta: 'Upgrade to Pro',
-      ctaAction: () => handleUpgrade('pro_monthly'),
+      cta: "Upgrade to Pro",
+      ctaAction: () => handleUpgrade("pro_monthly"),
       popular: true,
-      icon: Crown
+      icon: Crown,
     },
     {
-      name: 'Pro Yearly',
-      planId: 'pro_yearly',
-      price: '$60',
-      period: 'per year',
-      description: 'Best value - 2 months free',
+      name: "Pro Yearly",
+      planId: "pro_yearly",
+      price: "$60",
+      period: "per year",
+      description: "Best value - 2 months free",
       features: [
-        'Everything in Pro Monthly',
-        'Unlimited form publishing',
-        'Advanced form fields',
-        'Custom branding',
-        'Advanced analytics',
-        'Payment integration',
-        'Conditional logic',
-        'API access',
-        'Priority support',
-        'Form templates',
-        'Data export',
-        '2 months free (compared to monthly)'
+        "Everything in Pro Monthly",
+        "Unlimited form publishing",
+        "Advanced form fields",
+        "Custom branding",
+        "Advanced analytics",
+        "Payment integration",
+        "Conditional logic",
+        "API access",
+        "Priority support",
+        "Form templates",
+        "Data export",
+        "2 months free (compared to monthly)",
       ],
-      cta: 'Upgrade to Pro',
-      ctaAction: () => handleUpgrade('pro_yearly'),
+      cta: "Upgrade to Pro",
+      ctaAction: () => handleUpgrade("pro_yearly"),
       popular: false,
-      icon: Shield
-    }
-  ]
+      icon: Shield,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white py-10">
@@ -111,21 +117,24 @@ export default function PricingClient() {
         {/* Header */}
         <div className="text-center mb-10">
           <p className="text-base text-gray-600 max-w-2xl mx-auto">
-            {isOnFree ? 'You are currently on the Free plan.' : 'You are on Pro.'}
+            {isOnFree
+              ? "You are currently on the Free plan."
+              : "You are on Pro."}
           </p>
         </div>
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {plans.map((plan) => {
-            const Icon = plan.icon
+            const Icon = plan.icon;
             return (
               <div
                 key={plan.name}
-                className={`relative bg-white rounded-lg shadow-lg p-4 ${plan.popular
-                    ? 'ring-2 ring-blue-500'
-                    : 'hover:shadow-xl transition-shadow'
-                  }`}
+                className={`relative bg-white rounded-lg shadow-lg p-4 ${
+                  plan.popular
+                    ? "ring-2 ring-blue-500"
+                    : "hover:shadow-xl transition-shadow"
+                }`}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -137,19 +146,33 @@ export default function PricingClient() {
 
                 <div className="text-center mb-6">
                   <div className="flex justify-center mb-3">
-                    <div className={`p-2 rounded-full ${plan.popular ? 'bg-blue-100' : 'bg-gray-100'
-                      }`}>
-                      <Icon className={`w-6 h-6 ${plan.popular ? 'text-blue-600' : 'text-gray-600'
-                        }`} />
+                    <div
+                      className={`p-2 rounded-full ${
+                        plan.popular ? "bg-blue-100" : "bg-gray-100"
+                      }`}
+                    >
+                      <Icon
+                        className={`w-6 h-6 ${
+                          plan.popular ? "text-blue-600" : "text-gray-600"
+                        }`}
+                      />
                     </div>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{plan.name}</h3>
-                  <p className="text-gray-500 text-xs mb-3">{plan.description}</p>
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    {plan.name}
+                  </h3>
+                  <p className="text-gray-500 text-xs mb-3">
+                    {plan.description}
+                  </p>
                   <div className="mb-3">
-                    <span className="text-2xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-500 ml-1 text-xs">{plan.period}</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {plan.price}
+                    </span>
+                    <span className="text-gray-500 ml-1 text-xs">
+                      {plan.period}
+                    </span>
                   </div>
-                  {plan.name === 'Freemium' && isOnFree && (
+                  {plan.name === "Freemium" && isOnFree && (
                     <div className="inline-block px-2 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
                       Current Plan
                     </div>
@@ -168,17 +191,18 @@ export default function PricingClient() {
                 <button
                   onClick={plan.ctaAction}
                   disabled={!!loadingPlan || plan.disabled}
-                  className={`w-full py-2 px-3 rounded-md font-semibold transition-all text-xs ${plan.disabled
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  className={`w-full py-2 px-3 rounded-md font-semibold transition-all text-xs ${
+                    plan.disabled
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                       : plan.popular
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-gray-900 text-white hover:bg-gray-800'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-900 text-white hover:bg-gray-800"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {loadingPlan === plan.planId ? 'Processing...' : plan.cta}
+                  {loadingPlan === plan.planId ? "Processing..." : plan.cta}
                 </button>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -193,7 +217,8 @@ export default function PricingClient() {
                 Can I change plans anytime?
               </h3>
               <p className="text-gray-600 text-xs">
-                Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                Yes! You can upgrade or downgrade your plan at any time. Changes
+                take effect immediately.
               </p>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm text-left">
@@ -201,7 +226,8 @@ export default function PricingClient() {
                 What happens to my forms if I downgrade?
               </h3>
               <p className="text-gray-600 text-xs">
-                Your existing forms remain active. You'll need to upgrade again to create new published forms beyond the free limit.
+                Your existing forms remain active. You'll need to upgrade again
+                to create new published forms beyond the free limit.
               </p>
             </div>
             <div className="bg-white rounded-lg p-4 shadow-sm text-left">
@@ -209,7 +235,8 @@ export default function PricingClient() {
                 Do you offer refunds?
               </h3>
               <p className="text-gray-600 text-xs">
-                We offer a 30-day money-back guarantee for all paid plans. No questions asked.
+                We offer a 30-day money-back guarantee for all paid plans. No
+                questions asked.
               </p>
             </div>
           </div>
@@ -222,17 +249,18 @@ export default function PricingClient() {
               Ready to create amazing forms?
             </h2>
             <p className="text-base mb-6 opacity-90">
-              Join thousands of users who trust StripeForm for their form building needs.
+              Join thousands of users who trust StripeForm for their form
+              building needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={() => window.location.href = '/register'}
+                onClick={() => (window.location.href = "/register")}
                 className="bg-white text-blue-600 px-5 py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors text-xs"
               >
                 Start Free Today
               </button>
               <button
-                onClick={() => window.location.href = '/contact'}
+                onClick={() => (window.location.href = "/contact")}
                 className="border-2 border-white text-white px-5 py-2 rounded-md font-semibold hover:bg-white hover:text-blue-600 transition-colors text-xs"
               >
                 Contact Sales
@@ -242,6 +270,5 @@ export default function PricingClient() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

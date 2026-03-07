@@ -1,149 +1,153 @@
-'use client'
+"use client";
 
-import React, { Suspense, useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { EyeIcon, EyeSlashIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
-import { useAuth } from '@/components/providers/AuthProvider'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PhoneInput } from '@/components/ui/PhoneInput'
-import { mapAuthError } from '@/lib/utils/auth-errors'
+import React, { Suspense, useState, useEffect } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ExclamationTriangleIcon,
+  CheckCircleIcon,
+} from "@heroicons/react/24/outline";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { mapAuthError } from "@/lib/utils/auth-errors";
 
 function RegisterPageInner() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [name, setName] = useState('')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [countryCode, setCountryCode] = useState('US')
-  const [isLoading, setIsLoading] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [success, setSuccess] = useState('')
-  const [passwordStrength, setPasswordStrength] = useState(0)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [countryCode, setCountryCode] = useState("US");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirectTo = searchParams?.get('redirect') || '/dashboard'
-  const { signUp, signInWithGoogle, signInWithGithub } = useAuth()
-
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams?.get("redirect") || "/dashboard";
+  const { signUp, signInWithGoogle, signInWithGithub } = useAuth();
 
   // Auto-detect country based on IP
   useEffect(() => {
     const detectCountry = async () => {
       try {
-        const response = await fetch('/api/geo-location')
+        const response = await fetch("/api/geo-location");
         if (response.ok) {
-          const data = await response.json()
-          setCountryCode(data.countryCode || 'US')
+          const data = await response.json();
+          setCountryCode(data.countryCode || "US");
         }
       } catch (error) {
-        console.error('Error detecting country:', error)
+        console.error("Error detecting country:", error);
         // Keep default US
       }
-    }
+    };
 
-    detectCountry()
-  }, [])
+    detectCountry();
+  }, []);
 
   // Check password strength
   useEffect(() => {
     if (password.length === 0) {
-      setPasswordStrength(0)
-      return
+      setPasswordStrength(0);
+      return;
     }
 
-    let strength = 0
-    if (password.length >= 8) strength++
-    if (/[a-z]/.test(password)) strength++
-    if (/[A-Z]/.test(password)) strength++
-    if (/[0-9]/.test(password)) strength++
-    if (/[^A-Za-z0-9]/.test(password)) strength++
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
 
-    setPasswordStrength(strength)
-  }, [password])
+    setPasswordStrength(strength);
+  }, [password]);
 
   const getPasswordStrengthColor = () => {
-    if (passwordStrength <= 2) return 'bg-red-500'
-    if (passwordStrength <= 3) return 'bg-yellow-500'
-    return 'bg-green-500'
-  }
+    if (passwordStrength <= 2) return "bg-red-500";
+    if (passwordStrength <= 3) return "bg-yellow-500";
+    return "bg-green-500";
+  };
 
   const getPasswordStrengthText = () => {
-    if (passwordStrength <= 2) return 'Weak'
-    if (passwordStrength <= 3) return 'Fair'
-    if (passwordStrength <= 4) return 'Good'
-    return 'Strong'
-  }
+    if (passwordStrength <= 2) return "Weak";
+    if (passwordStrength <= 3) return "Fair";
+    if (passwordStrength <= 4) return "Good";
+    return "Strong";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setErrors({})
-    setSuccess('')
+    e.preventDefault();
+    setErrors({});
+    setSuccess("");
 
     // Validation
     if (password !== confirmPassword) {
-      setErrors({ confirmPassword: 'Passwords do not match' })
-      return
+      setErrors({ confirmPassword: "Passwords do not match" });
+      return;
     }
 
     if (passwordStrength < 3) {
-      setErrors({ password: 'Password is too weak. Please use a stronger password.' })
-      return
+      setErrors({
+        password: "Password is too weak. Please use a stronger password.",
+      });
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
-      await signUp(email, password, name, phoneNumber, countryCode)
+      await signUp(email, password, name, phoneNumber, countryCode);
 
-      setSuccess('Account created successfully! Redirecting to dashboard...')
+      setSuccess("Account created successfully! Redirecting to dashboard...");
 
       setTimeout(() => {
-        router.push(redirectTo)
-      }, 500)
+        router.push(redirectTo);
+      }, 500);
     } catch (error: any) {
-      console.error('Registration failed:', error)
-      const mappedError = mapAuthError(error, 'email')
-      setErrors({ [mappedError.field]: mappedError.message })
+      console.error("Registration failed:", error);
+      const mappedError = mapAuthError(error, "email");
+      setErrors({ [mappedError.field]: mappedError.message });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
-      setErrors({})
-      setSuccess('')
-      await signInWithGoogle()
-      router.push(redirectTo)
+      setErrors({});
+      setSuccess("");
+      await signInWithGoogle();
+      router.push(redirectTo);
     } catch (error: any) {
-      const mappedError = mapAuthError(error, 'global')
-      setErrors({ [mappedError.field]: mappedError.message })
+      const mappedError = mapAuthError(error, "global");
+      setErrors({ [mappedError.field]: mappedError.message });
     }
-  }
+  };
 
   const handleGithubSignIn = async () => {
     try {
-      setErrors({})
-      setSuccess('')
-      await signInWithGithub()
-      router.push(redirectTo)
+      setErrors({});
+      setSuccess("");
+      await signInWithGithub();
+      router.push(redirectTo);
     } catch (error: any) {
-      const mappedError = mapAuthError(error, 'global')
-      setErrors({ [mappedError.field]: mappedError.message })
+      const mappedError = mapAuthError(error, "global");
+      setErrors({ [mappedError.field]: mappedError.message });
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-blue-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-
-      </div>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md"></div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <Card className="shadow-xl border-0">
@@ -156,10 +160,10 @@ function RegisterPageInner() {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {errors['global'] && (
+            {errors["global"] && (
               <Alert variant="destructive">
                 <ExclamationTriangleIcon className="h-4 w-4 text-red-600 mr-2" />
-                <AlertDescription>{errors['global']}</AlertDescription>
+                <AlertDescription>{errors["global"]}</AlertDescription>
               </Alert>
             )}
 
@@ -172,7 +176,10 @@ function RegisterPageInner() {
 
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Full Name
                 </label>
                 <Input
@@ -183,8 +190,9 @@ function RegisterPageInner() {
                   required
                   value={name}
                   onChange={(e) => {
-                    setName(e.target.value)
-                    if (errors.name) setErrors(prev => ({ ...prev, name: '' }))
+                    setName(e.target.value);
+                    if (errors.name)
+                      setErrors((prev) => ({ ...prev, name: "" }));
                   }}
                   placeholder="Enter your full name"
                   className="w-full"
@@ -192,12 +200,17 @@ function RegisterPageInner() {
                   error={!!errors.name}
                 />
                 {errors.name && (
-                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.name}</p>
+                  <p className="text-sm font-medium text-red-500 mt-1.5">
+                    {errors.name}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Email address
                 </label>
                 <Input
@@ -208,8 +221,9 @@ function RegisterPageInner() {
                   required
                   value={email}
                   onChange={(e) => {
-                    setEmail(e.target.value)
-                    if (errors.email) setErrors(prev => ({ ...prev, email: '' }))
+                    setEmail(e.target.value);
+                    if (errors.email)
+                      setErrors((prev) => ({ ...prev, email: "" }));
                   }}
                   placeholder="Enter your email"
                   className="w-full"
@@ -217,21 +231,27 @@ function RegisterPageInner() {
                   error={!!errors.email}
                 />
                 {errors.email && (
-                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.email}</p>
+                  <p className="text-sm font-medium text-red-500 mt-1.5">
+                    {errors.email}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Phone Number
                 </label>
                 <PhoneInput
                   value={phoneNumber}
                   countryCode={countryCode}
                   onChange={(phone, country) => {
-                    setPhoneNumber(phone)
-                    setCountryCode(country)
-                    if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }))
+                    setPhoneNumber(phone);
+                    setCountryCode(country);
+                    if (errors.phone)
+                      setErrors((prev) => ({ ...prev, phone: "" }));
                   }}
                   placeholder="Enter your phone number"
                   disabled={isLoading}
@@ -239,25 +259,31 @@ function RegisterPageInner() {
                   error={!!errors.phone}
                 />
                 {errors.phone && (
-                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.phone}</p>
+                  <p className="text-sm font-medium text-red-500 mt-1.5">
+                    {errors.phone}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <Input
                     id="password"
                     name="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     required
                     value={password}
                     onChange={(e) => {
-                      setPassword(e.target.value)
-                      if (errors.password) setErrors(prev => ({ ...prev, password: '' }))
+                      setPassword(e.target.value);
+                      if (errors.password)
+                        setErrors((prev) => ({ ...prev, password: "" }));
                     }}
                     placeholder="Create a strong password"
                     className="w-full pr-10"
@@ -283,7 +309,9 @@ function RegisterPageInner() {
                   <div className="mt-2">
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                       <span>Password strength:</span>
-                      <span className={`px-2 py-1 rounded text-white text-xs ${getPasswordStrengthColor()}`}>
+                      <span
+                        className={`px-2 py-1 rounded text-white text-xs ${getPasswordStrengthColor()}`}
+                      >
                         {getPasswordStrengthText()}
                       </span>
                     </div>
@@ -296,25 +324,31 @@ function RegisterPageInner() {
                   </div>
                 )}
                 {errors.password && (
-                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.password}</p>
+                  <p className="text-sm font-medium text-red-500 mt-1.5">
+                    {errors.password}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Confirm Password
                 </label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
+                    type={showConfirmPassword ? "text" : "password"}
                     autoComplete="new-password"
                     required
                     value={confirmPassword}
                     onChange={(e) => {
-                      setConfirmPassword(e.target.value)
-                      if (errors.confirmPassword) setErrors(prev => ({ ...prev, confirmPassword: '' }))
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword)
+                        setErrors((prev) => ({ ...prev, confirmPassword: "" }));
                     }}
                     placeholder="Confirm your password"
                     className="w-full pr-10"
@@ -335,7 +369,9 @@ function RegisterPageInner() {
                   </button>
                 </div>
                 {errors.confirmPassword && (
-                  <p className="text-sm font-medium text-red-500 mt-1.5">{errors.confirmPassword}</p>
+                  <p className="text-sm font-medium text-red-500 mt-1.5">
+                    {errors.confirmPassword}
+                  </p>
                 )}
               </div>
 
@@ -348,13 +384,22 @@ function RegisterPageInner() {
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   disabled={isLoading}
                 />
-                <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-blue-600 hover:text-blue-500">
+                <label
+                  htmlFor="terms"
+                  className="ml-2 block text-sm text-gray-900"
+                >
+                  I agree to the{" "}
+                  <Link
+                    href="/terms"
+                    className="text-blue-600 hover:text-blue-500"
+                  >
                     Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="text-blue-600 hover:text-blue-500">
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    className="text-blue-600 hover:text-blue-500"
+                  >
                     Privacy Policy
                   </Link>
                 </label>
@@ -365,7 +410,7 @@ function RegisterPageInner() {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating account...' : 'Create account'}
+                {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>
 
@@ -375,7 +420,9 @@ function RegisterPageInner() {
                   <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                  <span className="px-2 bg-white text-gray-500">
+                    Or continue with
+                  </span>
                 </div>
               </div>
 
@@ -388,10 +435,22 @@ function RegisterPageInner() {
                   className="w-full"
                 >
                   <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
                   </svg>
                   Google
                 </Button>
@@ -403,7 +462,11 @@ function RegisterPageInner() {
                   disabled={isLoading}
                   className="w-full"
                 >
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                   </svg>
                   GitHub
@@ -413,8 +476,11 @@ function RegisterPageInner() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link href="/login" className="font-medium text-blue-600 hover:text-blue-700">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="font-medium text-blue-600 hover:text-blue-700"
+                >
                   Sign in here
                 </Link>
               </p>
@@ -423,7 +489,7 @@ function RegisterPageInner() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
 export default function RegisterPage() {
@@ -431,5 +497,5 @@ export default function RegisterPage() {
     <Suspense fallback={null}>
       <RegisterPageInner />
     </Suspense>
-  )
+  );
 }

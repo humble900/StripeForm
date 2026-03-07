@@ -2,44 +2,45 @@ export const getStructuredData = () => {
   return {
     "@context": "https://schema.org",
     "@type": "WebApplication",
-    "name": "StripeForm",
-    "description": "Design forms people love to fill. Create beautiful, interactive forms that get higher response rates. No coding required.",
-    "url": "https://stripeform.app",
-    "applicationCategory": "ProductivityApplication",
-    "operatingSystem": "Web Browser",
-    "browserRequirements": "Requires JavaScript. Requires HTML5.",
-    "offers": [
+    name: "StripeForm",
+    description:
+      "Design forms people love to fill. Create beautiful, interactive forms that get higher response rates. No coding required.",
+    url: "https://stripeform.app",
+    applicationCategory: "ProductivityApplication",
+    operatingSystem: "Web Browser",
+    browserRequirements: "Requires JavaScript. Requires HTML5.",
+    offers: [
       {
         "@type": "Offer",
-        "name": "Free Plan",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "Up to 5 published forms with basic features"
+        name: "Free Plan",
+        price: "0",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        description: "Up to 5 published forms with basic features",
       },
       {
         "@type": "Offer",
-        "name": "Pro Plan",
-        "price": "19",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "Unlimited forms with advanced features"
-      }
+        name: "Pro Plan",
+        price: "19",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        description: "Unlimited forms with advanced features",
+      },
     ],
-    "author": {
+    author: {
       "@type": "Organization",
-      "name": "StripeForm",
-      "url": "https://stripeform.app"
+      name: "StripeForm",
+      url: "https://stripeform.app",
     },
-    "creator": {
+    creator: {
       "@type": "Organization",
-      "name": "StripeForm"
+      name: "StripeForm",
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": "StripeForm"
+      name: "StripeForm",
     },
-    "featureList": [
+    featureList: [
       "Drag and drop form builder",
       "Interactive form elements",
       "Real-time form preview",
@@ -53,179 +54,181 @@ export const getStructuredData = () => {
       "Conditional logic",
       "API access",
       "Team collaboration",
-      "Advanced security"
+      "Advanced security",
     ],
-    "screenshot": "https://stripeform.app/screenshot-wide.png",
-    "softwareVersion": "1.0.0",
-    "datePublished": "2024-01-01",
-    "dateModified": new Date().toISOString().split('T')[0],
-    "aggregateRating": {
+    screenshot: "https://stripeform.app/screenshot-wide.png",
+    softwareVersion: "1.0.0",
+    datePublished: "2024-01-01",
+    dateModified: new Date().toISOString().split("T")[0],
+    aggregateRating: {
       "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "ratingCount": "150",
-      "bestRating": "5",
-      "worstRating": "1"
+      ratingValue: "4.8",
+      ratingCount: "150",
+      bestRating: "5",
+      worstRating: "1",
     },
-    "review": [
+    review: [
       {
         "@type": "Review",
-        "author": {
+        author: {
           "@type": "Person",
-          "name": "Sarah Johnson"
+          name: "Sarah Johnson",
         },
-        "reviewRating": {
+        reviewRating: {
           "@type": "Rating",
-          "ratingValue": "5",
-          "bestRating": "5"
+          ratingValue: "5",
+          bestRating: "5",
         },
-        "reviewBody": "StripeForm has revolutionized how we collect data. The interface is intuitive and the forms look professional."
-      }
-    ]
-  }
-}
+        reviewBody:
+          "StripeForm has revolutionized how we collect data. The interface is intuitive and the forms look professional.",
+      },
+    ],
+  };
+};
 
 export const getOrganizationData = () => {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "StripeForm",
-    "url": "https://stripeform.app",
-    "logo": "https://stripeform.app/logo.png",
-    "description": "Create beautiful, interactive forms that get higher response rates.",
-    "foundingDate": "2024",
-    "sameAs": [
+    name: "StripeForm",
+    url: "https://stripeform.app",
+    logo: "https://stripeform.app/logo.png",
+    description:
+      "Create beautiful, interactive forms that get higher response rates.",
+    foundingDate: "2024",
+    sameAs: [
       "https://twitter.com/stripeform",
       "https://linkedin.com/company/stripeform",
-      "https://github.com/stripeform"
+      "https://github.com/stripeform",
     ],
-    "contactPoint": {
+    contactPoint: {
       "@type": "ContactPoint",
-      "contactType": "customer service",
-      "email": "support@stripeform.app"
-    }
-  }
-}
+      contactType: "customer service",
+      email: "support@stripeform.app",
+    },
+  };
+};
 
 export const getBreadcrumbData = (path: string) => {
-  const segments = path.split('/').filter(Boolean)
+  const segments = path.split("/").filter(Boolean);
   const breadcrumbs = [
     {
       "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "https://stripeform.app"
-    }
-  ]
+      position: 1,
+      name: "Home",
+      item: "https://stripeform.app",
+    },
+  ];
 
-  let currentPath = ""
+  let currentPath = "";
   segments.forEach((segment, index) => {
-    currentPath += `/${segment}`
+    currentPath += `/${segment}`;
     breadcrumbs.push({
       "@type": "ListItem",
-      "position": index + 2,
-      "name": segment.charAt(0).toUpperCase() + segment.slice(1),
-      "item": `https://stripeform.app${currentPath}`
-    })
-  })
+      position: index + 2,
+      name: segment.charAt(0).toUpperCase() + segment.slice(1),
+      item: `https://stripeform.app${currentPath}`,
+    });
+  });
 
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    "itemListElement": breadcrumbs
-  }
-}
+    itemListElement: breadcrumbs,
+  };
+};
 
 export const getFAQStructuredData = (faqs: any[]) => {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    "mainEntity": faqs.map(faq => ({
+    mainEntity: faqs.map((faq) => ({
       "@type": "Question",
-      "name": faq.question,
-      "acceptedAnswer": {
+      name: faq.question,
+      acceptedAnswer: {
         "@type": "Answer",
-        "text": faq.answer
-      }
-    }))
-  }
-}
+        text: faq.answer,
+      },
+    })),
+  };
+};
 
 export const getPricingStructuredData = () => {
   return {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "StripeForm Pro",
-    "description": "Professional form builder with unlimited forms and advanced features",
-    "brand": {
+    name: "StripeForm Pro",
+    description:
+      "Professional form builder with unlimited forms and advanced features",
+    brand: {
       "@type": "Brand",
-      "name": "StripeForm"
+      name: "StripeForm",
     },
-    "offers": [
+    offers: [
       {
         "@type": "Offer",
-        "name": "Free Plan",
-        "price": "0",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "Up to 5 published forms with basic features",
-        "priceValidUntil": "2025-12-31"
+        name: "Free Plan",
+        price: "0",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        description: "Up to 5 published forms with basic features",
+        priceValidUntil: "2025-12-31",
       },
       {
         "@type": "Offer",
-        "name": "Pro Plan",
-        "price": "19",
-        "priceCurrency": "USD",
-        "availability": "https://schema.org/InStock",
-        "description": "Unlimited forms with advanced features",
-        "priceValidUntil": "2025-12-31",
-        "billingIncrement": "P1M"
-      }
-    ]
-  }
-}
+        name: "Pro Plan",
+        price: "19",
+        priceCurrency: "USD",
+        availability: "https://schema.org/InStock",
+        description: "Unlimited forms with advanced features",
+        priceValidUntil: "2025-12-31",
+        billingIncrement: "P1M",
+      },
+    ],
+  };
+};
 
 export const getContactStructuredData = () => {
   return {
     "@context": "https://schema.org",
     "@type": "ContactPage",
-    "name": "Contact StripeForm",
-    "description": "Get in touch with our team for support, sales inquiries, or partnership opportunities",
-    "mainEntity": {
+    name: "Contact StripeForm",
+    description:
+      "Get in touch with our team for support, sales inquiries, or partnership opportunities",
+    mainEntity: {
       "@type": "Organization",
-      "name": "StripeForm",
-      "contactPoint": [
+      name: "StripeForm",
+      contactPoint: [
         {
           "@type": "ContactPoint",
-          "contactType": "customer service",
-          "email": "support@stripeform.app",
-          "availableLanguage": "English",
-          "areaServed": "Worldwide",
-          "hoursAvailable": {
+          contactType: "customer service",
+          email: "support@stripeform.app",
+          availableLanguage: "English",
+          areaServed: "Worldwide",
+          hoursAvailable: {
             "@type": "OpeningHoursSpecification",
-            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-            "opens": "09:00",
-            "closes": "18:00"
-          }
+            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            opens: "09:00",
+            closes: "18:00",
+          },
         },
         {
           "@type": "ContactPoint",
-          "contactType": "sales",
-          "email": "sales@stripeform.app",
-          "availableLanguage": "English",
-          "areaServed": "Worldwide"
+          contactType: "sales",
+          email: "sales@stripeform.app",
+          availableLanguage: "English",
+          areaServed: "Worldwide",
         },
         {
           "@type": "ContactPoint",
-          "contactType": "customer service",
-          "telephone": "+1-555-0123",
-          "contactOption": "TollFree",
-          "availableLanguage": "English",
-          "areaServed": "Worldwide"
-        }
+          contactType: "customer service",
+          telephone: "+1-555-0123",
+          contactOption: "TollFree",
+          availableLanguage: "English",
+          areaServed: "Worldwide",
+        },
       ],
-      "sameAs": [
-        "https://wa.me/message/AU6WGM7HEG63M1"
-      ]
-    }
-  }
-} 
+      sameAs: ["https://wa.me/message/AU6WGM7HEG63M1"],
+    },
+  };
+};

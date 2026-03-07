@@ -1,8 +1,8 @@
-'use client'
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react'
-import { FormField, FieldType } from '@/types'
-import { useFormBuilder } from '@/components/providers/FormBuilderProvider'
+import React, { useState, useRef, useEffect } from "react";
+import { FormField, FieldType } from "@/types";
+import { useFormBuilder } from "@/components/providers/FormBuilderProvider";
 import {
   CheckIcon,
   XMarkIcon,
@@ -32,189 +32,312 @@ import {
   HandRaisedIcon,
   PencilIcon,
   ShieldCheckIcon,
-  LinkIcon
-} from '@heroicons/react/24/outline'
-import { getCountryRegionMeta } from '@/data/iso_regions'
-import { ImageUploader } from '@/components/upload/ImageUploader'
-import { FileUploader } from '@/components/upload/FileUploader'
-import { VideoUploader } from '@/components/upload/VideoUploader'
-import { uploadToSupabase, simulatedUpload } from '@/lib/uploadHandler'
-import { loadAllCountries, loadRegionsForCountry, loadAllCountriesWithCodes, countryCodeToFlag } from '@/data/region_loader'
+  LinkIcon,
+} from "@heroicons/react/24/outline";
+import { getCountryRegionMeta } from "@/data/iso_regions";
+import { ImageUploader } from "@/components/upload/ImageUploader";
+import { FileUploader } from "@/components/upload/FileUploader";
+import { VideoUploader } from "@/components/upload/VideoUploader";
+import { uploadToSupabase, simulatedUpload } from "@/lib/uploadHandler";
+import {
+  loadAllCountries,
+  loadRegionsForCountry,
+  loadAllCountriesWithCodes,
+  countryCodeToFlag,
+} from "@/data/region_loader";
 
 interface FieldComponentProps {
-  field: FormField
-  value?: any
-  onChange?: (value: any) => void
-  onBlur?: () => void
-  error?: string
-  isPreview?: boolean
-  disabled?: boolean
-  showLabel?: boolean
+  field: FormField;
+  value?: any;
+  onChange?: (value: any) => void;
+  onBlur?: () => void;
+  error?: string;
+  isPreview?: boolean;
+  disabled?: boolean;
+  showLabel?: boolean;
 }
 
-export function FieldComponent({ field, value, onChange, onBlur, error, isPreview = false, disabled = false, showLabel = true }: FieldComponentProps) {
-  const [isFocused, setIsFocused] = useState(false)
-  const [localValue, setLocalValue] = useState(value || '')
-  const inputRef = useRef<HTMLInputElement>(null)
-  const { updateField, selectField } = useFormBuilder()
-  const [activeMatrixRow, setActiveMatrixRow] = useState<number | null>(null)
-  const [activeMatrixCol, setActiveMatrixCol] = useState<number | null>(null)
+export function FieldComponent({
+  field,
+  value,
+  onChange,
+  onBlur,
+  error,
+  isPreview = false,
+  disabled = false,
+  showLabel = true,
+}: FieldComponentProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [localValue, setLocalValue] = useState(value || "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { updateField, selectField } = useFormBuilder();
+  const [activeMatrixRow, setActiveMatrixRow] = useState<number | null>(null);
+  const [activeMatrixCol, setActiveMatrixCol] = useState<number | null>(null);
 
   // Unified input styling per design spec
-  const baseInputClasses = 'w-full h-[46px] px-4 border rounded-[14px] transition-all duration-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] dark:bg-[#1E1E1E] dark:text-gray-100 dark:placeholder:text-gray-500 dark:border-[#333] text-sm'
-  const neutralBorderClass = 'border-gray-200 dark:border-[#333]'
+  const baseInputClasses =
+    "w-full h-[46px] px-4 border rounded-[14px] transition-all duration-200 bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] dark:bg-[#1E1E1E] dark:text-gray-100 dark:placeholder:text-gray-500 dark:border-[#333] text-sm";
+  const neutralBorderClass = "border-gray-200 dark:border-[#333]";
 
   useEffect(() => {
-    setLocalValue(value || '')
-  }, [value])
+    setLocalValue(value || "");
+  }, [value]);
 
   // ── Keyboard Shortcuts (Typeform-style) ──
   // Y/N for Yes/No, A-Z for Multiple Choice, 1-9 for Rating/NPS
   useEffect(() => {
-    if (isPreview || disabled) return
+    if (isPreview || disabled) return;
     const handler = (e: KeyboardEvent) => {
       // Skip if user is typing in an input/textarea
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      const key = e.key.toLowerCase()
-      const fieldType = field.type
+      const key = e.key.toLowerCase();
+      const fieldType = field.type;
 
-      if (fieldType === 'yes_no') {
-        if (key === 'y') { handleChange('yes'); e.preventDefault() }
-        else if (key === 'n') { handleChange('no'); e.preventDefault() }
-      }
-
-      if ((fieldType === 'multiple_choice' || fieldType === 'radio' || fieldType === 'dropdown') && field.options?.length) {
-        const idx = key.charCodeAt(0) - 97 // a=0, b=1, c=2...
-        if (idx >= 0 && idx < field.options.length) {
-          handleChange(field.options[idx])
-          e.preventDefault()
+      if (fieldType === "yes_no") {
+        if (key === "y") {
+          handleChange("yes");
+          e.preventDefault();
+        } else if (key === "n") {
+          handleChange("no");
+          e.preventDefault();
         }
       }
 
-      if ((fieldType === 'star_rating' || fieldType === 'rating') && key >= '1' && key <= '9') {
-        const max = (field.settings as any)?.maxRating || 5
-        const num = parseInt(key)
-        if (num <= max) { handleChange(num); e.preventDefault() }
+      if (
+        (fieldType === "multiple_choice" ||
+          fieldType === "radio" ||
+          fieldType === "dropdown") &&
+        field.options?.length
+      ) {
+        const idx = key.charCodeAt(0) - 97; // a=0, b=1, c=2...
+        if (idx >= 0 && idx < field.options.length) {
+          handleChange(field.options[idx]);
+          e.preventDefault();
+        }
       }
 
-      if ((fieldType === 'nps' || fieldType === 'nps_score') && key >= '0' && key <= '9') {
-        handleChange(parseInt(key))
-        e.preventDefault()
+      if (
+        (fieldType === "star_rating" || fieldType === "rating") &&
+        key >= "1" &&
+        key <= "9"
+      ) {
+        const max = (field.settings as any)?.maxRating || 5;
+        const num = parseInt(key);
+        if (num <= max) {
+          handleChange(num);
+          e.preventDefault();
+        }
       }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [field.type, field.options, isPreview, disabled])
+
+      if (
+        (fieldType === "nps" || fieldType === "nps_score") &&
+        key >= "0" &&
+        key <= "9"
+      ) {
+        handleChange(parseInt(key));
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [field.type, field.options, isPreview, disabled]);
 
   const handleChange = (newValue: any) => {
-    setLocalValue(newValue)
-    onChange?.(newValue)
-  }
+    setLocalValue(newValue);
+    onChange?.(newValue);
+  };
 
   const getFieldIcon = (type: FieldType) => {
     switch (type) {
-      case 'email': return <EnvelopeIcon className="w-5 h-5" />
-      case 'phone': return <PhoneIcon className="w-5 h-5" />
-      case 'url': return <GlobeAltIcon className="w-5 h-5" />
-      case 'date': return <CalendarIcon className="w-5 h-5" />
-      case 'time': return <ClockIcon className="w-5 h-5" />
-      case 'location': return <MapPinIcon className="w-5 h-5" />
-      case 'name': return <UserIcon className="w-5 h-5" />
-      case 'password': return <LockClosedIcon className="w-5 h-5" />
-      case 'payment': return <CurrencyDollarIcon className="w-5 h-5" />
-      case 'file_upload': return <DocumentIcon className="w-5 h-5" />
-      case 'image_upload': return <PhotoIcon className="w-5 h-5" />
-      case 'signature_upload': return <PencilIcon className="w-5 h-5" />
-      case 'rating': return <StarIcon className="w-5 h-5" />
-      case 'star_rating': return <StarIcon className="w-5 h-5" />
-      case 'nps': return <ChatBubbleLeftRightIcon className="w-5 h-5" />
-      case 'likert': return <Bars3Icon className="w-5 h-5" />
-      case 'matrix_grid': return <Squares2X2Icon className="w-5 h-5" />
-      case 'ranking': return <ListBulletIcon className="w-5 h-5" />
-      case 'yes_no': return <HandRaisedIcon className="w-5 h-5" />
-      case 'captcha': return <ShieldCheckIcon className="w-5 h-5" />
-      case 'statement': return <ChatBubbleLeftRightIcon className="w-5 h-5" />
-      case 'legal': return <ShieldCheckIcon className="w-5 h-5" />
-      case 'contact_info': return <UserIcon className="w-5 h-5" />
-      default: return null
+      case "email":
+        return <EnvelopeIcon className="w-5 h-5" />;
+      case "phone":
+        return <PhoneIcon className="w-5 h-5" />;
+      case "url":
+        return <GlobeAltIcon className="w-5 h-5" />;
+      case "date":
+        return <CalendarIcon className="w-5 h-5" />;
+      case "time":
+        return <ClockIcon className="w-5 h-5" />;
+      case "location":
+        return <MapPinIcon className="w-5 h-5" />;
+      case "name":
+        return <UserIcon className="w-5 h-5" />;
+      case "password":
+        return <LockClosedIcon className="w-5 h-5" />;
+      case "payment":
+        return <CurrencyDollarIcon className="w-5 h-5" />;
+      case "file_upload":
+        return <DocumentIcon className="w-5 h-5" />;
+      case "image_upload":
+        return <PhotoIcon className="w-5 h-5" />;
+      case "signature_upload":
+        return <PencilIcon className="w-5 h-5" />;
+      case "rating":
+        return <StarIcon className="w-5 h-5" />;
+      case "star_rating":
+        return <StarIcon className="w-5 h-5" />;
+      case "nps":
+        return <ChatBubbleLeftRightIcon className="w-5 h-5" />;
+      case "likert":
+        return <Bars3Icon className="w-5 h-5" />;
+      case "matrix_grid":
+        return <Squares2X2Icon className="w-5 h-5" />;
+      case "ranking":
+        return <ListBulletIcon className="w-5 h-5" />;
+      case "yes_no":
+        return <HandRaisedIcon className="w-5 h-5" />;
+      case "captcha":
+        return <ShieldCheckIcon className="w-5 h-5" />;
+      case "statement":
+        return <ChatBubbleLeftRightIcon className="w-5 h-5" />;
+      case "legal":
+        return <ShieldCheckIcon className="w-5 h-5" />;
+      case "contact_info":
+        return <UserIcon className="w-5 h-5" />;
+      default:
+        return null;
     }
-  }
+  };
 
-  function RegionAuto({ country, value, onChange, inputCls, required }: { country?: string; value: string; onChange: (v: string) => void; inputCls: string; required: boolean }) {
-    const [options, setOptions] = useState<{ name: string; shortCode?: string }[] | null>(null)
+  function RegionAuto({
+    country,
+    value,
+    onChange,
+    inputCls,
+    required,
+  }: {
+    country?: string;
+    value: string;
+    onChange: (v: string) => void;
+    inputCls: string;
+    required: boolean;
+  }) {
+    const [options, setOptions] = useState<
+      { name: string; shortCode?: string }[] | null
+    >(null);
     useEffect(() => {
-      if (!country) { setOptions(null); return }
-      loadRegionsForCountry(country).then((regions) => setOptions(regions || []))
-    }, [country])
+      if (!country) {
+        setOptions(null);
+        return;
+      }
+      loadRegionsForCountry(country).then((regions) =>
+        setOptions(regions || []),
+      );
+    }, [country]);
     if (options && options.length > 0) {
       return (
-        <select id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} required={required}>
+        <select
+          id={`${field.id}-region`}
+          name={`${field.id}-region`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={inputCls}
+          required={required}
+        >
           <option value="">Select region</option>
           {options.map((r) => (
-            <option key={r.shortCode || r.name} value={r.name}>{r.name}</option>
+            <option key={r.shortCode || r.name} value={r.name}>
+              {r.name}
+            </option>
           ))}
         </select>
-      )
+      );
     }
     return (
-      <input id={`${field.id}-region`} name={`${field.id}-region`} value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} placeholder="Region" required={required} />
-    )
+      <input
+        id={`${field.id}-region`}
+        name={`${field.id}-region`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={inputCls}
+        placeholder="Region"
+        required={required}
+      />
+    );
   }
 
   const renderField = () => {
     switch (field.type) {
-      case 'cover_slide': {
+      case "cover_slide": {
         if (isPreview) {
           return (
             <div className="rounded-[12px] border border-gray-200 overflow-hidden">
               <div className="h-24 bg-gray-200" />
               <div className="p-3">
-                <div className="text-sm font-semibold text-gray-800">Cover Slide</div>
-                <div className="text-xs text-gray-500">Your catchy subtitle goes here</div>
+                <div className="text-sm font-semibold text-gray-800">
+                  Cover Slide
+                </div>
+                <div className="text-xs text-gray-500">
+                  Your catchy subtitle goes here
+                </div>
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="relative rounded-[12px] overflow-hidden border border-gray-200">
             <div className="h-32 bg-gray-100" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             <div className="absolute bottom-3 left-3 right-3 text-white">
-              <div className="text-lg font-semibold truncate">{(field.settings as any)?.coverTitle || 'Welcome'}</div>
-              <div className="text-xs opacity-90">{(field.settings as any)?.coverSubtitle || 'Let’s get started'}</div>
+              <div className="text-lg font-semibold truncate">
+                {(field.settings as any)?.coverTitle || "Welcome"}
+              </div>
+              <div className="text-xs opacity-90">
+                {(field.settings as any)?.coverSubtitle || "Let’s get started"}
+              </div>
               <div className="mt-2">
-                <button disabled className="px-3 py-1.5 bg-white/90 text-gray-900 rounded-full text-xs">{(field.settings as any)?.coverCtaText || 'Start'}</button>
+                <button
+                  disabled
+                  className="px-3 py-1.5 bg-white/90 text-gray-900 rounded-full text-xs"
+                >
+                  {(field.settings as any)?.coverCtaText || "Start"}
+                </button>
               </div>
             </div>
           </div>
-        )
+        );
       }
 
-      case 'end_page': {
+      case "end_page": {
         if (isPreview) {
           return (
             <div className="rounded-[12px] border border-gray-200 p-3 text-left">
-              <div className="text-sm font-semibold text-gray-800">End Screen</div>
-              <div className="text-xs text-gray-500">Thanks for completing the form.</div>
+              <div className="text-sm font-semibold text-gray-800">
+                End Screen
+              </div>
+              <div className="text-xs text-gray-500">
+                Thanks for completing the form.
+              </div>
             </div>
-          )
+          );
         }
         return (
           <div className="rounded-[12px] border border-gray-200 p-4 text-center">
-            <div className="text-lg font-semibold text-gray-900">{(field.settings as any)?.endTitle || 'Thank you!'}</div>
-            <div className="text-sm text-gray-600 mt-1">{(field.settings as any)?.endSubtitle || 'We appreciate your time.'}</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {(field.settings as any)?.endTitle || "Thank you!"}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">
+              {(field.settings as any)?.endSubtitle ||
+                "We appreciate your time."}
+            </div>
             {(field.settings as any)?.endButtonText && (
               <div className="mt-3">
-                <button disabled className="px-3 py-1.5 bg-gray-900 text-white rounded-full text-xs">{(field.settings as any)?.endButtonText}</button>
+                <button
+                  disabled
+                  className="px-3 py-1.5 bg-gray-900 text-white rounded-full text-xs"
+                >
+                  {(field.settings as any)?.endButtonText}
+                </button>
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'url_redirect': {
+      case "url_redirect": {
         if (isPreview) {
           return (
             <div className="rounded-[12px] border border-gray-200 p-3 text-left">
@@ -224,23 +347,41 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               </div>
               <div className="text-xs text-gray-500">Enter target URL</div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-1">
             <label className="text-[12px] text-gray-600">Target URL</label>
-            <input type="url" id={`${field.id}-url`} name={`${field.id}-url`} disabled className={`${baseInputClasses} ${neutralBorderClass}`} placeholder={(field.settings as any)?.redirectUrl || 'https://example.com/thank-you'} />
-            <div className="text-[11px] text-gray-500">User will be redirected after this step.</div>
+            <input
+              type="url"
+              id={`${field.id}-url`}
+              name={`${field.id}-url`}
+              disabled
+              className={`${baseInputClasses} ${neutralBorderClass}`}
+              placeholder={
+                (field.settings as any)?.redirectUrl ||
+                "https://example.com/thank-you"
+              }
+            />
+            <div className="text-[11px] text-gray-500">
+              User will be redirected after this step.
+            </div>
           </div>
-        )
+        );
       }
-      case 'name': {
-        const current = (typeof localValue === 'object' && localValue) ? localValue as any : { first: '', last: '' }
-        const setPart = (key: 'first' | 'last', v: string) => {
-          const formatted = v.replace(/\s+/g, ' ').replace(/^\s+/, '')
-          const updated = { ...current, [key]: formatted.charAt(0).toUpperCase() + formatted.slice(1) }
-          handleChange(updated)
-        }
+      case "name": {
+        const current =
+          typeof localValue === "object" && localValue
+            ? (localValue as any)
+            : { first: "", last: "" };
+        const setPart = (key: "first" | "last", v: string) => {
+          const formatted = v.replace(/\s+/g, " ").replace(/^\s+/, "");
+          const updated = {
+            ...current,
+            [key]: formatted.charAt(0).toUpperCase() + formatted.slice(1),
+          };
+          handleChange(updated);
+        };
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
@@ -248,11 +389,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="text"
                 id={`${field.id}-first`}
                 name={`${field.id}-first`}
-                value={current.first || ''}
-                onChange={(e) => setPart('first', e.target.value)}
+                value={current.first || ""}
+                onChange={(e) => setPart("first", e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'First name'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "First name"}
                 disabled={disabled}
                 className={`${baseInputClasses} ${neutralBorderClass}`}
                 required={field.required}
@@ -264,11 +408,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="text"
                 id={`${field.id}-last`}
                 name={`${field.id}-last`}
-                value={current.last || ''}
-                onChange={(e) => setPart('last', e.target.value)}
+                value={current.last || ""}
+                onChange={(e) => setPart("last", e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={'Last name'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={"Last name"}
                 disabled={disabled}
                 className={`${baseInputClasses} ${neutralBorderClass}`}
                 required={field.required}
@@ -276,35 +423,62 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               />
             </div>
           </div>
-        )
+        );
       }
 
-      case 'phone': {
-        const [countries, setCountries] = useState<{ name: string; code?: string }[]>([])
-        const [countryCode, setCountryCode] = useState<string>(() => (typeof localValue === 'object' && (localValue as any)?.country) ? (localValue as any).country : 'US')
-        const rawNumber: string = (typeof localValue === 'object' && (localValue as any)?.number) ? String((localValue as any).number) : (typeof localValue === 'string' ? localValue : '')
+      case "phone": {
+        const [countries, setCountries] = useState<
+          { name: string; code?: string }[]
+        >([]);
+        const [countryCode, setCountryCode] = useState<string>(() =>
+          typeof localValue === "object" && (localValue as any)?.country
+            ? (localValue as any).country
+            : "US",
+        );
+        const rawNumber: string =
+          typeof localValue === "object" && (localValue as any)?.number
+            ? String((localValue as any).number)
+            : typeof localValue === "string"
+              ? localValue
+              : "";
 
         useEffect(() => {
-          loadAllCountriesWithCodes().then(setCountries).catch(() => setCountries([]))
-        }, [])
+          loadAllCountriesWithCodes()
+            .then(setCountries)
+            .catch(() => setCountries([]));
+        }, []);
 
-        const DIAL: Record<string, string> = { US: '+1', CA: '+1', GB: '+44', AU: '+61', IN: '+91', NG: '+234', ZA: '+27' }
-        const dial = DIAL[countryCode] || '+'
+        const DIAL: Record<string, string> = {
+          US: "+1",
+          CA: "+1",
+          GB: "+44",
+          AU: "+61",
+          IN: "+91",
+          NG: "+234",
+          ZA: "+27",
+        };
+        const dial = DIAL[countryCode] || "+";
 
-        const onlyDigits = (s: string) => s.replace(/\D/g, '')
+        const onlyDigits = (s: string) => s.replace(/\D/g, "");
         const formatPhone = (digits: string) => {
-          if (digits.length <= 3) return digits
-          if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`
-          return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`
-        }
+          if (digits.length <= 3) return digits;
+          if (digits.length <= 6)
+            return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+          return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 10)}`;
+        };
 
         const setNumber = (v: string) => {
-          const digits = onlyDigits(v)
-          const formatted = formatPhone(digits)
-          handleChange({ country: countryCode, dial, number: digits, formatted: `${dial} ${formatted}` })
-        }
+          const digits = onlyDigits(v);
+          const formatted = formatPhone(digits);
+          handleChange({
+            country: countryCode,
+            dial,
+            number: digits,
+            formatted: `${dial} ${formatted}`,
+          });
+        };
 
-        const flag = countryCodeToFlag(countryCode)
+        const flag = countryCodeToFlag(countryCode);
 
         return (
           <div className="flex items-stretch gap-2">
@@ -313,14 +487,24 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 id={`${field.id}-country`}
                 name={`${field.id}-country`}
                 value={countryCode}
-                onChange={(e) => { const cc = e.target.value; setCountryCode(cc); handleChange({ country: cc, dial: DIAL[cc] || '+', number: rawNumber, formatted: `${DIAL[cc] || '+'} ${formatPhone(onlyDigits(rawNumber))}` }) }}
+                onChange={(e) => {
+                  const cc = e.target.value;
+                  setCountryCode(cc);
+                  handleChange({
+                    country: cc,
+                    dial: DIAL[cc] || "+",
+                    number: rawNumber,
+                    formatted: `${DIAL[cc] || "+"} ${formatPhone(onlyDigits(rawNumber))}`,
+                  });
+                }}
                 disabled={disabled}
                 className={`${baseInputClasses} ${neutralBorderClass} pr-8`}
                 aria-label="Country code"
               >
                 {countries.map((c) => (
                   <option key={c.code || c.name} value={c.code || c.name}>
-                    {countryCodeToFlag(c.code)} {c.code ? (DIAL[c.code] || '+') : '+'} {c.name}
+                    {countryCodeToFlag(c.code)}{" "}
+                    {c.code ? DIAL[c.code] || "+" : "+"} {c.name}
                   </option>
                 ))}
               </select>
@@ -333,10 +517,18 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="tel"
                 id={field.id}
                 name={field.id}
-                value={(typeof localValue === 'object' && (localValue as any)?.formatted) ? (localValue as any).formatted : `${dial} ${formatPhone(onlyDigits(rawNumber))}`}
+                value={
+                  typeof localValue === "object" &&
+                  (localValue as any)?.formatted
+                    ? (localValue as any).formatted
+                    : `${dial} ${formatPhone(onlyDigits(rawNumber))}`
+                }
                 onChange={(e) => setNumber(e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
                 placeholder={`${flag} ${dial} 555 555 5555`}
                 disabled={disabled}
                 className={`${baseInputClasses} ${neutralBorderClass}`}
@@ -345,36 +537,44 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               />
             </div>
           </div>
-        )
+        );
       }
 
-      case 'password': {
-        const [show, setShow] = useState(false)
-        const pwd = String(localValue || '')
+      case "password": {
+        const [show, setShow] = useState(false);
+        const pwd = String(localValue || "");
         const score = (() => {
-          let s = 0
-          if (pwd.length >= 8) s += 1
-          if (/[A-Z]/.test(pwd)) s += 1
-          if (/[a-z]/.test(pwd)) s += 1
-          if (/[0-9]/.test(pwd)) s += 1
-          if (/[^A-Za-z0-9]/.test(pwd)) s += 1
-          return Math.min(s, 5)
-        })()
-        const pct = (score / 5) * 100
-        const color = score <= 2 ? 'bg-red-500' : score === 3 ? 'bg-yellow-500' : 'bg-green-500'
+          let s = 0;
+          if (pwd.length >= 8) s += 1;
+          if (/[A-Z]/.test(pwd)) s += 1;
+          if (/[a-z]/.test(pwd)) s += 1;
+          if (/[0-9]/.test(pwd)) s += 1;
+          if (/[^A-Za-z0-9]/.test(pwd)) s += 1;
+          return Math.min(s, 5);
+        })();
+        const pct = (score / 5) * 100;
+        const color =
+          score <= 2
+            ? "bg-red-500"
+            : score === 3
+              ? "bg-yellow-500"
+              : "bg-green-500";
         return (
           <div className="space-y-2">
             <div className="relative">
               <input
                 ref={inputRef}
-                type={show ? 'text' : 'password'}
+                type={show ? "text" : "password"}
                 id={field.id}
                 name={field.id}
                 value={pwd}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Enter password'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "Enter password"}
                 disabled={disabled}
                 className={`${baseInputClasses} ${neutralBorderClass} pr-10`}
                 required={field.required}
@@ -384,145 +584,218 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="button"
                 onClick={() => setShow((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label={show ? 'Hide password' : 'Show password'}
+                aria-label={show ? "Hide password" : "Show password"}
               >
-                <LockClosedIcon className={`w-5 h-5 ${show ? 'opacity-60' : ''}`} />
+                <LockClosedIcon
+                  className={`w-5 h-5 ${show ? "opacity-60" : ""}`}
+                />
               </button>
             </div>
             <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-              <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
+              <div
+                className={`h-full ${color} transition-all`}
+                style={{ width: `${pct}%` }}
+              />
             </div>
-            <p className="text-xs text-gray-500">Use at least 8 characters including numbers and symbols.</p>
+            <p className="text-xs text-gray-500">
+              Use at least 8 characters including numbers and symbols.
+            </p>
           </div>
-        )
+        );
       }
-      case 'image_upload': {
-        const accept = (field.settings as any)?.allowedMimeList || 'image/*'
-        const maxFiles = (field.settings as any)?.maxFiles || 10
+      case "image_upload": {
+        const accept = (field.settings as any)?.allowedMimeList || "image/*";
+        const maxFiles = (field.settings as any)?.maxFiles || 10;
         return (
           <ImageUploader
             accept={accept}
             maxFiles={maxFiles}
             maxSizeMB={5}
             value={Array.isArray(value) ? value : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'images' }).catch(() => simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) =>
+              uploadToSupabase(file, onP, { folder: "images" }).catch(() =>
+                simulatedUpload(file, onP),
+              )
+            }
             onChange={(items) => onChange?.(items)}
           />
-        )
+        );
       }
-      case 'file_upload': {
-        const accept = (field.settings as any)?.allowedMimeList || '.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip,.rar,.7z,.txt'
-        const maxFiles = (field.settings as any)?.maxFiles || 10
+      case "file_upload": {
+        const accept =
+          (field.settings as any)?.allowedMimeList ||
+          ".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.zip,.rar,.7z,.txt";
+        const maxFiles = (field.settings as any)?.maxFiles || 10;
         return (
           <FileUploader
             accept={accept}
             maxSizeMB={10}
             multiple={maxFiles > 1}
             value={Array.isArray(value) ? (value as any[]) : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'files' }).catch(() => simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) =>
+              uploadToSupabase(file, onP, { folder: "files" }).catch(() =>
+                simulatedUpload(file, onP),
+              )
+            }
             onChange={(rows: any[]) => onChange?.(rows)}
           />
-        )
+        );
       }
-      case 'video_upload': {
-        const accept = (field.settings as any)?.allowedMimeList || 'video/*'
-        const maxFiles = (field.settings as any)?.maxFiles || 10
+      case "video_upload": {
+        const accept = (field.settings as any)?.allowedMimeList || "video/*";
+        const maxFiles = (field.settings as any)?.maxFiles || 10;
         return (
           <VideoUploader
             accept={accept}
             maxSizeMB={10}
             multiple={maxFiles > 1}
             value={Array.isArray(value) ? (value as any[]) : []}
-            uploadHandler={(file: File, onP: (p: number) => void) => uploadToSupabase(file, onP, { folder: 'videos' }).catch(() => simulatedUpload(file, onP))}
+            uploadHandler={(file: File, onP: (p: number) => void) =>
+              uploadToSupabase(file, onP, { folder: "videos" }).catch(() =>
+                simulatedUpload(file, onP),
+              )
+            }
             onChange={(rows: any[]) => onChange?.(rows)}
           />
-        )
+        );
       }
-      case 'location': {
-        const pos = (localValue && typeof localValue === 'object') ? localValue : {}
-        const [text, setText] = useState('')
-        const inputRef = useRef<HTMLInputElement>(null)
+      case "location": {
+        const pos =
+          localValue && typeof localValue === "object" ? localValue : {};
+        const [text, setText] = useState("");
+        const inputRef = useRef<HTMLInputElement>(null);
         useEffect(() => {
           // mirror the address autocomplete logic for a lightweight on-card demo
-          const key = ((process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as unknown) as string) || (window as any).GOOGLE_MAPS_API_KEY || 'AIzaSyD-PLACEHOLDER'
+          const key =
+            (process.env
+              .NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as unknown as string) ||
+            (window as any).GOOGLE_MAPS_API_KEY ||
+            "AIzaSyD-PLACEHOLDER";
           const init = () => {
-            if (!(window as any).google?.maps?.places || !inputRef.current) return
-            const ac = new (window as any).google.maps.places.Autocomplete(inputRef.current as HTMLInputElement, { types: ['geocode'] })
-            ac.addListener('place_changed', () => {
-              const place = ac.getPlace()
-              const name = place?.formatted_address || text
-              const loc = place?.geometry?.location
-              const lat = loc?.lat ? loc.lat() : undefined
-              const lng = loc?.lng ? loc.lng() : undefined
-              handleChange({ name, lat, lng })
-            })
+            if (!(window as any).google?.maps?.places || !inputRef.current)
+              return;
+            const ac = new (window as any).google.maps.places.Autocomplete(
+              inputRef.current as HTMLInputElement,
+              { types: ["geocode"] },
+            );
+            ac.addListener("place_changed", () => {
+              const place = ac.getPlace();
+              const name = place?.formatted_address || text;
+              const loc = place?.geometry?.location;
+              const lat = loc?.lat ? loc.lat() : undefined;
+              const lng = loc?.lng ? loc.lng() : undefined;
+              handleChange({ name, lat, lng });
+            });
+          };
+          if ((window as any).google?.maps?.places) {
+            init();
+            return;
           }
-          if ((window as any).google?.maps?.places) { init(); return }
-          let script = document.getElementById('google-places-script') as HTMLScriptElement | null
+          let script = document.getElementById(
+            "google-places-script",
+          ) as HTMLScriptElement | null;
           if (!script) {
-            script = document.createElement('script')
-            script.id = 'google-places-script'
-            script.async = true
-            script.defer = true
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`
-            document.body.appendChild(script)
+            script = document.createElement("script");
+            script.id = "google-places-script";
+            script.async = true;
+            script.defer = true;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
+            document.body.appendChild(script);
           }
-          script.addEventListener('load', init, { once: true })
-        }, [])
+          script.addEventListener("load", init, { once: true });
+        }, []);
         return (
           <div className="space-y-2">
             <div>
-              <label className="block text-xs text-gray-700 mb-1">Search location</label>
-              <input ref={inputRef} id={`${field.id}-search`} name={`${field.id}-search`} value={text} onChange={(e) => setText(e.target.value)} className="w-full px-3 py-2 border rounded-md text-sm" placeholder="Start typing an address or place" />
+              <label className="block text-xs text-gray-700 mb-1">
+                Search location
+              </label>
+              <input
+                ref={inputRef}
+                id={`${field.id}-search`}
+                name={`${field.id}-search`}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                placeholder="Start typing an address or place"
+              />
             </div>
             {pos?.lat && pos?.lng && (
-              <div className="text-xs text-gray-600">Lat: {pos.lat}, Lng: {pos.lng}</div>
+              <div className="text-xs text-gray-600">
+                Lat: {pos.lat}, Lng: {pos.lng}
+              </div>
             )}
           </div>
-        )
+        );
       }
-      case 'date': {
+      case "date": {
         // Modern calendar popover for single date
-        const sel = typeof localValue === 'string' && localValue ? new Date(localValue + 'T00:00:00') : null
-        const [open, setOpen] = useState(false)
-        const [isClient, setIsClient] = useState(false)
+        const sel =
+          typeof localValue === "string" && localValue
+            ? new Date(localValue + "T00:00:00")
+            : null;
+        const [open, setOpen] = useState(false);
+        const [isClient, setIsClient] = useState(false);
         const [view, setView] = useState(() => {
           // Default to current month/year, will be updated on client mount
-          return { y: 2024, m: 0 }
-        })
+          return { y: 2024, m: 0 };
+        });
 
         // Update view on client-side mount
         useEffect(() => {
-          setIsClient(true)
+          setIsClient(true);
           if (sel) {
-            setView({ y: sel.getFullYear(), m: sel.getMonth() })
+            setView({ y: sel.getFullYear(), m: sel.getMonth() });
           } else {
-            const now = new Date()
-            setView({ y: now.getFullYear(), m: now.getMonth() })
+            const now = new Date();
+            setView({ y: now.getFullYear(), m: now.getMonth() });
           }
-        }, [sel])
-        const daysShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-        const start = new Date(view.y, view.m, 1)
-        const firstWeekday = start.getDay()
-        const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
-        const grid: Array<Date | null> = []
-        for (let i = 0; i < firstWeekday; i++) grid.push(null)
-        for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(view.y, view.m, d))
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-        const label = sel ? `${monthNames[sel.getMonth()]} ${sel.getDate()}, ${sel.getFullYear()}` : (field.placeholder || 'Select date')
+        }, [sel]);
+        const daysShort = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        const start = new Date(view.y, view.m, 1);
+        const firstWeekday = start.getDay();
+        const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+        const grid: Array<Date | null> = [];
+        for (let i = 0; i < firstWeekday; i++) grid.push(null);
+        for (let d = 1; d <= daysInMonth; d++)
+          grid.push(new Date(view.y, view.m, d));
+        const fmt = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const label = sel
+          ? `${monthNames[sel.getMonth()]} ${sel.getDate()}, ${sel.getFullYear()}`
+          : field.placeholder || "Select date";
         const nav = (delta: number) => {
-          const m = view.m + delta
-          const y = view.y + Math.floor(m / 12)
-          const mm = ((m % 12) + 12) % 12
-          setView({ y, m: mm })
-        }
+          const m = view.m + delta;
+          const y = view.y + Math.floor(m / 12);
+          const mm = ((m % 12) + 12) % 12;
+          setView({ y, m: mm });
+        };
         return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
-              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
-              <span className={`flex items-center gap-2 ${!sel ? 'text-gray-400' : ''}`}>
-                {getFieldIcon('date')}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setOpen((o) => !o)}
+              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-300"} ${disabled ? "bg-gray-50 text-gray-400" : "bg-white"}`}
+            >
+              <span
+                className={`flex items-center gap-2 ${!sel ? "text-gray-400" : ""}`}
+              >
+                {getFieldIcon("date")}
                 {label}
               </span>
               <ChevronDownIcon className="w-5 h-5 text-gray-400" />
@@ -530,136 +803,229 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             {open && (
               <div className="absolute z-20 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <button type="button" className="p-1.5 rounded hover:bg-gray-100" onClick={() => nav(-1)}><ChevronLeftIcon className="w-4 h-4" /></button>
-                  <div className="text-sm font-medium">{monthNames[view.m]} {view.y}</div>
-                  <button type="button" className="p-1.5 rounded hover:bg-gray-100" onClick={() => nav(1)}><ChevronRightIcon className="w-4 h-4" /></button>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded hover:bg-gray-100"
+                    onClick={() => nav(-1)}
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                  </button>
+                  <div className="text-sm font-medium">
+                    {monthNames[view.m]} {view.y}
+                  </div>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded hover:bg-gray-100"
+                    onClick={() => nav(1)}
+                  >
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-[11px] text-gray-500 mb-1">
-                  {daysShort.map(d => <div key={d} className="text-center">{d}</div>)}
+                  {daysShort.map((d) => (
+                    <div key={d} className="text-center">
+                      {d}
+                    </div>
+                  ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {grid.map((d, i) => {
-                    const isSel = d && sel && fmt(d) === fmt(sel)
+                    const isSel = d && sel && fmt(d) === fmt(sel);
                     return (
-                      <button key={i} type="button" disabled={!d}
-                        onClick={() => { if (!d) return; handleChange(fmt(d)); setOpen(false) }}
-                        className={`h-9 rounded text-sm ${!d ? 'opacity-0' : isSel ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'} `}>
-                        {d ? d.getDate() : ''}
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={!d}
+                        onClick={() => {
+                          if (!d) return;
+                          handleChange(fmt(d));
+                          setOpen(false);
+                        }}
+                        className={`h-9 rounded text-sm ${!d ? "opacity-0" : isSel ? "bg-blue-600 text-white" : "hover:bg-blue-50"} `}
+                      >
+                        {d ? d.getDate() : ""}
                       </button>
-                    )
+                    );
                   })}
                 </div>
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'multiple_dates': {
+      case "multiple_dates": {
         // Modern calendar with multi-select
-        const values: string[] = Array.isArray(localValue) ? localValue : []
-        const [open, setOpen] = useState(false)
-        const [isClient, setIsClient] = useState(false)
+        const values: string[] = Array.isArray(localValue) ? localValue : [];
+        const [open, setOpen] = useState(false);
+        const [isClient, setIsClient] = useState(false);
         const [view, setView] = useState(() => {
           // Default to current month/year, will be updated on client mount
-          return { y: 2024, m: 0 }
-        })
+          return { y: 2024, m: 0 };
+        });
 
         // Update view on client-side mount
         useEffect(() => {
-          setIsClient(true)
+          setIsClient(true);
           if (values.length > 0) {
-            const d = new Date(values[0] + 'T00:00:00')
-            setView({ y: d.getFullYear(), m: d.getMonth() })
+            const d = new Date(values[0] + "T00:00:00");
+            setView({ y: d.getFullYear(), m: d.getMonth() });
           } else {
-            const now = new Date()
-            setView({ y: now.getFullYear(), m: now.getMonth() })
+            const now = new Date();
+            setView({ y: now.getFullYear(), m: now.getMonth() });
           }
-        }, [values])
-        const daysShort = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-        const start = new Date(view.y, view.m, 1)
-        const firstWeekday = start.getDay()
-        const daysInMonth = new Date(view.y, view.m + 1, 0).getDate()
-        const grid: Array<Date | null> = []
-        for (let i = 0; i < firstWeekday; i++) grid.push(null)
-        for (let d = 1; d <= daysInMonth; d++) grid.push(new Date(view.y, view.m, d))
-        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+        }, [values]);
+        const daysShort = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+        const monthNames = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        const start = new Date(view.y, view.m, 1);
+        const firstWeekday = start.getDay();
+        const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+        const grid: Array<Date | null> = [];
+        for (let i = 0; i < firstWeekday; i++) grid.push(null);
+        for (let d = 1; d <= daysInMonth; d++)
+          grid.push(new Date(view.y, view.m, d));
+        const fmt = (d: Date) =>
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
         const nav = (delta: number) => {
-          const m = view.m + delta
-          const y = view.y + Math.floor(m / 12)
-          const mm = ((m % 12) + 12) % 12
-          setView({ y, m: mm })
-        }
+          const m = view.m + delta;
+          const y = view.y + Math.floor(m / 12);
+          const mm = ((m % 12) + 12) % 12;
+          setView({ y, m: mm });
+        };
         const toggle = (d: Date) => {
-          const s = fmt(d)
-          if (values.includes(s)) handleChange(values.filter(v => v !== s))
-          else handleChange([...values, s])
-        }
+          const s = fmt(d);
+          if (values.includes(s)) handleChange(values.filter((v) => v !== s));
+          else handleChange([...values, s]);
+        };
         return (
           <div className="relative">
             <div className="flex flex-wrap gap-2 mb-2">
-              {values.length === 0 && <span className="text-xs text-gray-400">No dates selected</span>}
+              {values.length === 0 && (
+                <span className="text-xs text-gray-400">No dates selected</span>
+              )}
               {values.map((d, i) => (
-                <span key={i} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700"
+                >
                   {d}
-                  <button type="button" className="ml-1 text-blue-700/70 hover:text-blue-900" onClick={() => handleChange(values.filter(v => v !== d))}>
+                  <button
+                    type="button"
+                    className="ml-1 text-blue-700/70 hover:text-blue-900"
+                    onClick={() => handleChange(values.filter((v) => v !== d))}
+                  >
                     <XMarkIcon className="w-3 h-3" />
                   </button>
                 </span>
               ))}
             </div>
-            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
-              className={`w-full px-4 py-2 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setOpen((o) => !o)}
+              className={`w-full px-4 py-2 border rounded-lg text-left flex items-center justify-between ${open ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-300"} ${disabled ? "bg-gray-50 text-gray-400" : "bg-white"}`}
+            >
               <span className="text-sm">Pick dates</span>
               <ChevronDownIcon className="w-5 h-5 text-gray-400" />
             </button>
             {open && (
               <div className="absolute z-20 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <button type="button" className="p-1.5 rounded hover:bg-gray-100" onClick={() => nav(-1)}><ChevronLeftIcon className="w-4 h-4" /></button>
-                  <div className="text-sm font-medium">{monthNames[view.m]} {view.y}</div>
-                  <button type="button" className="p-1.5 rounded hover:bg-gray-100" onClick={() => nav(1)}><ChevronRightIcon className="w-4 h-4" /></button>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded hover:bg-gray-100"
+                    onClick={() => nav(-1)}
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                  </button>
+                  <div className="text-sm font-medium">
+                    {monthNames[view.m]} {view.y}
+                  </div>
+                  <button
+                    type="button"
+                    className="p-1.5 rounded hover:bg-gray-100"
+                    onClick={() => nav(1)}
+                  >
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </button>
                 </div>
                 <div className="grid grid-cols-7 gap-1 text-[11px] text-gray-500 mb-1">
-                  {daysShort.map(d => <div key={d} className="text-center">{d}</div>)}
+                  {daysShort.map((d) => (
+                    <div key={d} className="text-center">
+                      {d}
+                    </div>
+                  ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {grid.map((d, i) => {
-                    const isSel = d && values.includes(fmt(d))
+                    const isSel = d && values.includes(fmt(d));
                     return (
-                      <button key={i} type="button" disabled={!d}
-                        onClick={() => { if (!d) return; toggle(d) }}
-                        className={`h-9 rounded text-sm ${!d ? 'opacity-0' : isSel ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>
-                        {d ? d.getDate() : ''}
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={!d}
+                        onClick={() => {
+                          if (!d) return;
+                          toggle(d);
+                        }}
+                        className={`h-9 rounded text-sm ${!d ? "opacity-0" : isSel ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                      >
+                        {d ? d.getDate() : ""}
                       </button>
-                    )
+                    );
                   })}
                 </div>
                 <div className="mt-2 text-right">
-                  <button type="button" className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50" onClick={() => setOpen(false)}>Done</button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Done
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'time': {
+      case "time": {
         // Modern time popover (HH:MM 24h, 15-min steps)
-        const sel = typeof localValue === 'string' ? localValue : ''
-        const [open, setOpen] = useState(false)
-        const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-        const minutes = ['00', '15', '30', '45']
-        const [h, setH] = useState(sel.split(':')[0] || '09')
-        const [m, setM] = useState(sel.split(':')[1] || '00')
-        const label = sel || (field.placeholder || 'Select time')
+        const sel = typeof localValue === "string" ? localValue : "";
+        const [open, setOpen] = useState(false);
+        const hours = Array.from({ length: 24 }, (_, i) =>
+          String(i).padStart(2, "0"),
+        );
+        const minutes = ["00", "15", "30", "45"];
+        const [h, setH] = useState(sel.split(":")[0] || "09");
+        const [m, setM] = useState(sel.split(":")[1] || "00");
+        const label = sel || field.placeholder || "Select time";
         return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
-              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
-              <span className={`flex items-center gap-2 ${!sel ? 'text-gray-400' : ''}`}>
-                {getFieldIcon('time')}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setOpen((o) => !o)}
+              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-300"} ${disabled ? "bg-gray-50 text-gray-400" : "bg-white"}`}
+            >
+              <span
+                className={`flex items-center gap-2 ${!sel ? "text-gray-400" : ""}`}
+              >
+                {getFieldIcon("time")}
                 {label}
               </span>
               <ChevronDownIcon className="w-5 h-5 text-gray-400" />
@@ -671,7 +1037,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     <div className="text-xs text-gray-500 mb-1">Hour</div>
                     <div className="max-h-40 overflow-auto border rounded">
                       {hours.map((hh) => (
-                        <button key={hh} type="button" onClick={() => setH(hh)} className={`w-full text-left px-3 py-2 text-sm ${h === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                        <button
+                          key={hh}
+                          type="button"
+                          onClick={() => setH(hh)}
+                          className={`w-full text-left px-3 py-2 text-sm ${h === hh ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                        >
+                          {hh}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -679,39 +1052,70 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     <div className="text-xs text-gray-500 mb-1">Minute</div>
                     <div className="max-h-40 overflow-auto border rounded">
                       {minutes.map((mm) => (
-                        <button key={mm} type="button" onClick={() => setM(mm)} className={`w-full text-left px-3 py-2 text-sm ${m === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                        <button
+                          key={mm}
+                          type="button"
+                          onClick={() => setM(mm)}
+                          className={`w-full text-left px-3 py-2 text-sm ${m === mm ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                        >
+                          {mm}
+                        </button>
                       ))}
                     </div>
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
-                  <button type="button" className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50" onClick={() => setOpen(false)}>Cancel</button>
-                  <button type="button" className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700" onClick={() => { handleChange(`${h}:${m}`); setOpen(false) }}>Apply</button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      handleChange(`${h}:${m}`);
+                      setOpen(false);
+                    }}
+                  >
+                    Apply
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'time_range': {
+      case "time_range": {
         // Modern combined time range popover
-        const raw: string = typeof localValue === 'string' ? localValue : ''
-        const [s0, e0] = raw.split('|')
-        const [open, setOpen] = useState(false)
-        const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-        const minutes = ['00', '15', '30', '45']
-        const [sh, setSh] = useState((s0 || '09:00').split(':')[0])
-        const [sm, setSm] = useState((s0 || '09:00').split(':')[1])
-        const [eh, setEh] = useState((e0 || '17:00').split(':')[0])
-        const [em, setEm] = useState((e0 || '17:00').split(':')[1])
-        const label = (s0 && e0) ? `${s0} — ${e0}` : (field.placeholder || 'Select time range')
+        const raw: string = typeof localValue === "string" ? localValue : "";
+        const [s0, e0] = raw.split("|");
+        const [open, setOpen] = useState(false);
+        const hours = Array.from({ length: 24 }, (_, i) =>
+          String(i).padStart(2, "0"),
+        );
+        const minutes = ["00", "15", "30", "45"];
+        const [sh, setSh] = useState((s0 || "09:00").split(":")[0]);
+        const [sm, setSm] = useState((s0 || "09:00").split(":")[1]);
+        const [eh, setEh] = useState((e0 || "17:00").split(":")[0]);
+        const [em, setEm] = useState((e0 || "17:00").split(":")[1]);
+        const label =
+          s0 && e0 ? `${s0} — ${e0}` : field.placeholder || "Select time range";
         return (
           <div className="relative">
-            <button type="button" disabled={disabled} onClick={() => setOpen(o => !o)}
-              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'} ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}>
-              <span className={`flex items-center gap-2 ${!(s0 && e0) ? 'text-gray-400' : ''}`}>
-                {getFieldIcon('time')}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => setOpen((o) => !o)}
+              className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? "border-blue-500 ring-2 ring-blue-500/20" : "border-gray-300"} ${disabled ? "bg-gray-50 text-gray-400" : "bg-white"}`}
+            >
+              <span
+                className={`flex items-center gap-2 ${!(s0 && e0) ? "text-gray-400" : ""}`}
+              >
+                {getFieldIcon("time")}
                 {label}
               </span>
               <ChevronDownIcon className="w-5 h-5 text-gray-400" />
@@ -720,13 +1124,22 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <div className="absolute z-20 mt-2 w-[28rem] bg-white border border-gray-200 rounded-lg shadow-lg p-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs font-medium text-gray-700 mb-1">Start</div>
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                      Start
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="text-xs text-gray-500 mb-1">Hour</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {hours.map((hh) => (
-                            <button key={hh} type="button" onClick={() => setSh(hh)} className={`w-full text-left px-3 py-2 text-sm ${sh === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                            <button
+                              key={hh}
+                              type="button"
+                              onClick={() => setSh(hh)}
+                              className={`w-full text-left px-3 py-2 text-sm ${sh === hh ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                            >
+                              {hh}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -734,20 +1147,36 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Minute</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {minutes.map((mm) => (
-                            <button key={mm} type="button" onClick={() => setSm(mm)} className={`w-full text-left px-3 py-2 text-sm ${sm === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                            <button
+                              key={mm}
+                              type="button"
+                              onClick={() => setSm(mm)}
+                              className={`w-full text-left px-3 py-2 text-sm ${sm === mm ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                            >
+                              {mm}
+                            </button>
                           ))}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs font-medium text-gray-700 mb-1">End</div>
+                    <div className="text-xs font-medium text-gray-700 mb-1">
+                      End
+                    </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <div className="text-xs text-gray-500 mb-1">Hour</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {hours.map((hh) => (
-                            <button key={hh} type="button" onClick={() => setEh(hh)} className={`w-full text-left px-3 py-2 text-sm ${eh === hh ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{hh}</button>
+                            <button
+                              key={hh}
+                              type="button"
+                              onClick={() => setEh(hh)}
+                              className={`w-full text-left px-3 py-2 text-sm ${eh === hh ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                            >
+                              {hh}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -755,7 +1184,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         <div className="text-xs text-gray-500 mb-1">Minute</div>
                         <div className="max-h-40 overflow-auto border rounded">
                           {minutes.map((mm) => (
-                            <button key={mm} type="button" onClick={() => setEm(mm)} className={`w-full text-left px-3 py-2 text-sm ${em === mm ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'}`}>{mm}</button>
+                            <button
+                              key={mm}
+                              type="button"
+                              onClick={() => setEm(mm)}
+                              className={`w-full text-left px-3 py-2 text-sm ${em === mm ? "bg-blue-600 text-white" : "hover:bg-blue-50"}`}
+                            >
+                              {mm}
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -763,32 +1199,49 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
-                  <button type="button" className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50" onClick={() => setOpen(false)}>Cancel</button>
-                  <button type="button" className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700" onClick={() => { handleChange(`${sh}:${sm}|${eh}:${em}`); setOpen(false) }}>Apply</button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                    onClick={() => setOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      handleChange(`${sh}:${sm}|${eh}:${em}`);
+                      setOpen(false);
+                    }}
+                  >
+                    Apply
+                  </button>
                 </div>
               </div>
             )}
           </div>
-        )
+        );
       }
-      case 'short_text': {
-        const label = 'Short Text'
-        const maxLength = field.settings?.maxLength
-        const count = typeof localValue === 'string' ? localValue.length : 0
+      case "short_text": {
+        const label = "Short Text";
+        const maxLength = field.settings?.maxLength;
+        const count = typeof localValue === "string" ? localValue.length : 0;
         if (isPreview) {
           return (
             <div className="space-y-1">
               <div className="relative">
                 <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
-                  {field.placeholder || 'Type your answer here...'}
+                  {field.placeholder || "Type your answer here..."}
                 </div>
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-1">
-            {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
+            {showLabel && (
+              <label className="text-[12px] text-gray-600">{label}</label>
+            )}
             <div className="relative">
               <input
                 ref={inputRef}
@@ -799,25 +1252,37 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Type your answer here...'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "Type your answer here..."}
                 disabled={disabled}
-                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
-                  }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${
+                  isFocused
+                    ? "border-[#6C5CE7]"
+                    : error
+                      ? "border-red-400"
+                      : "border-[#6C5CE7]/30"
+                }`}
                 required={field.required}
               />
               {maxLength ? (
-                <div className="mt-2 text-xs text-gray-500 font-medium">{count} / {maxLength}</div>
+                <div className="mt-2 text-xs text-gray-500 font-medium">
+                  {count} / {maxLength}
+                </div>
               ) : null}
               {error && (
-                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {error}
+                </div>
               )}
             </div>
           </div>
-        )
+        );
       }
-      case 'email': {
-        const label = 'Email'
+      case "email": {
+        const label = "Email";
         if (isPreview) {
           return (
             <div className="space-y-1">
@@ -827,12 +1292,16 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 </div>
               </div>
             </div>
-          )
+          );
         }
-        const valid = typeof localValue === 'string' && /[^\s@]+@[^\s@]+\.[^\s@]+/.test(localValue)
+        const valid =
+          typeof localValue === "string" &&
+          /[^\s@]+@[^\s@]+\.[^\s@]+/.test(localValue);
         return (
           <div className="space-y-1">
-            {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
+            {showLabel && (
+              <label className="text-[12px] text-gray-600">{label}</label>
+            )}
             <div className="relative">
               <input
                 ref={inputRef}
@@ -842,76 +1311,109 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'name@example.com'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "name@example.com"}
                 disabled={disabled}
                 aria-invalid={!!error}
-                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${valid ? 'pr-10' : ''} ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
-                  }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${valid ? "pr-10" : ""} ${
+                  isFocused
+                    ? "border-[#6C5CE7]"
+                    : error
+                      ? "border-red-400"
+                      : "border-[#6C5CE7]/30"
+                }`}
                 required={field.required}
               />
-              {valid && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(250,86%,66%)]"><CheckIcon className="w-6 h-6" /></span>}
+              {valid && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[hsl(250,86%,66%)]">
+                  <CheckIcon className="w-6 h-6" />
+                </span>
+              )}
               {error && (
-                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {error}
+                </div>
               )}
             </div>
           </div>
-        )
+        );
       }
 
-      case 'long_text': {
-        const label = 'Long Text'
-        const maxLength = field.settings?.maxLength
-        const count = typeof localValue === 'string' ? localValue.length : 0
-        const textAreaRef = useRef<HTMLTextAreaElement>(null)
+      case "long_text": {
+        const label = "Long Text";
+        const maxLength = field.settings?.maxLength;
+        const count = typeof localValue === "string" ? localValue.length : 0;
+        const textAreaRef = useRef<HTMLTextAreaElement>(null);
         const autoResize = () => {
-          const el = textAreaRef.current
-          if (!el) return
-          el.style.height = 'auto'
-          el.style.height = Math.min(el.scrollHeight, 400) + 'px'
-        }
-        useEffect(() => { autoResize() }, [localValue])
+          const el = textAreaRef.current;
+          if (!el) return;
+          el.style.height = "auto";
+          el.style.height = Math.min(el.scrollHeight, 400) + "px";
+        };
+        useEffect(() => {
+          autoResize();
+        }, [localValue]);
         if (isPreview) {
           return (
             <div className="space-y-1">
               <div className="w-full border-b border-[hsl(250,86%,66%)]/40 pb-2 text-[hsl(250,86%,66%)]/50 text-xl md:text-3xl font-light">
-                {field.placeholder || 'Type your answer here...'}
+                {field.placeholder || "Type your answer here..."}
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-1">
-            {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
+            {showLabel && (
+              <label className="text-[12px] text-gray-600">{label}</label>
+            )}
             <div className="relative">
               <textarea
                 ref={textAreaRef}
                 value={localValue}
-                onChange={(e) => { handleChange(e.target.value); autoResize() }}
+                onChange={(e) => {
+                  handleChange(e.target.value);
+                  autoResize();
+                }}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Type your answer here...'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "Type your answer here..."}
                 rows={1}
                 disabled={disabled}
-                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
-                  }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${
+                  isFocused
+                    ? "border-[#6C5CE7]"
+                    : error
+                      ? "border-red-400"
+                      : "border-[#6C5CE7]/30"
+                }`}
                 aria-label={label}
                 required={field.required}
-                style={{ overflow: 'hidden', resize: 'none' }}
+                style={{ overflow: "hidden", resize: "none" }}
               />
               <div className="mt-2 flex items-center justify-between text-xs text-gray-500 font-medium">
-                <span className="opacity-90">{maxLength ? `${count}/${maxLength}` : ''}</span>
+                <span className="opacity-90">
+                  {maxLength ? `${count}/${maxLength}` : ""}
+                </span>
               </div>
               {error && (
-                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {error}
+                </div>
               )}
             </div>
           </div>
-        )
+        );
       }
 
-      case 'number': {
-        const label = 'Number'
+      case "number": {
+        const label = "Number";
         if (isPreview) {
           return (
             <div className="space-y-1">
@@ -921,11 +1423,13 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 </div>
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-1">
-            {showLabel && <label className="text-[12px] text-gray-600">{label}</label>}
+            {showLabel && (
+              <label className="text-[12px] text-gray-600">{label}</label>
+            )}
             <div className="relative">
               <input
                 type="number"
@@ -936,75 +1440,99 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 value={localValue}
                 onChange={(e) => handleChange(e.target.value)}
                 onFocus={() => setIsFocused(true)}
-                onBlur={() => { setIsFocused(false); onBlur?.() }}
-                placeholder={field.placeholder || 'Enter a number'}
+                onBlur={() => {
+                  setIsFocused(false);
+                  onBlur?.();
+                }}
+                placeholder={field.placeholder || "Enter a number"}
                 min={field.settings?.min}
                 max={field.settings?.max}
                 step={field.settings?.step || 1}
                 disabled={disabled}
-                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${isFocused ? 'border-[#6C5CE7]' : error ? 'border-red-400' : 'border-[#6C5CE7]/30'
-                  }`}
+                className={`w-full bg-transparent py-2 border-b-2 transition-all duration-200 outline-none text-xl md:text-3xl text-[#6C5CE7] placeholder:text-[#6C5CE7]/30 ${
+                  isFocused
+                    ? "border-[#6C5CE7]"
+                    : error
+                      ? "border-red-400"
+                      : "border-[#6C5CE7]/30"
+                }`}
                 required={field.required}
               />
               {error && (
-                <div className="mt-2 text-sm text-red-600 font-medium">{error}</div>
+                <div className="mt-2 text-sm text-red-600 font-medium">
+                  {error}
+                </div>
               )}
             </div>
           </div>
-        )
+        );
       }
 
-      case 'dropdown': {
-        const dropdownType = (field.settings as any)?.dropdownType || 'single'
-        const numberingStyle = (field.settings as any)?.numberingStyle || 'none'
-        const dropdownStyle = (field.settings as any)?.dropdownStyle || 'default'
-        const [open, setOpen] = useState(false)
-        const [query, setQuery] = useState('')
+      case "dropdown": {
+        const dropdownType = (field.settings as any)?.dropdownType || "single";
+        const numberingStyle =
+          (field.settings as any)?.numberingStyle || "none";
+        const dropdownStyle =
+          (field.settings as any)?.dropdownStyle || "default";
+        const [open, setOpen] = useState(false);
+        const [query, setQuery] = useState("");
 
         const getNumberPrefix = (idx: number) => {
-          if (numberingStyle === 'numeric') return `${idx + 1}. `
-          if (numberingStyle === 'alphabetic') {
-            const base = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-            return `${base[idx % 26]}. `
+          if (numberingStyle === "numeric") return `${idx + 1}. `;
+          if (numberingStyle === "alphabetic") {
+            const base = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            return `${base[idx % 26]}. `;
           }
-          return ''
-        }
+          return "";
+        };
 
-        const filteredOptions = (field.options || []).filter(opt =>
-          opt.toLowerCase().includes(query.toLowerCase())
-        )
+        const filteredOptions = (field.options || []).filter((opt) =>
+          opt.toLowerCase().includes(query.toLowerCase()),
+        );
 
         const renderNumberBox = (idx: number) => (
           <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded border bg-white text-blue-700 border-blue-300">
-            {numberingStyle === 'numeric' ? (idx + 1) : String.fromCharCode(65 + (idx % 26))}
+            {numberingStyle === "numeric"
+              ? idx + 1
+              : String.fromCharCode(65 + (idx % 26))}
           </span>
-        )
+        );
 
-        const renderStyledItem = (opt: string, idx: number, selected?: boolean) => {
-          if (dropdownStyle === 'cards') {
+        const renderStyledItem = (
+          opt: string,
+          idx: number,
+          selected?: boolean,
+        ) => {
+          if (dropdownStyle === "cards") {
             return (
-              <div className={`w-full text-left p-3 text-sm rounded-md border transition-colors flex items-center gap-3 ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-300/60 bg-blue-50/50 text-blue-800 hover:border-blue-400 hover:bg-blue-50'}`}>
-                {numberingStyle === 'none' ? null : renderNumberBox(idx)}
+              <div
+                className={`w-full text-left p-3 text-sm rounded-md border transition-colors flex items-center gap-3 ${selected ? "border-blue-500 bg-blue-50 text-blue-700" : "border-blue-300/60 bg-blue-50/50 text-blue-800 hover:border-blue-400 hover:bg-blue-50"}`}
+              >
+                {numberingStyle === "none" ? null : renderNumberBox(idx)}
                 <span className="font-medium">{opt}</span>
               </div>
-            )
+            );
           }
-          if (dropdownStyle === 'pills') {
+          if (dropdownStyle === "pills") {
             return (
-              <div className={`inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border flex-nowrap gap-2 ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-blue-300/60 bg-blue-50/50 text-blue-800 hover:border-blue-400 hover:bg-blue-50'}`}>
-                {numberingStyle === 'none' ? null : renderNumberBox(idx)}
+              <div
+                className={`inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border flex-nowrap gap-2 ${selected ? "border-blue-500 bg-blue-50 text-blue-700" : "border-blue-300/60 bg-blue-50/50 text-blue-800 hover:border-blue-400 hover:bg-blue-50"}`}
+              >
+                {numberingStyle === "none" ? null : renderNumberBox(idx)}
                 <span className="font-medium">{opt}</span>
               </div>
-            )
+            );
           }
           // minimal/default list row
           return (
-            <div className={`w-full text-left px-3 py-2 text-sm flex items-center gap-3 rounded ${selected ? 'bg-blue-50 text-blue-700' : 'hover:bg-blue-50 text-gray-800'}`}>
-              {numberingStyle === 'none' ? null : renderNumberBox(idx)}
+            <div
+              className={`w-full text-left px-3 py-2 text-sm flex items-center gap-3 rounded ${selected ? "bg-blue-50 text-blue-700" : "hover:bg-blue-50 text-gray-800"}`}
+            >
+              {numberingStyle === "none" ? null : renderNumberBox(idx)}
               <span className="font-medium">{opt}</span>
             </div>
-          )
-        }
+          );
+        };
 
         // Non-interactive preview: render static styled list like the screenshot
         if (isPreview) {
@@ -1016,17 +1544,19 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   <ChevronDownIcon className="w-6 h-6 md:w-8 md:h-8" />
                 </div>
                 <div className="flex justify-between items-center mt-3 text-sm md:text-base text-[hsl(250,86%,66%)]/70">
-                  <span className="font-semibold underline cursor-pointer hover:text-[hsl(250,86%,66%)]">Edit choices</span>
+                  <span className="font-semibold underline cursor-pointer hover:text-[hsl(250,86%,66%)]">
+                    Edit choices
+                  </span>
                   <span>{field.options?.length || 0} options in list</span>
                 </div>
               </div>
             </div>
-          )
+          );
         }
 
         // SINGLE SELECT (standard)
-        if (dropdownType === 'single') {
-          if (dropdownStyle === 'default') {
+        if (dropdownType === "single") {
+          if (dropdownStyle === "default") {
             return (
               <div className="relative">
                 <select
@@ -1036,22 +1566,26 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   onChange={(e) => handleChange(e.target.value)}
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => {
-                    setIsFocused(false)
-                    onBlur?.()
+                    setIsFocused(false);
+                    onBlur?.();
                   }}
                   disabled={disabled}
-                  className={`w-full px-4 py-3 border rounded-lg transition-all duration-200 appearance-none ${isFocused
-                    ? 'border-blue-500 ring-2 ring-blue-500/20'
-                    : error
-                      ? 'border-red-300'
-                      : 'border-gray-300'
-                    } ${error ? 'bg-red-50' : 'bg-white'}`}
+                  className={`w-full px-4 py-3 border rounded-lg transition-all duration-200 appearance-none ${
+                    isFocused
+                      ? "border-blue-500 ring-2 ring-blue-500/20"
+                      : error
+                        ? "border-red-300"
+                        : "border-gray-300"
+                  } ${error ? "bg-red-50" : "bg-white"}`}
                   required={field.required}
                 >
-                  <option value="">{field.placeholder || 'Select an option...'}</option>
+                  <option value="">
+                    {field.placeholder || "Select an option..."}
+                  </option>
                   {field.options?.map((option, index) => (
                     <option key={index} value={option}>
-                      {getNumberPrefix(index)}{option}
+                      {getNumberPrefix(index)}
+                      {option}
                     </option>
                   ))}
                 </select>
@@ -1065,31 +1599,44 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   </div>
                 )}
               </div>
-            )
+            );
           }
           // custom-styled single select (cards/pills/minimal)
-          const displayLabel = field.options?.find(o => o === localValue) || ''
+          const displayLabel =
+            field.options?.find((o) => o === localValue) || "";
           return (
             <div className="relative">
               <button
                 type="button"
-                onClick={() => !disabled && setOpen(v => !v)}
-                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-                  } ${disabled ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
+                onClick={() => !disabled && setOpen((v) => !v)}
+                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${
+                  open
+                    ? "border-blue-500 ring-2 ring-blue-500/20"
+                    : "border-gray-300"
+                } ${disabled ? "bg-gray-50 text-gray-400" : "bg-white"}`}
               >
-                <span className={`truncate ${!displayLabel ? 'text-gray-400' : ''}`}>
-                  {displayLabel || field.placeholder || 'Select an option...'}
+                <span
+                  className={`truncate ${!displayLabel ? "text-gray-400" : ""}`}
+                >
+                  {displayLabel || field.placeholder || "Select an option..."}
                 </span>
                 <ChevronDownIcon className="w-5 h-5 text-gray-400" />
               </button>
               {open && (
-                <div className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === 'minimal' ? 'p-1' : ''}`}>
-                  <ul className={`max-h-48 overflow-auto py-1 ${dropdownStyle === 'cards' ? 'grid grid-cols-1 gap-2 p-2' : ''}`}>
+                <div
+                  className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === "minimal" ? "p-1" : ""}`}
+                >
+                  <ul
+                    className={`max-h-48 overflow-auto py-1 ${dropdownStyle === "cards" ? "grid grid-cols-1 gap-2 p-2" : ""}`}
+                  >
                     {(field.options || []).map((opt, idx) => (
                       <li key={idx}>
                         <button
                           type="button"
-                          onClick={() => { handleChange(opt); setOpen(false) }}
+                          onClick={() => {
+                            handleChange(opt);
+                            setOpen(false);
+                          }}
                           className="w-full text-left"
                         >
                           {renderStyledItem(opt, idx, opt === localValue)}
@@ -1100,27 +1647,35 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 </div>
               )}
             </div>
-          )
+          );
         }
 
         // SEARCHABLE (single select with search)
-        if (dropdownType === 'searchable') {
-          const displayLabel = field.options?.find(o => o === localValue) || ''
+        if (dropdownType === "searchable") {
+          const displayLabel =
+            field.options?.find((o) => o === localValue) || "";
           return (
             <div className="relative">
               <button
                 type="button"
-                onClick={() => !isPreview && !disabled && setOpen(v => !v)}
-                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-                  } ${disabled || isPreview ? 'bg-gray-50 text-gray-400' : 'bg-white'}`}
+                onClick={() => !isPreview && !disabled && setOpen((v) => !v)}
+                className={`w-full px-4 py-3 border rounded-lg text-left flex items-center justify-between ${
+                  open
+                    ? "border-blue-500 ring-2 ring-blue-500/20"
+                    : "border-gray-300"
+                } ${disabled || isPreview ? "bg-gray-50 text-gray-400" : "bg-white"}`}
               >
-                <span className={`truncate ${!displayLabel ? 'text-gray-400' : ''}`}>
-                  {displayLabel || field.placeholder || 'Select an option...'}
+                <span
+                  className={`truncate ${!displayLabel ? "text-gray-400" : ""}`}
+                >
+                  {displayLabel || field.placeholder || "Select an option..."}
                 </span>
                 <ChevronDownIcon className="w-5 h-5 text-gray-400" />
               </button>
               {open && (
-                <div className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === 'minimal' ? 'p-1' : ''}`}>
+                <div
+                  className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === "minimal" ? "p-1" : ""}`}
+                >
                   <div className="p-2 border-b border-gray-100">
                     <input
                       autoFocus
@@ -1132,83 +1687,119 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-                  <ul className={`max-h-48 overflow-auto py-1 ${dropdownStyle === 'cards' ? 'grid grid-cols-1 gap-2 p-2' : ''}`}>
+                  <ul
+                    className={`max-h-48 overflow-auto py-1 ${dropdownStyle === "cards" ? "grid grid-cols-1 gap-2 p-2" : ""}`}
+                  >
                     {filteredOptions.map((opt, idx) => (
                       <li key={idx}>
                         <button
                           type="button"
                           onClick={() => {
-                            handleChange(opt)
-                            setOpen(false)
-                            setQuery('')
+                            handleChange(opt);
+                            setOpen(false);
+                            setQuery("");
                           }}
                           className={
-                            dropdownStyle === 'cards'
-                              ? `w-full text-left p-3 text-sm rounded-md border transition-colors ${opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                              }`
-                              : dropdownStyle === 'pills'
-                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${opt === localValue ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                            dropdownStyle === "cards"
+                              ? `w-full text-left p-3 text-sm rounded-md border transition-colors ${
+                                  opt === localValue
+                                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
                                 }`
-                                : `w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${opt === localValue ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
-                                }`
+                              : dropdownStyle === "pills"
+                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${
+                                    opt === localValue
+                                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                                  }`
+                                : `w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${
+                                    opt === localValue
+                                      ? "bg-blue-50 text-blue-700"
+                                      : "text-gray-800"
+                                  }`
                           }
                         >
                           <span className="flex items-center gap-3">
-                            {numberingStyle === 'none' ? null : renderNumberBox(idx)}
+                            {numberingStyle === "none"
+                              ? null
+                              : renderNumberBox(idx)}
                             <span className="font-medium">{opt}</span>
                           </span>
                         </button>
                       </li>
                     ))}
                     {filteredOptions.length === 0 && (
-                      <li className="px-3 py-2 text-sm text-gray-400">No results</li>
+                      <li className="px-3 py-2 text-sm text-gray-400">
+                        No results
+                      </li>
                     )}
                   </ul>
                 </div>
               )}
             </div>
-          )
+          );
         }
 
         // MULTIPLE / TAGS
-        const arrayValue: string[] = Array.isArray(localValue) ? localValue : []
+        const arrayValue: string[] = Array.isArray(localValue)
+          ? localValue
+          : [];
         const toggleItem = (opt: string) => {
           if (arrayValue.includes(opt)) {
-            handleChange(arrayValue.filter(v => v !== opt))
+            handleChange(arrayValue.filter((v) => v !== opt));
           } else {
-            handleChange([...arrayValue, opt])
+            handleChange([...arrayValue, opt]);
           }
-        }
-        const showChips = dropdownType === 'tags'
+        };
+        const showChips = dropdownType === "tags";
         return (
           <div className="relative">
             <div
-              className={`w-full min-h-[44px] px-3 py-2 border rounded-lg flex items-center flex-wrap gap-2 ${isFocused ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-300'
-                } ${disabled || isPreview ? 'bg-gray-50' : 'bg-white'}`}
+              className={`w-full min-h-[44px] px-3 py-2 border rounded-lg flex items-center flex-wrap gap-2 ${
+                isFocused
+                  ? "border-blue-500 ring-2 ring-blue-500/20"
+                  : "border-gray-300"
+              } ${disabled || isPreview ? "bg-gray-50" : "bg-white"}`}
               onClick={() => !isPreview && !disabled && setOpen(true)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
             >
-              {showChips && arrayValue.length > 0 && (
+              {showChips &&
+                arrayValue.length > 0 &&
                 arrayValue.map((val, i) => (
-                  <span key={i} className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700">
+                  <span
+                    key={i}
+                    className="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700"
+                  >
                     {val}
                     {!disabled && !isPreview && (
-                      <button type="button" className="ml-1 text-blue-700/70 hover:text-blue-900" onClick={(e) => { e.stopPropagation(); toggleItem(val) }}>
+                      <button
+                        type="button"
+                        className="ml-1 text-blue-700/70 hover:text-blue-900"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleItem(val);
+                        }}
+                      >
                         <XMarkIcon className="w-3 h-3" />
                       </button>
                     )}
                   </span>
-                ))
-              )}
+                ))}
               {!showChips && (
-                <span className={`text-sm ${arrayValue.length === 0 ? 'text-gray-400' : 'text-gray-800'}`}>
-                  {arrayValue.length === 0 ? (field.placeholder || 'Select...') : `${arrayValue.length} selected`}
+                <span
+                  className={`text-sm ${arrayValue.length === 0 ? "text-gray-400" : "text-gray-800"}`}
+                >
+                  {arrayValue.length === 0
+                    ? field.placeholder || "Select..."
+                    : `${arrayValue.length} selected`}
                 </span>
               )}
             </div>
             {open && (
-              <div className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === 'minimal' ? 'p-1' : ''}`}>
+              <div
+                className={`absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg ${dropdownStyle === "minimal" ? "p-1" : ""}`}
+              >
                 <div className="p-2 border-b border-gray-100">
                   <input
                     autoFocus
@@ -1220,170 +1811,296 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <ul className={`max-h-48 overflow-auto py-1 ${dropdownStyle === 'cards' ? 'grid grid-cols-1 gap-2 p-2' : ''}`}>
+                <ul
+                  className={`max-h-48 overflow-auto py-1 ${dropdownStyle === "cards" ? "grid grid-cols-1 gap-2 p-2" : ""}`}
+                >
                   {filteredOptions.map((opt, idx) => {
-                    const selected = arrayValue.includes(opt)
+                    const selected = arrayValue.includes(opt);
                     return (
                       <li key={idx}>
                         <button
                           type="button"
                           onClick={() => toggleItem(opt)}
                           className={
-                            dropdownStyle === 'cards'
-                              ? `w-full text-left p-3 text-sm rounded-md border flex items-center justify-between transition-colors ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                              }`
-                              : dropdownStyle === 'pills'
-                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${selected ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                            dropdownStyle === "cards"
+                              ? `w-full text-left p-3 text-sm rounded-md border flex items-center justify-between transition-colors ${
+                                  selected
+                                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
                                 }`
-                                : `w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-blue-50 ${selected ? 'bg-blue-50 text-blue-700' : 'text-gray-800'
-                                }`
+                              : dropdownStyle === "pills"
+                                ? `inline-flex items-center px-3 py-1.5 m-1 rounded-full text-sm border ${
+                                    selected
+                                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                                      : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                                  }`
+                                : `w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-blue-50 ${
+                                    selected
+                                      ? "bg-blue-50 text-blue-700"
+                                      : "text-gray-800"
+                                  }`
                           }
                         >
                           <span className="flex items-center gap-3">
-                            {numberingStyle === 'none' ? null : renderNumberBox(idx)}
+                            {numberingStyle === "none"
+                              ? null
+                              : renderNumberBox(idx)}
                             <span className="font-medium">{opt}</span>
                           </span>
                           {selected && <CheckIcon className="w-4 h-4" />}
                         </button>
                       </li>
-                    )
+                    );
                   })}
                   {filteredOptions.length === 0 && (
-                    <li className="px-3 py-2 text-sm text-gray-400">No results</li>
+                    <li className="px-3 py-2 text-sm text-gray-400">
+                      No results
+                    </li>
                   )}
                 </ul>
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'address': {
+      case "address": {
         type AddressValue = {
-          street1?: string
-          street2?: string
-          city?: string
-          region?: string
-          postalCode?: string
-          country?: string
-          lat?: number
-          lng?: number
-        }
-        const v: AddressValue = (localValue && typeof localValue === 'object') ? localValue : {}
+          street1?: string;
+          street2?: string;
+          city?: string;
+          region?: string;
+          postalCode?: string;
+          country?: string;
+          lat?: number;
+          lng?: number;
+        };
+        const v: AddressValue =
+          localValue && typeof localValue === "object" ? localValue : {};
         const set = (key: keyof AddressValue, val: any) => {
-          const next = { ...v, [key]: val }
-          handleChange(next)
-        }
-        const req = (k: string, fallback = false) => Boolean((field.settings as any)?.[k] ?? fallback)
-        const usePlaces = Boolean((field.settings as any)?.googlePlacesEnabled)
+          const next = { ...v, [key]: val };
+          handleChange(next);
+        };
+        const req = (k: string, fallback = false) =>
+          Boolean((field.settings as any)?.[k] ?? fallback);
+        const usePlaces = Boolean((field.settings as any)?.googlePlacesEnabled);
         // minimal Google Places integration via browser script if present
-        const inputRef = useRef<HTMLInputElement>(null)
+        const inputRef = useRef<HTMLInputElement>(null);
         useEffect(() => {
-          if (!usePlaces || !inputRef.current) return
+          if (!usePlaces || !inputRef.current) return;
           const initAutocomplete = () => {
-            if (!(window as any).google?.maps?.places) return
-            const autocomplete = new (window as any).google.maps.places.Autocomplete(inputRef.current as HTMLInputElement, { types: ['geocode'] })
-            autocomplete.addListener('place_changed', () => {
-              const place = autocomplete.getPlace()
-              if (!place) return
-              const comps = (place.address_components || []) as Array<{ long_name: string; short_name: string; types: string[] }>
-              const get = (type: string) => comps.find(c => c.types.includes(type))?.long_name || ''
-              const streetNumber = get('street_number')
-              const route = get('route')
-              const city = get('locality') || get('sublocality') || get('postal_town')
-              const region = get('administrative_area_level_1')
-              const postal = get('postal_code')
-              const country = get('country')
-              const street1 = [streetNumber, route].filter(Boolean).join(' ')
-              const loc = place.geometry?.location
-              const lat = loc?.lat ? loc.lat() : undefined
-              const lng = loc?.lng ? loc.lng() : undefined
-              handleChange({ ...v, street1, city, region, postalCode: postal, country, lat, lng })
-            })
-          }
+            if (!(window as any).google?.maps?.places) return;
+            const autocomplete = new (
+              window as any
+            ).google.maps.places.Autocomplete(
+              inputRef.current as HTMLInputElement,
+              { types: ["geocode"] },
+            );
+            autocomplete.addListener("place_changed", () => {
+              const place = autocomplete.getPlace();
+              if (!place) return;
+              const comps = (place.address_components || []) as Array<{
+                long_name: string;
+                short_name: string;
+                types: string[];
+              }>;
+              const get = (type: string) =>
+                comps.find((c) => c.types.includes(type))?.long_name || "";
+              const streetNumber = get("street_number");
+              const route = get("route");
+              const city =
+                get("locality") || get("sublocality") || get("postal_town");
+              const region = get("administrative_area_level_1");
+              const postal = get("postal_code");
+              const country = get("country");
+              const street1 = [streetNumber, route].filter(Boolean).join(" ");
+              const loc = place.geometry?.location;
+              const lat = loc?.lat ? loc.lat() : undefined;
+              const lng = loc?.lng ? loc.lng() : undefined;
+              handleChange({
+                ...v,
+                street1,
+                city,
+                region,
+                postalCode: postal,
+                country,
+                lat,
+                lng,
+              });
+            });
+          };
           // If API already loaded, init; else add script
           if ((window as any).google?.maps?.places) {
-            initAutocomplete()
-            return
+            initAutocomplete();
+            return;
           }
-          const existing = document.getElementById('google-places-script') as HTMLScriptElement | null
+          const existing = document.getElementById(
+            "google-places-script",
+          ) as HTMLScriptElement | null;
           if (existing) {
-            existing.addEventListener('load', initAutocomplete, { once: true })
-            return
+            existing.addEventListener("load", initAutocomplete, { once: true });
+            return;
           }
-          const key = ((process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as unknown) as string) || (window as any).GOOGLE_MAPS_API_KEY || 'AIzaSyD-PLACEHOLDER'
-          const script = document.createElement('script')
-          script.id = 'google-places-script'
-          script.async = true
-          script.defer = true
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`
-          script.onload = initAutocomplete
-          document.body.appendChild(script)
-        }, [usePlaces])
-        const inputCls = 'w-full px-3 py-2 border rounded-md text-sm'
-        const [COUNTRIES, setCOUNTRIES] = useState<{ name: string; code?: string }[]>([])
+          const key =
+            (process.env
+              .NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as unknown as string) ||
+            (window as any).GOOGLE_MAPS_API_KEY ||
+            "AIzaSyD-PLACEHOLDER";
+          const script = document.createElement("script");
+          script.id = "google-places-script";
+          script.async = true;
+          script.defer = true;
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
+          script.onload = initAutocomplete;
+          document.body.appendChild(script);
+        }, [usePlaces]);
+        const inputCls = "w-full px-3 py-2 border rounded-md text-sm";
+        const [COUNTRIES, setCOUNTRIES] = useState<
+          { name: string; code?: string }[]
+        >([]);
         useEffect(() => {
-          loadAllCountriesWithCodes().then(list => setCOUNTRIES([...list, { name: 'Other' }]))
-        }, [])
-        const regionMeta = getCountryRegionMeta(v.country)
+          loadAllCountriesWithCodes().then((list) =>
+            setCOUNTRIES([...list, { name: "Other" }]),
+          );
+        }, []);
+        const regionMeta = getCountryRegionMeta(v.country);
         return (
           <div className="space-y-2">
             <div>
-              <label className="block text-xs text-gray-700 mb-1">Address</label>
-              <input ref={usePlaces ? inputRef : undefined} id={`${field.id}-street1`} name={`${field.id}-street1`} value={v.street1 || ''} onChange={(e) => set('street1', e.target.value)} className={inputCls} placeholder="65 Hansen Way" required={req('addressRequireStreet1', true)} />
+              <label className="block text-xs text-gray-700 mb-1">
+                Address
+              </label>
+              <input
+                ref={usePlaces ? inputRef : undefined}
+                id={`${field.id}-street1`}
+                name={`${field.id}-street1`}
+                value={v.street1 || ""}
+                onChange={(e) => set("street1", e.target.value)}
+                className={inputCls}
+                placeholder="65 Hansen Way"
+                required={req("addressRequireStreet1", true)}
+              />
             </div>
             <div>
-              <label className="block text-xs text-gray-700 mb-1">Address line 2</label>
-              <input id={`${field.id}-street2`} name={`${field.id}-street2`} value={v.street2 || ''} onChange={(e) => set('street2', e.target.value)} className={inputCls} placeholder="Apartment 4" required={req('addressRequireStreet2')} />
+              <label className="block text-xs text-gray-700 mb-1">
+                Address line 2
+              </label>
+              <input
+                id={`${field.id}-street2`}
+                name={`${field.id}-street2`}
+                value={v.street2 || ""}
+                onChange={(e) => set("street2", e.target.value)}
+                className={inputCls}
+                placeholder="Apartment 4"
+                required={req("addressRequireStreet2")}
+              />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs text-gray-700 mb-1">City/Town</label>
-                <input id={`${field.id}-city`} name={`${field.id}-city`} value={v.city || ''} onChange={(e) => set('city', e.target.value)} className={inputCls} placeholder="Palo Alto" required={req('addressRequireCity', true)} />
+                <label className="block text-xs text-gray-700 mb-1">
+                  City/Town
+                </label>
+                <input
+                  id={`${field.id}-city`}
+                  name={`${field.id}-city`}
+                  value={v.city || ""}
+                  onChange={(e) => set("city", e.target.value)}
+                  className={inputCls}
+                  placeholder="Palo Alto"
+                  required={req("addressRequireCity", true)}
+                />
               </div>
               <div>
-                <label className="block text-xs text-gray-700 mb-1">{regionMeta?.label || 'State/Region/Province'}</label>
+                <label className="block text-xs text-gray-700 mb-1">
+                  {regionMeta?.label || "State/Region/Province"}
+                </label>
                 {regionMeta?.options?.length ? (
-                  <select id={`${field.id}-region`} name={`${field.id}-region`} value={v.region || ''} onChange={(e) => set('region', e.target.value)} className={inputCls} required={req('addressRequireRegion', true)}>
-                    <option value="">Select {regionMeta.label.toLowerCase()}</option>
-                    {regionMeta.options.map(opt => (
-                      <option key={opt.code} value={opt.name}>{opt.name}</option>
+                  <select
+                    id={`${field.id}-region`}
+                    name={`${field.id}-region`}
+                    value={v.region || ""}
+                    onChange={(e) => set("region", e.target.value)}
+                    className={inputCls}
+                    required={req("addressRequireRegion", true)}
+                  >
+                    <option value="">
+                      Select {regionMeta.label.toLowerCase()}
+                    </option>
+                    {regionMeta.options.map((opt) => (
+                      <option key={opt.code} value={opt.name}>
+                        {opt.name}
+                      </option>
                     ))}
                   </select>
                 ) : (
-                  <RegionAuto country={v.country} value={v.region || ''} onChange={(val) => set('region', val)} inputCls={inputCls} required={req('addressRequireRegion', true)} />
+                  <RegionAuto
+                    country={v.country}
+                    value={v.region || ""}
+                    onChange={(val) => set("region", val)}
+                    inputCls={inputCls}
+                    required={req("addressRequireRegion", true)}
+                  />
                 )}
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs text-gray-700 mb-1">Zip/Post code</label>
-                <input id={`${field.id}-postalCode`} name={`${field.id}-postalCode`} value={v.postalCode || ''} onChange={(e) => set('postalCode', e.target.value)} className={inputCls} placeholder="94025" required={req('addressRequirePostalCode', true)} />
+                <label className="block text-xs text-gray-700 mb-1">
+                  Zip/Post code
+                </label>
+                <input
+                  id={`${field.id}-postalCode`}
+                  name={`${field.id}-postalCode`}
+                  value={v.postalCode || ""}
+                  onChange={(e) => set("postalCode", e.target.value)}
+                  className={inputCls}
+                  placeholder="94025"
+                  required={req("addressRequirePostalCode", true)}
+                />
               </div>
               <div>
-                <label className="block text-xs text-gray-700 mb-1">Country</label>
-                <select id={`${field.id}-country`} name={`${field.id}-country`} value={v.country || ''} onChange={(e) => set('country', e.target.value)} className={inputCls} required={req('addressRequireCountry', true)}>
+                <label className="block text-xs text-gray-700 mb-1">
+                  Country
+                </label>
+                <select
+                  id={`${field.id}-country`}
+                  name={`${field.id}-country`}
+                  value={v.country || ""}
+                  onChange={(e) => set("country", e.target.value)}
+                  className={inputCls}
+                  required={req("addressRequireCountry", true)}
+                >
                   <option value="">Select country</option>
-                  {COUNTRIES.map(c => (
-                    <option key={c.code || c.name} value={c.name}>{countryCodeToFlag(c.code)} {c.name}</option>
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code || c.name} value={c.name}>
+                      {countryCodeToFlag(c.code)} {c.name}
+                    </option>
                   ))}
                 </select>
-                {v.country === 'Other' && (
-                  <input className={`${inputCls} mt-2`} placeholder="Enter country" onChange={(e) => set('country', e.target.value)} />
+                {v.country === "Other" && (
+                  <input
+                    className={`${inputCls} mt-2`}
+                    placeholder="Enter country"
+                    onChange={(e) => set("country", e.target.value)}
+                  />
                 )}
               </div>
             </div>
           </div>
-        )
+        );
       }
 
-      case 'radio': {
-        const getLetter = (index: number) => String.fromCharCode(65 + (index % 26))
+      case "radio": {
+        const getLetter = (index: number) =>
+          String.fromCharCode(65 + (index % 26));
         if (isPreview) {
           return (
             <div className="space-y-2">
               {field.options?.map((opt, idx) => (
-                <div key={idx} className="flex items-center w-full max-w-lg p-3 rounded-md border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7]">
+                <div
+                  key={idx}
+                  className="flex items-center w-full max-w-lg p-3 rounded-md border border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7]"
+                >
                   <div className="flex items-center justify-center w-6 h-6 rounded border border-[#6C5CE7] text-xs font-bold mr-3 bg-white">
                     {getLetter(idx)}
                   </div>
@@ -1391,14 +2108,17 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 </div>
               ))}
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-2">
             {field.options?.map((option, index) => {
-              const isSelected = localValue === option
+              const isSelected = localValue === option;
               return (
-                <label key={index} className={`flex items-center w-full max-w-lg p-3 rounded-md border cursor-pointer transition-all ${isSelected ? 'border-[#6C5CE7] bg-[#6C5CE7]/10 text-[#6C5CE7]' : 'border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7] hover:bg-[#6C5CE7]/10 hover:border-[#6C5CE7]/50'}`}>
+                <label
+                  key={index}
+                  className={`flex items-center w-full max-w-lg p-3 rounded-md border cursor-pointer transition-all ${isSelected ? "border-[#6C5CE7] bg-[#6C5CE7]/10 text-[#6C5CE7]" : "border-[#6C5CE7]/30 bg-[#6C5CE7]/5 text-[#6C5CE7] hover:bg-[#6C5CE7]/10 hover:border-[#6C5CE7]/50"}`}
+                >
                   <input
                     type="radio"
                     name={field.id}
@@ -1409,90 +2129,164 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     className="hidden"
                     required={field.required}
                   />
-                  <div className={`flex items-center justify-center w-6 h-6 rounded border text-xs font-bold mr-3 transition-colors ${isSelected ? 'border-[#6C5CE7] bg-[#6C5CE7] text-white' : 'border-[#6C5CE7] bg-white text-[#6C5CE7]'}`}>
+                  <div
+                    className={`flex items-center justify-center w-6 h-6 rounded border text-xs font-bold mr-3 transition-colors ${isSelected ? "border-[#6C5CE7] bg-[#6C5CE7] text-white" : "border-[#6C5CE7] bg-white text-[#6C5CE7]"}`}
+                  >
                     {getLetter(index)}
                   </div>
                   <span className="text-lg">{option}</span>
-                  {isSelected && <CheckIcon className="w-5 h-5 ml-auto text-[#6C5CE7]" />}
+                  {isSelected && (
+                    <CheckIcon className="w-5 h-5 ml-auto text-[#6C5CE7]" />
+                  )}
                 </label>
-              )
+              );
             })}
             {error && (
-              <div className="text-sm text-red-600 font-medium mt-2">{error}</div>
+              <div className="text-sm text-red-600 font-medium mt-2">
+                {error}
+              </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'checkbox': {
-        const shape = (field.settings as any)?.checkboxShape || 'square'
-        const selectionStyle = (field.settings as any)?.selectionStyle || 'checkmark'
+      case "checkbox": {
+        const shape = (field.settings as any)?.checkboxShape || "square";
+        const selectionStyle =
+          (field.settings as any)?.selectionStyle || "checkmark";
 
-        const roundedClass = 'rounded-lg'
-        const shapeClass = shape === 'circle' ? 'rounded-full' : shape === 'rounded' ? roundedClass : shape === 'triangle' ? 'rounded-none' : 'rounded-sm'
-        const borderClr = (field.settings as any)?.borderColor || '#2563eb'
-        const checkedClr = (field.settings as any)?.checkedColor || '#2563eb'
+        const roundedClass = "rounded-lg";
+        const shapeClass =
+          shape === "circle"
+            ? "rounded-full"
+            : shape === "rounded"
+              ? roundedClass
+              : shape === "triangle"
+                ? "rounded-none"
+                : "rounded-sm";
+        const borderClr = (field.settings as any)?.borderColor || "#2563eb";
+        const checkedClr = (field.settings as any)?.checkedColor || "#2563eb";
 
-        const renderTriangle = (selected: boolean, clsExtra = '') => (
-          <svg className={clsExtra} width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="10,3 3,17 17,17" fill={selected && selectionStyle === 'fill' ? checkedClr : 'white'} stroke={selected ? checkedClr : borderClr} strokeWidth="2" />
-            {selected && selectionStyle === 'checkmark' && (
-              <path d="M6 11 l3 3 l5 -6" fill="none" stroke={checkedClr} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        const renderTriangle = (selected: boolean, clsExtra = "") => (
+          <svg
+            className={clsExtra}
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <polygon
+              points="10,3 3,17 17,17"
+              fill={
+                selected && selectionStyle === "fill" ? checkedClr : "white"
+              }
+              stroke={selected ? checkedClr : borderClr}
+              strokeWidth="2"
+            />
+            {selected && selectionStyle === "checkmark" && (
+              <path
+                d="M6 11 l3 3 l5 -6"
+                fill="none"
+                stroke={checkedClr}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             )}
-            {selected && selectionStyle === 'cross' && (
+            {selected && selectionStyle === "cross" && (
               <g stroke={checkedClr} strokeWidth="2" strokeLinecap="round">
                 <line x1="7" y1="8" x2="13" y2="14" />
                 <line x1="13" y1="8" x2="7" y2="14" />
               </g>
             )}
           </svg>
-        )
+        );
 
         if (isPreview) {
           return (
             <div className="space-y-2">
               {field.options?.map((opt, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-gray-700">
-                  {shape === 'triangle'
-                    ? renderTriangle(false)
-                    : <span className={`inline-block w-4 h-4 border border-gray-300 bg-white shadow-sm ${shapeClass}`} />}
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 text-gray-700"
+                >
+                  {shape === "triangle" ? (
+                    renderTriangle(false)
+                  ) : (
+                    <span
+                      className={`inline-block w-4 h-4 border border-gray-300 bg-white shadow-sm ${shapeClass}`}
+                    />
+                  )}
                   <span className="text-sm">{opt}</span>
                 </div>
               ))}
             </div>
-          )
+          );
         }
 
-        const isSelected = (opt: string) => Array.isArray(localValue) && localValue.includes(opt)
+        const isSelected = (opt: string) =>
+          Array.isArray(localValue) && localValue.includes(opt);
         const toggle = (opt: string) => {
-          const current = Array.isArray(localValue) ? localValue : []
-          handleChange(isSelected(opt) ? current.filter(v => v !== opt) : [...current, opt])
-        }
+          const current = Array.isArray(localValue) ? localValue : [];
+          handleChange(
+            isSelected(opt)
+              ? current.filter((v) => v !== opt)
+              : [...current, opt],
+          );
+        };
 
         return (
           <div className="space-y-3">
             {field.options?.map((option, index) => (
-              <label key={index} className="flex items-center space-x-3 cursor-pointer group">
+              <label
+                key={index}
+                className="flex items-center space-x-3 cursor-pointer group"
+              >
                 <button
                   type="button"
-                  onClick={(e) => { e.preventDefault(); toggle(option) }}
-                  className={`relative inline-flex items-center justify-center w-5 h-5 mr-1 transition-all duration-200 bg-white ${isSelected(option) ? 'ring-2 ring-blue-200' : 'hover:ring-1 hover:ring-blue-100'
-                    }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggle(option);
+                  }}
+                  className={`relative inline-flex items-center justify-center w-5 h-5 mr-1 transition-all duration-200 bg-white ${
+                    isSelected(option)
+                      ? "ring-2 ring-blue-200"
+                      : "hover:ring-1 hover:ring-blue-100"
+                  }`}
                 >
-                  {shape === 'triangle'
-                    ? renderTriangle(isSelected(option))
-                    : (
-                      <span className={`absolute inset-0 border ${shapeClass}`} style={{ borderColor: isSelected(option) ? checkedClr : borderClr }} />
-                    )}
-                  {!isSelected(option) ? null : (
-                    selectionStyle === 'fill' && shape !== 'triangle' ? (
-                      <span className={`absolute inset-0 ${shapeClass}`} style={{ background: `linear-gradient(135deg, ${checkedClr} 0%, ${checkedClr} 100%)` }} />
-                    ) : selectionStyle === 'cross' && shape !== 'triangle' ? (
-                      <span className="text-xs font-bold leading-none" style={{ color: checkedClr }}>×</span>
-                    ) : shape !== 'triangle' ? (
-                      <CheckIcon className="w-4 h-4" style={{ color: checkedClr }} />
-                    ) : null
+                  {shape === "triangle" ? (
+                    renderTriangle(isSelected(option))
+                  ) : (
+                    <span
+                      className={`absolute inset-0 border ${shapeClass}`}
+                      style={{
+                        borderColor: isSelected(option)
+                          ? checkedClr
+                          : borderClr,
+                      }}
+                    />
                   )}
+                  {!isSelected(option) ? null : selectionStyle === "fill" &&
+                    shape !== "triangle" ? (
+                    <span
+                      className={`absolute inset-0 ${shapeClass}`}
+                      style={{
+                        background: `linear-gradient(135deg, ${checkedClr} 0%, ${checkedClr} 100%)`,
+                      }}
+                    />
+                  ) : selectionStyle === "cross" && shape !== "triangle" ? (
+                    <span
+                      className="text-xs font-bold leading-none"
+                      style={{ color: checkedClr }}
+                    >
+                      ×
+                    </span>
+                  ) : shape !== "triangle" ? (
+                    <CheckIcon
+                      className="w-4 h-4"
+                      style={{ color: checkedClr }}
+                    />
+                  ) : null}
                 </button>
                 <span className="text-gray-900 group-hover:text-blue-600 transition-colors">
                   {option}
@@ -1506,55 +2300,69 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'multiple_choice': {
-        const allowMultiple = !!field.settings?.allowMultiple
-        const showOther = !!field.settings?.showOther
-        const numberingStyle = ((field.settings as any)?.numberingStyle || 'alphabetic') as 'none' | 'numeric' | 'alphabetic'
+      case "multiple_choice": {
+        const allowMultiple = !!field.settings?.allowMultiple;
+        const showOther = !!field.settings?.showOther;
+        const numberingStyle = ((field.settings as any)?.numberingStyle ||
+          "alphabetic") as "none" | "numeric" | "alphabetic";
         const getBadge = (idx: number) => {
-          const content = numberingStyle === 'numeric' ? String(idx + 1) : String.fromCharCode(65 + (idx % 26))
+          const content =
+            numberingStyle === "numeric"
+              ? String(idx + 1)
+              : String.fromCharCode(65 + (idx % 26));
           return (
             <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-semibold rounded border bg-white text-blue-700 border-blue-300">
               {content}
             </span>
-          )
-        }
+          );
+        };
         // Picture Choice / Gallery layout implementation
-        const hasImages = field.settings?.optionImages && field.settings.optionImages.length > 0
+        const hasImages =
+          field.settings?.optionImages &&
+          field.settings.optionImages.length > 0;
         const gridClass = hasImages
           ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full"
-          : "grid grid-cols-1 md:grid-cols-2 gap-3 w-full"
+          : "grid grid-cols-1 md:grid-cols-2 gap-3 w-full";
 
         const getCardClass = (selected: boolean, hasImg: boolean) => {
           if (hasImg) {
-            return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left bg-white cursor-pointer ${selected
-              ? 'border-[#6C5CE7] shadow-md'
-              : 'border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.08)] hover:shadow-lg hover:border-[#6C5CE7]/40'
-              }`
+            return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left bg-white cursor-pointer ${
+              selected
+                ? "border-[#6C5CE7] shadow-md"
+                : "border-transparent shadow-[0_2px_10px_rgba(0,0,0,0.08)] hover:shadow-lg hover:border-[#6C5CE7]/40"
+            }`;
           }
-          return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left cursor-pointer ${selected
-            ? 'border-[#6C5CE7] bg-[#6C5CE7]/10 shadow-[0_0_0_1px_#6C5CE7]'
-            : 'border-[#6C5CE7]/30 bg-[#6C5CE7]/5 hover:border-[#6C5CE7]/50 hover:bg-[#6C5CE7]/10'
-            }`
-        }
+          return `flex flex-col relative rounded-xl border-2 transition-all duration-200 overflow-hidden text-left cursor-pointer ${
+            selected
+              ? "border-[#6C5CE7] bg-[#6C5CE7]/10 shadow-[0_0_0_1px_#6C5CE7]"
+              : "border-[#6C5CE7]/30 bg-[#6C5CE7]/5 hover:border-[#6C5CE7]/50 hover:bg-[#6C5CE7]/10"
+          }`;
+        };
 
         // Preview mode — non-interactive cards with badges
         if (isPreview) {
-          const items = [...(field.options || [])]
-          if (showOther) items.push('Other')
+          const items = [...(field.options || [])];
+          if (showOther) items.push("Other");
           return (
             <div className={gridClass}>
               {items.map((opt, idx) => {
-                const img = hasImages ? field.settings?.optionImages?.[idx] : null
+                const img = hasImages
+                  ? field.settings?.optionImages?.[idx]
+                  : null;
                 return (
                   <div key={idx} className={getCardClass(false, !!img)}>
                     {img && (
                       <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img} alt={opt} className="object-cover w-full h-full" />
-                        {numberingStyle === 'none' ? null : (
+                        <img
+                          src={img}
+                          alt={opt}
+                          className="object-cover w-full h-full"
+                        />
+                        {numberingStyle === "none" ? null : (
                           <div className="absolute top-2 left-2 flex items-center justify-center w-6 h-6 text-xs font-bold rounded shadow-sm bg-white/90 text-[#6C5CE7] mix-blend-normal">
                             {String.fromCharCode(65 + (idx % 26))}
                           </div>
@@ -1563,37 +2371,50 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                     )}
                     <div className="p-3 md:p-4 flex items-center justify-between w-full h-full mt-auto">
                       <div className="flex items-center">
-                        {!img && numberingStyle !== 'none' ? (
+                        {!img && numberingStyle !== "none" ? (
                           <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border border-[#6C5CE7] bg-white text-[#6C5CE7]">
                             {String.fromCharCode(65 + (idx % 26))}
                           </span>
                         ) : null}
-                        <span className={`text-lg md:text-xl ${img ? 'text-gray-800' : 'text-[#6C5CE7]'}`}>{opt}</span>
+                        <span
+                          className={`text-lg md:text-xl ${img ? "text-gray-800" : "text-[#6C5CE7]"}`}
+                        >
+                          {opt}
+                        </span>
                       </div>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
-          )
+          );
         }
 
         // Live mode
-        const valueArray: string[] = Array.isArray(localValue) ? localValue : (localValue ? [localValue] : [])
+        const valueArray: string[] = Array.isArray(localValue)
+          ? localValue
+          : localValue
+            ? [localValue]
+            : [];
         const toggle = (opt: string) => {
           if (allowMultiple) {
-            if (valueArray.includes(opt)) handleChange(valueArray.filter(v => v !== opt))
-            else handleChange([...valueArray, opt])
+            if (valueArray.includes(opt))
+              handleChange(valueArray.filter((v) => v !== opt));
+            else handleChange([...valueArray, opt]);
           } else {
-            handleChange(opt)
+            handleChange(opt);
           }
-        }
+        };
 
         return (
           <div className={gridClass}>
             {(field.options || []).map((opt, idx) => {
-              const selected = allowMultiple ? valueArray.includes(opt) : localValue === opt
-              const img = hasImages ? field.settings?.optionImages?.[idx] : null
+              const selected = allowMultiple
+                ? valueArray.includes(opt)
+                : localValue === opt;
+              const img = hasImages
+                ? field.settings?.optionImages?.[idx]
+                : null;
               return (
                 <button
                   key={idx}
@@ -1605,27 +2426,41 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   {img && (
                     <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt={opt} className="object-cover w-full h-full transform transition-transform duration-300 hover:scale-105" />
-                      {numberingStyle === 'none' ? null : (
+                      <img
+                        src={img}
+                        alt={opt}
+                        className="object-cover w-full h-full transform transition-transform duration-300 hover:scale-105"
+                      />
+                      {numberingStyle === "none" ? null : (
                         <div className="absolute top-2 left-2 flex items-center justify-center w-6 h-6 text-xs font-bold rounded shadow bg-white/90 text-[#6C5CE7] mix-blend-normal">
                           {String.fromCharCode(65 + (idx % 26))}
                         </div>
                       )}
                     </div>
                   )}
-                  <div className={`p-3 md:p-4 flex items-center justify-between w-full h-full mt-auto ${selected && img ? 'bg-[#6C5CE7]/5' : ''}`}>
+                  <div
+                    className={`p-3 md:p-4 flex items-center justify-between w-full h-full mt-auto ${selected && img ? "bg-[#6C5CE7]/5" : ""}`}
+                  >
                     <div className="flex items-center">
-                      {!img && numberingStyle !== 'none' ? (
-                        <span className={`flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border transition-colors ${selected ? 'border-[#6C5CE7] bg-[#6C5CE7] text-white' : 'border-[#6C5CE7] bg-white text-[#6C5CE7]'}`}>
+                      {!img && numberingStyle !== "none" ? (
+                        <span
+                          className={`flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border transition-colors ${selected ? "border-[#6C5CE7] bg-[#6C5CE7] text-white" : "border-[#6C5CE7] bg-white text-[#6C5CE7]"}`}
+                        >
                           {String.fromCharCode(65 + (idx % 26))}
                         </span>
                       ) : null}
-                      <span className={`text-lg md:text-xl transition-colors ${selected ? 'text-[#6C5CE7]' : (img ? 'text-gray-800' : 'text-[#6C5CE7]')}`}>{opt}</span>
+                      <span
+                        className={`text-lg md:text-xl transition-colors ${selected ? "text-[#6C5CE7]" : img ? "text-gray-800" : "text-[#6C5CE7]"}`}
+                      >
+                        {opt}
+                      </span>
                     </div>
-                    {selected && <CheckIcon className="w-6 h-6 text-[#6C5CE7]" />}
+                    {selected && (
+                      <CheckIcon className="w-6 h-6 text-[#6C5CE7]" />
+                    )}
                   </div>
                 </button>
-              )
+              );
             })}
             {showOther && (
               <button
@@ -1635,123 +2470,179 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               >
                 <div className="p-4 flex items-center justify-between w-full h-full mt-auto">
                   <div className="flex items-center">
-                    {numberingStyle === 'none' ? null : (
+                    {numberingStyle === "none" ? null : (
                       <span className="flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold rounded border border-[#6C5CE7] bg-white text-[#6C5CE7]">
-                        {String.fromCharCode(65 + ((field.options || []).length % 26))}
+                        {String.fromCharCode(
+                          65 + ((field.options || []).length % 26),
+                        )}
                       </span>
                     )}
-                    <span className="text-lg md:text-xl text-[#6C5CE7]">Other</span>
+                    <span className="text-lg md:text-xl text-[#6C5CE7]">
+                      Other
+                    </span>
                   </div>
                 </div>
               </button>
             )}
           </div>
-        )
+        );
       }
 
-      case 'star_rating':
-        {
-          const max = (field.settings as any)?.maxRating || 5
-          const type = (field.settings as any)?.ratingType || 'stars'
-          const ActiveIcon = type === 'hearts' ? HeartIcon : type === 'thumbs' ? HandThumbUpIcon : StarIcon
-          const InactiveIcon = ActiveIcon
-          if (isPreview) {
-            return (
-              <div className="flex items-center gap-1 text-yellow-400">
-                {Array.from({ length: max }).map((_, i) => (
-                  <ActiveIcon key={i} className="w-6 h-6" />
-                ))}
-              </div>
-            )
-          }
+      case "star_rating": {
+        const max = (field.settings as any)?.maxRating || 5;
+        const type = (field.settings as any)?.ratingType || "stars";
+        const ActiveIcon =
+          type === "hearts"
+            ? HeartIcon
+            : type === "thumbs"
+              ? HandThumbUpIcon
+              : StarIcon;
+        const InactiveIcon = ActiveIcon;
+        if (isPreview) {
           return (
-            <div className="space-y-3">
-              <div className="flex items-center gap-1">
-                {Array.from({ length: max }).map((_, i) => {
-                  const idx = i + 1
-                  const active = idx <= (localValue || 0)
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleChange(idx)}
-                      disabled={disabled}
-                      className={`p-1 transition-all duration-200 ${active ? 'scale-110' : ''} ${active ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}
-                    >
-                      {active ? <ActiveIcon className="w-8 h-8" /> : <InactiveIcon className="w-8 h-8" />}
-                    </button>
-                  )
-                })}
-              </div>
-              {localValue && (
-                <p className="text-sm text-gray-600">You rated this {localValue} / {max}</p>
-              )}
-              {error && (
-                <div className="text-sm text-red-600 flex items-center space-x-1">
-                  <XMarkIcon className="w-4 h-4" />
-                  <span>{error}</span>
-                </div>
-              )}
+            <div className="flex items-center gap-1 text-yellow-400">
+              {Array.from({ length: max }).map((_, i) => (
+                <ActiveIcon key={i} className="w-6 h-6" />
+              ))}
             </div>
-          )
+          );
         }
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center gap-1">
+              {Array.from({ length: max }).map((_, i) => {
+                const idx = i + 1;
+                const active = idx <= (localValue || 0);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleChange(idx)}
+                    disabled={disabled}
+                    className={`p-1 transition-all duration-200 ${active ? "scale-110" : ""} ${active ? "text-yellow-400" : "text-gray-300 hover:text-yellow-300"}`}
+                  >
+                    {active ? (
+                      <ActiveIcon className="w-8 h-8" />
+                    ) : (
+                      <InactiveIcon className="w-8 h-8" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {localValue && (
+              <p className="text-sm text-gray-600">
+                You rated this {localValue} / {max}
+              </p>
+            )}
+            {error && (
+              <div className="text-sm text-red-600 flex items-center space-x-1">
+                <XMarkIcon className="w-4 h-4" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
+        );
+      }
 
-      case 'nps':
-      case 'nps_score': {
-        const style = (field.settings as any)?.npsStyle || 'buttons'
-        const accent = (field.settings as any)?.checkedColor || '#2563eb'
-        const cardView = !!(field.settings as any)?.npsCardView
-        const scores = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        const gapCls = cardView ? 'gap-2' : 'gap-1.5'
+      case "nps":
+      case "nps_score": {
+        const style = (field.settings as any)?.npsStyle || "buttons";
+        const accent = (field.settings as any)?.checkedColor || "#2563eb";
+        const cardView = !!(field.settings as any)?.npsCardView;
+        const scores = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const gapCls = cardView ? "gap-2" : "gap-1.5";
         const renderItem = (score: number, selected: boolean) => {
-          if (style === 'chips') {
+          if (style === "chips") {
             return (
-              <button type="button" onClick={() => handleChange(score)} disabled={disabled}
-                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-sm rounded-full border ${selected ? 'text-white' : 'text-gray-700'}`}
-                style={{ background: selected ? accent : 'white', borderColor: selected ? accent : '#E5E7EB' }}>{score}</button>
-            )
-          }
-          if (style === 'cards') {
-            return (
-              <button type="button" onClick={() => handleChange(score)} disabled={disabled}
-                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? 'text-base rounded-lg' : 'text-sm rounded-md'} border ${selected ? 'text-white' : 'text-gray-700'}`}
-                style={{ background: selected ? accent : '#F3F4F6', borderColor: selected ? accent : '#E5E7EB' }}>{score}</button>
-            )
-          }
-          if (style === 'scale') {
-            return (
-              <button type="button" onClick={() => handleChange(score)} disabled={disabled}
-                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? 'text-base rounded-md' : 'text-sm rounded'} ${selected ? 'text-white' : 'text-gray-700'}`}
-                style={{ background: selected ? accent : '#E5E7EB' }}>{score}</button>
-            )
-          }
-          if (style === 'typeform') {
-            return (
-              <button type="button" onClick={() => handleChange(score)} disabled={disabled}
-                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? 'text-base rounded-lg' : 'text-sm rounded-md'} font-medium transition-colors ${selected ? 'text-white' : 'text-gray-700'}`}
-                style={{ background: selected ? accent : 'white', border: `1px solid ${selected ? accent : '#E5E7EB'}` }}>
+              <button
+                type="button"
+                onClick={() => handleChange(score)}
+                disabled={disabled}
+                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-sm rounded-full border ${selected ? "text-white" : "text-gray-700"}`}
+                style={{
+                  background: selected ? accent : "white",
+                  borderColor: selected ? accent : "#E5E7EB",
+                }}
+              >
                 {score}
               </button>
-            )
+            );
+          }
+          if (style === "cards") {
+            return (
+              <button
+                type="button"
+                onClick={() => handleChange(score)}
+                disabled={disabled}
+                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? "text-base rounded-lg" : "text-sm rounded-md"} border ${selected ? "text-white" : "text-gray-700"}`}
+                style={{
+                  background: selected ? accent : "#F3F4F6",
+                  borderColor: selected ? accent : "#E5E7EB",
+                }}
+              >
+                {score}
+              </button>
+            );
+          }
+          if (style === "scale") {
+            return (
+              <button
+                type="button"
+                onClick={() => handleChange(score)}
+                disabled={disabled}
+                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? "text-base rounded-md" : "text-sm rounded"} ${selected ? "text-white" : "text-gray-700"}`}
+                style={{ background: selected ? accent : "#E5E7EB" }}
+              >
+                {score}
+              </button>
+            );
+          }
+          if (style === "typeform") {
+            return (
+              <button
+                type="button"
+                onClick={() => handleChange(score)}
+                disabled={disabled}
+                className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? "text-base rounded-lg" : "text-sm rounded-md"} font-medium transition-colors ${selected ? "text-white" : "text-gray-700"}`}
+                style={{
+                  background: selected ? accent : "white",
+                  border: `1px solid ${selected ? accent : "#E5E7EB"}`,
+                }}
+              >
+                {score}
+              </button>
+            );
           }
           // buttons default
           return (
-            <button type="button" onClick={() => handleChange(score)} disabled={disabled}
-              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? 'text-base rounded-md' : 'text-sm rounded'} border ${selected ? 'text-white' : 'text-gray-700'}`}
-              style={{ background: selected ? accent : 'white', borderColor: selected ? accent : '#E5E7EB' }}>{score}</button>
-          )
-        }
+            <button
+              type="button"
+              onClick={() => handleChange(score)}
+              disabled={disabled}
+              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${cardView ? "text-base rounded-md" : "text-sm rounded"} border ${selected ? "text-white" : "text-gray-700"}`}
+              style={{
+                background: selected ? accent : "white",
+                borderColor: selected ? accent : "#E5E7EB",
+              }}
+            >
+              {score}
+            </button>
+          );
+        };
         // Precompute preview tile classes to avoid nested template strings
-        const previewTypeformTileCls = `${cardView ? 'text-base md:text-lg py-3 rounded-lg' : 'text-sm py-2 rounded-md'} text-center border`
-        const previewScaleTileCls = `${cardView ? 'text-base py-3 rounded-md' : 'text-[11px] sm:text-xs py-1.5 sm:py-2 rounded'} text-center`
-        const previewDefaultTileCls = `${cardView ? 'text-base py-3 rounded-md' : 'text-[11px] sm:text-xs py-1.5 sm:py-2 rounded'} text-center border`
+        const previewTypeformTileCls = `${cardView ? "text-base md:text-lg py-3 rounded-lg" : "text-sm py-2 rounded-md"} text-center border`;
+        const previewScaleTileCls = `${cardView ? "text-base py-3 rounded-md" : "text-[11px] sm:text-xs py-1.5 sm:py-2 rounded"} text-center`;
+        const previewDefaultTileCls = `${cardView ? "text-base py-3 rounded-md" : "text-[11px] sm:text-xs py-1.5 sm:py-2 rounded"} text-center border`;
         if (isPreview) {
           return (
             <div className="space-y-2">
               <div className="inline-block">
-                <div className={`grid grid-cols-11 ${gapCls} place-items-center`}>
-                  {scores.map(score => {
-                    if (style === 'typeform') {
+                <div
+                  className={`grid grid-cols-11 ${gapCls} place-items-center`}
+                >
+                  {scores.map((score) => {
+                    if (style === "typeform") {
                       return (
                         <div
                           key={score}
@@ -1760,44 +2651,84 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                         >
                           {score}
                         </div>
-                      )
+                      );
                     }
-                    if (style === 'scale') {
+                    if (style === "scale") {
                       return (
-                        <div key={score} className={`${previewScaleTileCls} bg-gray-200`}>{score}</div>
-                      )
+                        <div
+                          key={score}
+                          className={`${previewScaleTileCls} bg-gray-200`}
+                        >
+                          {score}
+                        </div>
+                      );
                     }
                     return (
-                      <div key={score} className={`${previewDefaultTileCls} bg-gray-100`}>{score}</div>
-                    )
+                      <div
+                        key={score}
+                        className={`${previewDefaultTileCls} bg-gray-100`}
+                      >
+                        {score}
+                      </div>
+                    );
                   })}
                 </div>
                 <div className="grid grid-cols-11 mt-2 px-0.5">
-                  <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>{style === 'typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
-                  <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>Extremely likely</span>
+                  <span
+                    className={`col-start-1 justify-self-start text-[11px] sm:text-xs`}
+                    style={{ color: style === "typeform" ? accent : undefined }}
+                  >
+                    {style === "typeform"
+                      ? "Not at all likely"
+                      : "Not likely at all"}
+                  </span>
+                  <span
+                    className={`col-start-11 justify-self-end text-[11px] sm:text-xs`}
+                    style={{ color: style === "typeform" ? accent : undefined }}
+                  >
+                    Extremely likely
+                  </span>
                 </div>
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-2">
             <div className="inline-block w-full">
               <div className={`grid grid-cols-11 ${gapCls} place-items-center`}>
-                {scores.map(score => (
+                {scores.map((score) => (
                   <div key={score}>
                     {renderItem(score, localValue === score)}
                   </div>
                 ))}
               </div>
               <div className="grid grid-cols-11 mt-2 px-0.5">
-                <span className={`col-start-1 justify-self-start text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>{style === 'typeform' ? 'Not at all likely' : 'Not likely at all'}</span>
-                <span className={`col-start-11 justify-self-end text-[11px] sm:text-xs`} style={{ color: style === 'typeform' ? accent : undefined }}>Extremely likely</span>
+                <span
+                  className={`col-start-1 justify-self-start text-[11px] sm:text-xs`}
+                  style={{ color: style === "typeform" ? accent : undefined }}
+                >
+                  {style === "typeform"
+                    ? "Not at all likely"
+                    : "Not likely at all"}
+                </span>
+                <span
+                  className={`col-start-11 justify-self-end text-[11px] sm:text-xs`}
+                  style={{ color: style === "typeform" ? accent : undefined }}
+                >
+                  Extremely likely
+                </span>
               </div>
             </div>
-            {localValue !== undefined && localValue !== '' && (
+            {localValue !== undefined && localValue !== "" && (
               <div className="text-center">
-                <p className="text-xs text-gray-600">{localValue <= 6 ? 'Detractor' : localValue <= 8 ? 'Passive' : 'Promoter'}</p>
+                <p className="text-xs text-gray-600">
+                  {localValue <= 6
+                    ? "Detractor"
+                    : localValue <= 8
+                      ? "Passive"
+                      : "Promoter"}
+                </p>
               </div>
             )}
             {error && (
@@ -1807,159 +2738,229 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               </div>
             )}
           </div>
-        )
+        );
       }
 
-      case 'yes_no':
-        { // styles: buttons, cards, chips, toggle, thumbs
-          const style = (field.settings as any)?.yesNoStyle || 'buttons'
-          const accent = (field.settings as any)?.checkedColor || '#2563eb'
+      case "yes_no": {
+        // styles: buttons, cards, chips, toggle, thumbs
+        const style = (field.settings as any)?.yesNoStyle || "buttons";
+        const accent = (field.settings as any)?.checkedColor || "#2563eb";
 
-          if (isPreview) {
-            if (style === 'toggle') {
-              return (
-                <div className="inline-flex items-center gap-2 text-gray-500">
-                  <span>No</span>
-                  <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300">
-                    <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
-                  </span>
-                  <span>Yes</span>
-                </div>
-              )
-            }
-            if (style === 'chips') {
-              return (
-                <div className="flex gap-2">
-                  <span className="px-3 py-1.5 text-sm border rounded-full bg-gray-100 text-gray-600">Yes</span>
-                  <span className="px-3 py-1.5 text-sm border rounded-full bg-gray-100 text-gray-600">No</span>
-                </div>
-              )
-            }
-            if (style === 'thumbs') {
-              return (
-                <div className="flex gap-3 text-gray-500">
-                  <HandThumbUpIcon className="w-6 h-6" />
-                  <HandThumbDownIcon className="w-6 h-6" />
-                </div>
-              )
-            }
-            if (style === 'cards') {
-              return (
-                <div className="flex gap-3">
-                  <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600">Yes</div>
-                  <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600">No</div>
-                </div>
-              )
-            }
+        if (isPreview) {
+          if (style === "toggle") {
             return (
-              <div className="flex gap-3">
-                <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600 text-center">Yes</div>
-                <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600 text-center">No</div>
+              <div className="inline-flex items-center gap-2 text-gray-500">
+                <span>No</span>
+                <span className="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-300">
+                  <span className="inline-block h-4 w-4 transform rounded-full bg-white translate-x-1" />
+                </span>
+                <span>Yes</span>
               </div>
-            )
+            );
           }
-
-          const btnCls = (active: boolean, positive: boolean) => `flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${active ? '' : 'hover:opacity-90'
-            }` + (active
-              ? ` border-[${accent}]`
-              : ' border-gray-300')
-
-          if (style === 'toggle') {
-            const on = localValue === 'yes'
-            return (
-              <button
-                type="button"
-                onClick={() => handleChange(on ? 'no' : 'yes')}
-                disabled={disabled}
-                className="relative inline-flex h-8 w-16 items-center rounded-full"
-                style={{ background: on ? accent : '#E5E7EB' }}
-              >
-                <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 ${on ? 'translate-x-8' : 'translate-x-1'}`} />
-              </button>
-            )
-          }
-
-          if (style === 'chips') {
+          if (style === "chips") {
             return (
               <div className="flex gap-2">
-                {['yes', 'no'].map(v => (
-                  <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
-                    className={`px-3 py-1.5 text-sm border rounded-full ${localValue === v ? 'text-white' : 'text-gray-600'}`}
-                    style={{ background: localValue === v ? accent : 'white', borderColor: localValue === v ? accent : '#D1D5DB' }}
-                  >{v === 'yes' ? 'Yes' : 'No'}</button>
-                ))}
+                <span className="px-3 py-1.5 text-sm border rounded-full bg-gray-100 text-gray-600">
+                  Yes
+                </span>
+                <span className="px-3 py-1.5 text-sm border rounded-full bg-gray-100 text-gray-600">
+                  No
+                </span>
               </div>
-            )
+            );
           }
-
-          if (style === 'thumbs') {
+          if (style === "thumbs") {
+            return (
+              <div className="flex gap-3 text-gray-500">
+                <HandThumbUpIcon className="w-6 h-6" />
+                <HandThumbDownIcon className="w-6 h-6" />
+              </div>
+            );
+          }
+          if (style === "cards") {
             return (
               <div className="flex gap-3">
-                <button type="button" onClick={() => handleChange('yes')} disabled={disabled}
-                  className={`p-2 rounded-lg border ${localValue === 'yes' ? 'text-white' : 'text-gray-600'}`}
-                  style={{ background: localValue === 'yes' ? accent : 'white', borderColor: localValue === 'yes' ? accent : '#D1D5DB' }}
-                >
-                  <HandThumbUpIcon className="w-5 h-5" />
-                </button>
-                <button type="button" onClick={() => handleChange('no')} disabled={disabled}
-                  className={`p-2 rounded-lg border ${localValue === 'no' ? 'text-white' : 'text-gray-600'}`}
-                  style={{ background: localValue === 'no' ? accent : 'white', borderColor: localValue === 'no' ? accent : '#D1D5DB' }}
-                >
-                  <HandThumbDownIcon className="w-5 h-5" />
-                </button>
+                <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600">
+                  Yes
+                </div>
+                <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600">
+                  No
+                </div>
               </div>
-            )
+            );
           }
-
-          if (style === 'cards') {
-            return (
-              <div className="flex gap-3">
-                {['yes', 'no'].map(v => (
-                  <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
-                    className="flex-1 px-4 py-3 rounded-lg border text-center"
-                    style={{ background: localValue === v ? `${accent}1A` : '#F9FAFB', color: localValue === v ? accent : '#374151', borderColor: localValue === v ? accent : '#E5E7EB' }}
-                  >{v === 'yes' ? 'Yes' : 'No'}</button>
-                ))}
-              </div>
-            )
-          }
-
-          // default buttons
           return (
-            <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={() => handleChange('yes')}
-                disabled={disabled}
-                className="flex-1 py-3 px-4 rounded-lg border-2 relative"
-                style={{ background: localValue === 'yes' ? `${accent}1A` : 'white', color: localValue === 'yes' ? accent : '#374151', borderColor: localValue === 'yes' ? accent : '#E5E7EB' }}
-              >Yes
-                <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">Y</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChange('no')}
-                disabled={disabled}
-                className="flex-1 py-3 px-4 rounded-lg border-2 relative"
-                style={{ background: localValue === 'no' ? `${accent}1A` : 'white', color: localValue === 'no' ? accent : '#374151', borderColor: localValue === 'no' ? accent : '#E5E7EB' }}
-              >No
-                <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">N</span>
-              </button>
+            <div className="flex gap-3">
+              <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600 text-center">
+                Yes
+              </div>
+              <div className="flex-1 px-4 py-3 rounded-lg border bg-gray-50 text-gray-600 text-center">
+                No
+              </div>
             </div>
-          )
+          );
         }
 
-      case 'matrix_grid': {
-        const rows = ((field.settings as any)?.matrixRows || ['Row 1', 'Row 2', 'Row 3', 'Row 4']) as string[]
-        const cols = ((field.settings as any)?.matrixColumns || ['Col 1']) as string[]
-        const selection = ((field.settings as any)?.matrixSelection || 'single') as 'single' | 'multiple'
-        const shape = ((field.settings as any)?.matrixBoxShape || 'square') as 'square' | 'rounded' | 'circle'
-        const shapeCls = shape === 'circle' ? 'rounded-full' : 'rounded-sm'
-        const inBuilderCard = isPreview // question card uses isPreview=true in canvas
-        const headerScrollRef = useRef<HTMLDivElement>(null)
-        const rowsScrollRef = useRef<HTMLDivElement>(null)
-        const colWidth = 72
-        const rowHeight = 36
+        const btnCls = (active: boolean, positive: boolean) =>
+          `flex-1 py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
+            active ? "" : "hover:opacity-90"
+          }` + (active ? ` border-[${accent}]` : " border-gray-300");
+
+        if (style === "toggle") {
+          const on = localValue === "yes";
+          return (
+            <button
+              type="button"
+              onClick={() => handleChange(on ? "no" : "yes")}
+              disabled={disabled}
+              className="relative inline-flex h-8 w-16 items-center rounded-full"
+              style={{ background: on ? accent : "#E5E7EB" }}
+            >
+              <span
+                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform duration-200 ${on ? "translate-x-8" : "translate-x-1"}`}
+              />
+            </button>
+          );
+        }
+
+        if (style === "chips") {
+          return (
+            <div className="flex gap-2">
+              {["yes", "no"].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleChange(v)}
+                  disabled={disabled}
+                  className={`px-3 py-1.5 text-sm border rounded-full ${localValue === v ? "text-white" : "text-gray-600"}`}
+                  style={{
+                    background: localValue === v ? accent : "white",
+                    borderColor: localValue === v ? accent : "#D1D5DB",
+                  }}
+                >
+                  {v === "yes" ? "Yes" : "No"}
+                </button>
+              ))}
+            </div>
+          );
+        }
+
+        if (style === "thumbs") {
+          return (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleChange("yes")}
+                disabled={disabled}
+                className={`p-2 rounded-lg border ${localValue === "yes" ? "text-white" : "text-gray-600"}`}
+                style={{
+                  background: localValue === "yes" ? accent : "white",
+                  borderColor: localValue === "yes" ? accent : "#D1D5DB",
+                }}
+              >
+                <HandThumbUpIcon className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChange("no")}
+                disabled={disabled}
+                className={`p-2 rounded-lg border ${localValue === "no" ? "text-white" : "text-gray-600"}`}
+                style={{
+                  background: localValue === "no" ? accent : "white",
+                  borderColor: localValue === "no" ? accent : "#D1D5DB",
+                }}
+              >
+                <HandThumbDownIcon className="w-5 h-5" />
+              </button>
+            </div>
+          );
+        }
+
+        if (style === "cards") {
+          return (
+            <div className="flex gap-3">
+              {["yes", "no"].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleChange(v)}
+                  disabled={disabled}
+                  className="flex-1 px-4 py-3 rounded-lg border text-center"
+                  style={{
+                    background: localValue === v ? `${accent}1A` : "#F9FAFB",
+                    color: localValue === v ? accent : "#374151",
+                    borderColor: localValue === v ? accent : "#E5E7EB",
+                  }}
+                >
+                  {v === "yes" ? "Yes" : "No"}
+                </button>
+              ))}
+            </div>
+          );
+        }
+
+        // default buttons
+        return (
+          <div className="flex space-x-3">
+            <button
+              type="button"
+              onClick={() => handleChange("yes")}
+              disabled={disabled}
+              className="flex-1 py-3 px-4 rounded-lg border-2 relative"
+              style={{
+                background: localValue === "yes" ? `${accent}1A` : "white",
+                color: localValue === "yes" ? accent : "#374151",
+                borderColor: localValue === "yes" ? accent : "#E5E7EB",
+              }}
+            >
+              Yes
+              <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">
+                Y
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChange("no")}
+              disabled={disabled}
+              className="flex-1 py-3 px-4 rounded-lg border-2 relative"
+              style={{
+                background: localValue === "no" ? `${accent}1A` : "white",
+                color: localValue === "no" ? accent : "#374151",
+                borderColor: localValue === "no" ? accent : "#E5E7EB",
+              }}
+            >
+              No
+              <span className="absolute top-1 right-1 text-[9px] text-gray-400 bg-gray-100 px-1 rounded font-mono">
+                N
+              </span>
+            </button>
+          </div>
+        );
+      }
+
+      case "matrix_grid": {
+        const rows = ((field.settings as any)?.matrixRows || [
+          "Row 1",
+          "Row 2",
+          "Row 3",
+          "Row 4",
+        ]) as string[];
+        const cols = ((field.settings as any)?.matrixColumns || [
+          "Col 1",
+        ]) as string[];
+        const selection = ((field.settings as any)?.matrixSelection ||
+          "single") as "single" | "multiple";
+        const shape = ((field.settings as any)?.matrixBoxShape || "square") as
+          | "square"
+          | "rounded"
+          | "circle";
+        const shapeCls = shape === "circle" ? "rounded-full" : "rounded-sm";
+        const inBuilderCard = isPreview; // question card uses isPreview=true in canvas
+        const headerScrollRef = useRef<HTMLDivElement>(null);
+        const rowsScrollRef = useRef<HTMLDivElement>(null);
+        const colWidth = 72;
+        const rowHeight = 36;
 
         return (
           <div className="w-full">
@@ -1970,9 +2971,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   type="button"
                   className="text-blue-700 underline"
                   onClick={() => {
-                    const next = [...cols, `Col ${cols.length + 1}`]
-                    updateField(field.id, { settings: { ...field.settings, matrixColumns: next } as any })
-                    selectField({ ...field })
+                    const next = [...cols, `Col ${cols.length + 1}`];
+                    updateField(field.id, {
+                      settings: {
+                        ...field.settings,
+                        matrixColumns: next,
+                      } as any,
+                    });
+                    selectField({ ...field });
                   }}
                 >
                   Add column
@@ -1983,36 +2989,145 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             <div className="relative">
               {cols.length > 4 && (
                 <div className="absolute -top-7 right-0 flex gap-1">
-                  <button type="button" className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm" title="Scroll left" onClick={() => headerScrollRef.current?.scrollBy({ left: -colWidth * 2, behavior: 'smooth' })}>◄</button>
-                  <button type="button" className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm" title="Scroll right" onClick={() => headerScrollRef.current?.scrollBy({ left: colWidth * 2, behavior: 'smooth' })}>►</button>
+                  <button
+                    type="button"
+                    className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm"
+                    title="Scroll left"
+                    onClick={() =>
+                      headerScrollRef.current?.scrollBy({
+                        left: -colWidth * 2,
+                        behavior: "smooth",
+                      })
+                    }
+                  >
+                    ◄
+                  </button>
+                  <button
+                    type="button"
+                    className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm"
+                    title="Scroll right"
+                    onClick={() =>
+                      headerScrollRef.current?.scrollBy({
+                        left: colWidth * 2,
+                        behavior: "smooth",
+                      })
+                    }
+                  >
+                    ►
+                  </button>
                 </div>
               )}
-              <div className="flex items-center text-blue-700 italic text-xs mb-1 overflow-x-auto" ref={headerScrollRef} style={{ scrollbarWidth: 'thin' }}>
+              <div
+                className="flex items-center text-blue-700 italic text-xs mb-1 overflow-x-auto"
+                ref={headerScrollRef}
+                style={{ scrollbarWidth: "thin" }}
+              >
                 <div className="flex-1" />
                 {cols.map((c, i) => (
-                  <div key={i} className="text-center shrink-0" style={{ width: colWidth }}>
+                  <div
+                    key={i}
+                    className="text-center shrink-0"
+                    style={{ width: colWidth }}
+                  >
                     {inBuilderCard ? (
-                      <div className="group inline-block w-full" onClick={() => setActiveMatrixCol(i)}>
-                        <input value={c} onChange={(e) => { const next = [...cols]; next[i] = e.target.value; updateField(field.id, { settings: { ...field.settings, matrixColumns: next } as any }) }} className="w-full text-center bg-transparent italic text-blue-700 focus:outline-none border-b border-transparent focus:border-blue-400 text-xs" />
+                      <div
+                        className="group inline-block w-full"
+                        onClick={() => setActiveMatrixCol(i)}
+                      >
+                        <input
+                          value={c}
+                          onChange={(e) => {
+                            const next = [...cols];
+                            next[i] = e.target.value;
+                            updateField(field.id, {
+                              settings: {
+                                ...field.settings,
+                                matrixColumns: next,
+                              } as any,
+                            });
+                          }}
+                          className="w-full text-center bg-transparent italic text-blue-700 focus:outline-none border-b border-transparent focus:border-blue-400 text-xs"
+                        />
                         {activeMatrixCol === i && (
-                          <button type="button" title="Remove column" onClick={(e) => { e.stopPropagation(); const next = cols.filter((_, idx) => idx !== i); updateField(field.id, { settings: { ...field.settings, matrixColumns: next } as any }); setActiveMatrixCol(null) }} className="absolute -top-2 -right-2 h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-50">×</button>
+                          <button
+                            type="button"
+                            title="Remove column"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const next = cols.filter((_, idx) => idx !== i);
+                              updateField(field.id, {
+                                settings: {
+                                  ...field.settings,
+                                  matrixColumns: next,
+                                } as any,
+                              });
+                              setActiveMatrixCol(null);
+                            }}
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-50"
+                          >
+                            ×
+                          </button>
                         )}
                       </div>
-                    ) : c}
+                    ) : (
+                      c
+                    )}
                   </div>
                 ))}
               </div>
             </div>
             {/* rows */}
-            <div className="space-y-1 max-h-56 overflow-y-auto pr-1" ref={rowsScrollRef} style={{ scrollbarWidth: 'thin' }}>
+            <div
+              className="space-y-1 max-h-56 overflow-y-auto pr-1"
+              ref={rowsScrollRef}
+              style={{ scrollbarWidth: "thin" }}
+            >
               {rows.map((r, ri) => (
-                <div key={ri} className="flex items-center bg-blue-50/60 border border-blue-200 rounded px-3">
-                  <div className="flex-1 py-2 text-blue-800 italic relative text-xs" onClick={() => setActiveMatrixRow(ri)}>
+                <div
+                  key={ri}
+                  className="flex items-center bg-blue-50/60 border border-blue-200 rounded px-3"
+                >
+                  <div
+                    className="flex-1 py-2 text-blue-800 italic relative text-xs"
+                    onClick={() => setActiveMatrixRow(ri)}
+                  >
                     {inBuilderCard ? (
-                      <input value={r} onChange={(e) => { const next = [...rows]; next[ri] = e.target.value; updateField(field.id, { settings: { ...field.settings, matrixRows: next } as any }) }} className="w-full bg-transparent italic text-blue-800 focus:outline-none border-b border-transparent focus:border-blue-400 text-xs" />
-                    ) : r}
+                      <input
+                        value={r}
+                        onChange={(e) => {
+                          const next = [...rows];
+                          next[ri] = e.target.value;
+                          updateField(field.id, {
+                            settings: {
+                              ...field.settings,
+                              matrixRows: next,
+                            } as any,
+                          });
+                        }}
+                        className="w-full bg-transparent italic text-blue-800 focus:outline-none border-b border-transparent focus:border-blue-400 text-xs"
+                      />
+                    ) : (
+                      r
+                    )}
                     {inBuilderCard && activeMatrixRow === ri && (
-                      <button type="button" title="Remove row" onClick={(e) => { e.stopPropagation(); const next = rows.filter((_, idx) => idx !== ri); updateField(field.id, { settings: { ...field.settings, matrixRows: next } as any }); setActiveMatrixRow(null) }} className="absolute top-1/2 -translate-y-1/2 -left-3 h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-50">×</button>
+                      <button
+                        type="button"
+                        title="Remove row"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next = rows.filter((_, idx) => idx !== ri);
+                          updateField(field.id, {
+                            settings: {
+                              ...field.settings,
+                              matrixRows: next,
+                            } as any,
+                          });
+                          setActiveMatrixRow(null);
+                        }}
+                        className="absolute top-1/2 -translate-y-1/2 -left-3 h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 flex items-center justify-center shadow-sm hover:bg-blue-50"
+                      >
+                        ×
+                      </button>
                     )}
                   </div>
                   {cols.map((_, ci) => (
@@ -2022,37 +3137,49 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                       className="flex items-center justify-center border-l border-blue-200 py-1 hover:bg-blue-100/60 shrink-0"
                       style={{ width: colWidth - 12 }}
                       onClick={() => {
-                        if (disabled) return
+                        if (disabled) return;
                         // store selection in local value as map: { [rowIndex]: columnIndex[] }
-                        const current = (localValue && typeof localValue === 'object') ? localValue : {}
-                        const rowSel: number[] = Array.isArray(current[ri]) ? current[ri] : []
-                        let nextRow: number[]
-                        if (selection === 'single') {
-                          nextRow = [ci]
+                        const current =
+                          localValue && typeof localValue === "object"
+                            ? localValue
+                            : {};
+                        const rowSel: number[] = Array.isArray(current[ri])
+                          ? current[ri]
+                          : [];
+                        let nextRow: number[];
+                        if (selection === "single") {
+                          nextRow = [ci];
                         } else {
-                          nextRow = rowSel.includes(ci) ? rowSel.filter(x => x !== ci) : [...rowSel, ci]
+                          nextRow = rowSel.includes(ci)
+                            ? rowSel.filter((x) => x !== ci)
+                            : [...rowSel, ci];
                         }
-                        const next = { ...current, [ri]: nextRow }
-                        handleChange(next)
+                        const next = { ...current, [ri]: nextRow };
+                        handleChange(next);
                       }}
                     >
                       {(() => {
-                        const current = (localValue && typeof localValue === 'object') ? localValue : {}
-                        const selected = Array.isArray(current[ri]) && (current[ri] as number[]).includes(ci)
-                        if (selection === 'single') {
+                        const current =
+                          localValue && typeof localValue === "object"
+                            ? localValue
+                            : {};
+                        const selected =
+                          Array.isArray(current[ri]) &&
+                          (current[ri] as number[]).includes(ci);
+                        if (selection === "single") {
                           return (
                             <span
-                              className={`inline-block w-2.5 h-2.5 border rounded-full ${selected ? 'bg-blue-500' : ''}`}
-                              style={{ borderColor: '#93C5FD' }}
+                              className={`inline-block w-2.5 h-2.5 border rounded-full ${selected ? "bg-blue-500" : ""}`}
+                              style={{ borderColor: "#93C5FD" }}
                             />
-                          )
+                          );
                         }
                         return (
                           <span
-                            className={`inline-block w-2.5 h-2.5 border ${shapeCls} ${selected ? 'bg-blue-500' : ''}`}
-                            style={{ borderColor: '#93C5FD' }}
+                            className={`inline-block w-2.5 h-2.5 border ${shapeCls} ${selected ? "bg-blue-500" : ""}`}
+                            style={{ borderColor: "#93C5FD" }}
                           />
-                        )
+                        );
                       })()}
                     </button>
                   ))}
@@ -2061,8 +3188,32 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
             </div>
             {inBuilderCard && rows.length > 6 && (
               <div className="flex gap-1 mt-1">
-                <button type="button" className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm" title="Scroll up" onClick={() => rowsScrollRef.current?.scrollBy({ top: -rowHeight * 3, behavior: 'smooth' })}>▲</button>
-                <button type="button" className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm" title="Scroll down" onClick={() => rowsScrollRef.current?.scrollBy({ top: rowHeight * 3, behavior: 'smooth' })}>▼</button>
+                <button
+                  type="button"
+                  className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm"
+                  title="Scroll up"
+                  onClick={() =>
+                    rowsScrollRef.current?.scrollBy({
+                      top: -rowHeight * 3,
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="h-6 w-6 rounded-full border border-blue-300 bg-white text-blue-700 text-xs flex items-center justify-center shadow-sm"
+                  title="Scroll down"
+                  onClick={() =>
+                    rowsScrollRef.current?.scrollBy({
+                      top: rowHeight * 3,
+                      behavior: "smooth",
+                    })
+                  }
+                >
+                  ▼
+                </button>
               </div>
             )}
             {inBuilderCard && (
@@ -2070,24 +3221,26 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 type="button"
                 className="mt-3 text-blue-700 underline text-sm"
                 onClick={() => {
-                  const next = [...rows, `Row ${rows.length + 1}`]
-                  updateField(field.id, { settings: { ...field.settings, matrixRows: next } as any })
-                  selectField({ ...field })
+                  const next = [...rows, `Row ${rows.length + 1}`];
+                  updateField(field.id, {
+                    settings: { ...field.settings, matrixRows: next } as any,
+                  });
+                  selectField({ ...field });
                 }}
               >
                 Add row
               </button>
             )}
           </div>
-        )
+        );
       }
 
-      case 'linear_scale': {
-        const min = (field.settings as any)?.minRating ?? 1
-        const max = (field.settings as any)?.maxRating ?? 5
-        const left = (field.settings as any)?.leftLabel || 'Low'
-        const right = (field.settings as any)?.rightLabel || 'High'
-        const values = Array.from({ length: max - min + 1 }, (_, i) => i + min)
+      case "linear_scale": {
+        const min = (field.settings as any)?.minRating ?? 1;
+        const max = (field.settings as any)?.maxRating ?? 5;
+        const left = (field.settings as any)?.leftLabel || "Low";
+        const right = (field.settings as any)?.rightLabel || "High";
+        const values = Array.from({ length: max - min + 1 }, (_, i) => i + min);
         if (isPreview) {
           return (
             <div className="space-y-2">
@@ -2096,12 +3249,17 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <span>{right}</span>
               </div>
               <div className="flex gap-1.5">
-                {values.map(v => (
-                  <span key={v} className="flex-1 text-center py-2 rounded bg-gray-100 border text-xs">{v}</span>
+                {values.map((v) => (
+                  <span
+                    key={v}
+                    className="flex-1 text-center py-2 rounded bg-gray-100 border text-xs"
+                  >
+                    {v}
+                  </span>
                 ))}
               </div>
             </div>
-          )
+          );
         }
         return (
           <div className="space-y-2">
@@ -2110,27 +3268,53 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               <span>{right}</span>
             </div>
             <div className="flex gap-1.5">
-              {values.map(v => (
-                <button key={v} type="button" onClick={() => handleChange(v)} disabled={disabled}
-                  className={`flex-1 text-center py-2 rounded border text-xs ${localValue === v ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-50'}`}>{v}</button>
+              {values.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleChange(v)}
+                  disabled={disabled}
+                  className={`flex-1 text-center py-2 rounded border text-xs ${localValue === v ? "bg-blue-600 text-white" : "bg-white hover:bg-blue-50"}`}
+                >
+                  {v}
+                </button>
               ))}
             </div>
           </div>
-        )
+        );
       }
 
-      case 'likert_scale': {
-        const rows = ((field.settings as any)?.likertRows || ['Statement 1', 'Statement 2']) as string[]
-        const cols = ((field.settings as any)?.likertCols || ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree']) as string[]
-        const selType = ((field.settings as any)?.likertSelection || 'single') as 'single' | 'multiple'
+      case "likert_scale": {
+        const rows = ((field.settings as any)?.likertRows || [
+          "Statement 1",
+          "Statement 2",
+        ]) as string[];
+        const cols = ((field.settings as any)?.likertCols || [
+          "Strongly Disagree",
+          "Disagree",
+          "Neutral",
+          "Agree",
+          "Strongly Agree",
+        ]) as string[];
+        const selType = ((field.settings as any)?.likertSelection ||
+          "single") as "single" | "multiple";
         // value stored as { [rowIndex]: number[] } of selected column indices
-        const current = (localValue && typeof localValue === 'object') ? localValue : {}
+        const current =
+          localValue && typeof localValue === "object" ? localValue : {};
         const toggle = (ri: number, ci: number) => {
-          const rowSel: number[] = Array.isArray(current[ri]) ? current[ri] : []
-          const nextRow = selType === 'single' ? [ci] : (rowSel.includes(ci) ? rowSel.filter(x => x !== ci) : [...rowSel, ci])
-          handleChange({ ...current, [ri]: nextRow })
-        }
-        const isSel = (ri: number, ci: number) => Array.isArray(current[ri]) && (current[ri] as number[]).includes(ci)
+          const rowSel: number[] = Array.isArray(current[ri])
+            ? current[ri]
+            : [];
+          const nextRow =
+            selType === "single"
+              ? [ci]
+              : rowSel.includes(ci)
+                ? rowSel.filter((x) => x !== ci)
+                : [...rowSel, ci];
+          handleChange({ ...current, [ri]: nextRow });
+        };
+        const isSel = (ri: number, ci: number) =>
+          Array.isArray(current[ri]) && (current[ri] as number[]).includes(ci);
         return (
           <div className="space-y-2">
             <div className="overflow-auto">
@@ -2138,7 +3322,14 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <thead>
                   <tr>
                     <th className="text-left pr-3"></th>
-                    {cols.map((c, i) => (<th key={i} className="px-2 py-1 text-gray-600 font-medium text-center">{c}</th>))}
+                    {cols.map((c, i) => (
+                      <th
+                        key={i}
+                        className="px-2 py-1 text-gray-600 font-medium text-center"
+                      >
+                        {c}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -2148,10 +3339,16 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                       {cols.map((_, ci) => (
                         <td key={ci} className="px-2 py-1 text-center">
                           {isPreview ? (
-                            <span className={`inline-block w-3 h-3 rounded-full border ${isSel(ri, ci) ? 'bg-blue-500 border-blue-500' : 'border-gray-300'}`} />
+                            <span
+                              className={`inline-block w-3 h-3 rounded-full border ${isSel(ri, ci) ? "bg-blue-500 border-blue-500" : "border-gray-300"}`}
+                            />
                           ) : (
-                            <button type="button" onClick={() => toggle(ri, ci)} disabled={disabled}
-                              className={`inline-block w-4 h-4 rounded-full border ${isSel(ri, ci) ? 'bg-blue-600 border-blue-600' : 'border-gray-300 hover:border-blue-300'}`} />
+                            <button
+                              type="button"
+                              onClick={() => toggle(ri, ci)}
+                              disabled={disabled}
+                              className={`inline-block w-4 h-4 rounded-full border ${isSel(ri, ci) ? "bg-blue-600 border-blue-600" : "border-gray-300 hover:border-blue-300"}`}
+                            />
                           )}
                         </td>
                       ))}
@@ -2161,120 +3358,177 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               </table>
             </div>
           </div>
-        )
+        );
       }
 
-      case 'ranking': {
+      case "ranking": {
         // Simple dragless rank with up/down toggles for builder simplicity
-        const items = (field.options || ['Item 1', 'Item 2', 'Item 3']) as string[]
-        const arr: string[] = Array.isArray(localValue) ? localValue : items
+        const items = (field.options || [
+          "Item 1",
+          "Item 2",
+          "Item 3",
+        ]) as string[];
+        const arr: string[] = Array.isArray(localValue) ? localValue : items;
         const move = (from: number, to: number) => {
-          if (to < 0 || to >= arr.length) return
-          const next = [...arr]
-          const [it] = next.splice(from, 1)
-          next.splice(to, 0, it)
-          handleChange(next)
-        }
+          if (to < 0 || to >= arr.length) return;
+          const next = [...arr];
+          const [it] = next.splice(from, 1);
+          next.splice(to, 0, it);
+          handleChange(next);
+        };
         return (
           <div className="space-y-2">
             {(arr.length ? arr : items).map((it, i) => (
-              <div key={i} className="flex items-center justify-between px-3 py-2 rounded border bg-white">
+              <div
+                key={i}
+                className="flex items-center justify-between px-3 py-2 rounded border bg-white"
+              >
                 <span className="text-sm text-gray-800">{it}</span>
                 {!isPreview && (
                   <div className="flex items-center gap-1">
-                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i - 1)}>Up</button>
-                    <button type="button" className="px-2 py-1 text-xs rounded border hover:bg-gray-50" disabled={disabled} onClick={() => move(i, i + 1)}>Down</button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-xs rounded border hover:bg-gray-50"
+                      disabled={disabled}
+                      onClick={() => move(i, i - 1)}
+                    >
+                      Up
+                    </button>
+                    <button
+                      type="button"
+                      className="px-2 py-1 text-xs rounded border hover:bg-gray-50"
+                      disabled={disabled}
+                      onClick={() => move(i, i + 1)}
+                    >
+                      Down
+                    </button>
                   </div>
                 )}
               </div>
             ))}
           </div>
-        )
+        );
       }
 
-      case 'captcha': {
-        const cfg = (field.settings as any) || {}
-        const type = (cfg.captchaType || 'text') as string
-        const caseSensitive = !!cfg.captchaCaseSensitive
-        const difficulty = (cfg.captchaDifficulty || 'easy') as 'easy' | 'medium' | 'hard'
-        const [challenge, setChallenge] = useState<string>('')
-        const [mathOps, setMathOps] = useState<{ a: number; b: number; op: '+' | '-' | '×' } | null>(null)
-        const [slider, setSlider] = useState<number>(0)
-        const [checked, setChecked] = useState<boolean>(false)
-        const [inputVal, setInputVal] = useState<string>('')
-        const [isClient, setIsClient] = useState(false)
+      case "captcha": {
+        const cfg = (field.settings as any) || {};
+        const type = (cfg.captchaType || "text") as string;
+        const caseSensitive = !!cfg.captchaCaseSensitive;
+        const difficulty = (cfg.captchaDifficulty || "easy") as
+          | "easy"
+          | "medium"
+          | "hard";
+        const [challenge, setChallenge] = useState<string>("");
+        const [mathOps, setMathOps] = useState<{
+          a: number;
+          b: number;
+          op: "+" | "-" | "×";
+        } | null>(null);
+        const [slider, setSlider] = useState<number>(0);
+        const [checked, setChecked] = useState<boolean>(false);
+        const [inputVal, setInputVal] = useState<string>("");
+        const [isClient, setIsClient] = useState(false);
 
         const regen = () => {
-          if (type === 'math') {
-            const max = difficulty === 'hard' ? 50 : difficulty === 'medium' ? 20 : 10
-            const a = Math.floor(Math.random() * max) + 1
-            const b = Math.floor(Math.random() * max) + 1
-            const ops: Array<'+' | '-' | '×'> = ['+', '-', '×']
-            const op = ops[Math.floor(Math.random() * (difficulty === 'easy' ? 1 : difficulty === 'medium' ? 2 : 3))]
-            setMathOps({ a, b, op })
-            setInputVal('')
-          } else if (type === 'text') {
-            const len = difficulty === 'hard' ? 6 : difficulty === 'medium' ? 5 : 4
-            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-            let s = ''
-            for (let i = 0; i < len; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)]
-            setChallenge(s)
-            setInputVal('')
-          } else if (type === 'slider') {
-            setSlider(0)
-          } else if (type === 'checkbox') {
-            setChecked(false)
-          } else if (type === 'recaptcha') {
-            setChecked(false)
+          if (type === "math") {
+            const max =
+              difficulty === "hard" ? 50 : difficulty === "medium" ? 20 : 10;
+            const a = Math.floor(Math.random() * max) + 1;
+            const b = Math.floor(Math.random() * max) + 1;
+            const ops: Array<"+" | "-" | "×"> = ["+", "-", "×"];
+            const op =
+              ops[
+                Math.floor(
+                  Math.random() *
+                    (difficulty === "easy"
+                      ? 1
+                      : difficulty === "medium"
+                        ? 2
+                        : 3),
+                )
+              ];
+            setMathOps({ a, b, op });
+            setInputVal("");
+          } else if (type === "text") {
+            const len =
+              difficulty === "hard" ? 6 : difficulty === "medium" ? 5 : 4;
+            const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let s = "";
+            for (let i = 0; i < len; i++)
+              s += alphabet[Math.floor(Math.random() * alphabet.length)];
+            setChallenge(s);
+            setInputVal("");
+          } else if (type === "slider") {
+            setSlider(0);
+          } else if (type === "checkbox") {
+            setChecked(false);
+          } else if (type === "recaptcha") {
+            setChecked(false);
           } else {
             // default to simple text
-            const len = 5
-            const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-            let s = ''
-            for (let i = 0; i < len; i++) s += alphabet[Math.floor(Math.random() * alphabet.length)]
-            setChallenge(s)
-            setInputVal('')
+            const len = 5;
+            const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let s = "";
+            for (let i = 0; i < len; i++)
+              s += alphabet[Math.floor(Math.random() * alphabet.length)];
+            setChallenge(s);
+            setInputVal("");
           }
-        }
+        };
 
         // Ensure we're on the client side before generating CAPTCHA
         useEffect(() => {
-          setIsClient(true)
-        }, [])
+          setIsClient(true);
+        }, []);
 
         useEffect(() => {
           if (isClient) {
-            regen()
+            regen();
           }
-        }, [type, difficulty, isClient])
+        }, [type, difficulty, isClient]);
 
         const verify = () => {
-          if (type === 'math' && mathOps) {
-            const expected = mathOps.op === '+' ? mathOps.a + mathOps.b : mathOps.op === '-' ? mathOps.a - mathOps.b : mathOps.a * mathOps.b
-            return String(expected) === inputVal.trim()
+          if (type === "math" && mathOps) {
+            const expected =
+              mathOps.op === "+"
+                ? mathOps.a + mathOps.b
+                : mathOps.op === "-"
+                  ? mathOps.a - mathOps.b
+                  : mathOps.a * mathOps.b;
+            return String(expected) === inputVal.trim();
           }
-          if (type === 'text') {
-            return caseSensitive ? inputVal.trim() === challenge : inputVal.trim().toUpperCase() === challenge.toUpperCase()
+          if (type === "text") {
+            return caseSensitive
+              ? inputVal.trim() === challenge
+              : inputVal.trim().toUpperCase() === challenge.toUpperCase();
           }
-          if (type === 'slider') {
-            return slider >= 95
+          if (type === "slider") {
+            return slider >= 95;
           }
-          if (type === 'checkbox') {
-            return checked
+          if (type === "checkbox") {
+            return checked;
           }
-          if (type === 'recaptcha') {
-            return checked
+          if (type === "recaptcha") {
+            return checked;
           }
-          return false
-        }
+          return false;
+        };
 
         useEffect(() => {
           // push a boolean solved status into value
-          onChange?.({ solved: verify(), input: inputVal, slider, checked, type, difficulty })
-        }, [inputVal, slider, checked, type, difficulty])
+          onChange?.({
+            solved: verify(),
+            input: inputVal,
+            slider,
+            checked,
+            type,
+            difficulty,
+          });
+        }, [inputVal, slider, checked, type, difficulty]);
 
-        const sectionCls = 'p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50'
-        const labelCls = 'text-xs text-gray-600'
+        const sectionCls =
+          "p-3 border border-dashed border-gray-300 rounded-lg bg-gray-50";
+        const labelCls = "text-xs text-gray-600";
 
         // Show loading state until client-side generation is complete
         if (!isClient) {
@@ -2286,208 +3540,270 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <div className={labelCls}>Loading CAPTCHA...</div>
               </div>
             </div>
-          )
+          );
         }
 
         return (
           <div className={sectionCls}>
-            {type === 'math' && mathOps && (
+            {type === "math" && mathOps && (
               <div className="text-center space-y-2">
-                <div className="font-mono text-base">{mathOps.a} {mathOps.op} {mathOps.b} = ?</div>
-                <input value={inputVal} onChange={(e) => setInputVal(e.target.value)} className="w-24 h-8 mx-auto border rounded bg-white text-center" placeholder="Answer" />
-                <div className={labelCls}>{verify() ? 'Verified' : 'Enter the result'}</div>
+                <div className="font-mono text-base">
+                  {mathOps.a} {mathOps.op} {mathOps.b} = ?
+                </div>
+                <input
+                  value={inputVal}
+                  onChange={(e) => setInputVal(e.target.value)}
+                  className="w-24 h-8 mx-auto border rounded bg-white text-center"
+                  placeholder="Answer"
+                />
+                <div className={labelCls}>
+                  {verify() ? "Verified" : "Enter the result"}
+                </div>
               </div>
             )}
-            {type === 'text' && challenge && (
+            {type === "text" && challenge && (
               <div className="text-center space-y-2">
-                <div className="font-mono bg-gray-100 inline-block px-2 py-1 rounded tracking-widest select-none">{challenge}</div>
-                <input value={inputVal} onChange={(e) => setInputVal(e.target.value)} className="w-32 h-8 mx-auto border rounded bg-white text-center" placeholder="Type here" />
-                <div className={labelCls}>{verify() ? 'Verified' : caseSensitive ? 'Case sensitive' : 'Not case sensitive'}</div>
+                <div className="font-mono bg-gray-100 inline-block px-2 py-1 rounded tracking-widest select-none">
+                  {challenge}
+                </div>
+                <input
+                  value={inputVal}
+                  onChange={(e) => setInputVal(e.target.value)}
+                  className="w-32 h-8 mx-auto border rounded bg-white text-center"
+                  placeholder="Type here"
+                />
+                <div className={labelCls}>
+                  {verify()
+                    ? "Verified"
+                    : caseSensitive
+                      ? "Case sensitive"
+                      : "Not case sensitive"}
+                </div>
               </div>
             )}
-            {type === 'slider' && (
+            {type === "slider" && (
               <div className="space-y-1">
                 <div className={labelCls}>Slide to verify</div>
-                <input type="range" min={0} max={100} value={slider} onChange={(e) => setSlider(parseInt(e.target.value))} className="w-full" />
-                <div className={labelCls}>{verify() ? 'Verified' : 'Slide to 100%'}</div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={slider}
+                  onChange={(e) => setSlider(parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className={labelCls}>
+                  {verify() ? "Verified" : "Slide to 100%"}
+                </div>
               </div>
             )}
-            {type === 'checkbox' && (
+            {type === "checkbox" && (
               <label className="flex items-center justify-center gap-2">
-                <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="w-4 h-4" />
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                  className="w-4 h-4"
+                />
                 <span className="text-sm">I'm not a robot</span>
               </label>
             )}
-            {type === 'recaptcha' && (
-              <button type="button" onClick={() => setChecked(v => !v)} className={`w-full md:w-72 mx-auto flex items-center justify-between px-3 py-2 rounded border ${checked ? 'bg-emerald-50 border-emerald-400' : 'bg-white border-gray-300'} shadow-sm`}>
+            {type === "recaptcha" && (
+              <button
+                type="button"
+                onClick={() => setChecked((v) => !v)}
+                className={`w-full md:w-72 mx-auto flex items-center justify-between px-3 py-2 rounded border ${checked ? "bg-emerald-50 border-emerald-400" : "bg-white border-gray-300"} shadow-sm`}
+              >
                 <div className="flex items-center gap-2">
-                  <span className={`inline-flex h-4 w-4 items-center justify-center rounded border ${checked ? 'bg-emerald-500 border-emerald-500' : 'border-gray-400'}`}>{checked && <CheckIcon className="w-3 h-3 text-white" />}</span>
+                  <span
+                    className={`inline-flex h-4 w-4 items-center justify-center rounded border ${checked ? "bg-emerald-500 border-emerald-500" : "border-gray-400"}`}
+                  >
+                    {checked && <CheckIcon className="w-3 h-3 text-white" />}
+                  </span>
                   <span className="text-sm">I'm not a robot</span>
                 </div>
                 <span className="text-[10px] text-gray-500">reCAPTCHA</span>
               </button>
             )}
             <div className="mt-2 text-center">
-              <button type="button" onClick={regen} className="px-2 py-1 text-xs border rounded hover:bg-gray-100">Refresh</button>
+              <button
+                type="button"
+                onClick={regen}
+                className="px-2 py-1 text-xs border rounded hover:bg-gray-100"
+              >
+                Refresh
+              </button>
             </div>
           </div>
-        )
+        );
       }
 
-      case 'signature_upload': {
-        const mode = (field.settings as any)?.signatureMode || 'draw'
-        const penSize = (field.settings as any)?.penSize || 3
-        const [typed, setTyped] = useState(typeof value === 'string' && !(value as string).startsWith('data:') ? (value as string) : '')
+      case "signature_upload": {
+        const mode = (field.settings as any)?.signatureMode || "draw";
+        const penSize = (field.settings as any)?.penSize || 3;
+        const [typed, setTyped] = useState(
+          typeof value === "string" && !(value as string).startsWith("data:")
+            ? (value as string)
+            : "",
+        );
 
         // Canvas refs/state
-        const canvasRef = useRef<HTMLCanvasElement>(null)
-        const drawingRef = useRef(false)
-        const lastRef = useRef<{ x: number; y: number } | null>(null)
+        const canvasRef = useRef<HTMLCanvasElement>(null);
+        const drawingRef = useRef(false);
+        const lastRef = useRef<{ x: number; y: number } | null>(null);
 
         useEffect(() => {
-          if (mode !== 'draw') return
+          if (mode !== "draw") return;
 
           try {
-            const canvas = canvasRef.current
-            if (!canvas) return
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
 
             // scale for DPR with mobile safety checks
-            const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
-            const rect = canvas.getBoundingClientRect()
+            const dpr =
+              (typeof window !== "undefined" && window.devicePixelRatio) || 1;
+            const rect = canvas.getBoundingClientRect();
 
             // Ensure minimum dimensions for mobile
-            const minWidth = Math.max(rect.width || 300, 300)
-            const minHeight = Math.max(rect.height || 200, 200)
+            const minWidth = Math.max(rect.width || 300, 300);
+            const minHeight = Math.max(rect.height || 200, 200);
 
-            canvas.width = minWidth * dpr
-            canvas.height = minHeight * dpr
-            ctx.scale(dpr, dpr)
-            ctx.lineJoin = 'round'
-            ctx.lineCap = 'round'
-            ctx.strokeStyle = '#111827'
-            ctx.lineWidth = penSize
+            canvas.width = minWidth * dpr;
+            canvas.height = minHeight * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.lineJoin = "round";
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "#111827";
+            ctx.lineWidth = penSize;
 
             // If existing image value
-            if (typeof value === 'string' && (value as string).startsWith('data:')) {
-              const img = new Image()
+            if (
+              typeof value === "string" &&
+              (value as string).startsWith("data:")
+            ) {
+              const img = new Image();
               img.onload = () => {
                 try {
-                  ctx.drawImage(img, 0, 0, minWidth, minHeight)
+                  ctx.drawImage(img, 0, 0, minWidth, minHeight);
                 } catch (error) {
-                  console.warn('Failed to draw image on canvas:', error)
+                  console.warn("Failed to draw image on canvas:", error);
                 }
-              }
+              };
               img.onerror = () => {
-                console.warn('Failed to load image for canvas')
-              }
-              img.src = value as string
+                console.warn("Failed to load image for canvas");
+              };
+              img.src = value as string;
             }
           } catch (error) {
-            console.error('Canvas initialization error:', error)
+            console.error("Canvas initialization error:", error);
           }
-        }, [mode, penSize, value])
+        }, [mode, penSize, value]);
 
-        const getPos = (e: MouseEvent | TouchEvent, canvas: HTMLCanvasElement) => {
+        const getPos = (
+          e: MouseEvent | TouchEvent,
+          canvas: HTMLCanvasElement,
+        ) => {
           try {
-            const rect = canvas.getBoundingClientRect()
-            if ('touches' in e && e.touches && e.touches.length > 0) {
+            const rect = canvas.getBoundingClientRect();
+            if ("touches" in e && e.touches && e.touches.length > 0) {
               return {
                 x: e.touches[0].clientX - rect.left,
-                y: e.touches[0].clientY - rect.top
-              }
-            } else if ('clientX' in e) {
-              const me = e as MouseEvent
+                y: e.touches[0].clientY - rect.top,
+              };
+            } else if ("clientX" in e) {
+              const me = e as MouseEvent;
               return {
                 x: me.clientX - rect.left,
-                y: me.clientY - rect.top
-              }
+                y: me.clientY - rect.top,
+              };
             }
-            return { x: 0, y: 0 }
+            return { x: 0, y: 0 };
           } catch (error) {
-            console.warn('Error getting touch position:', error)
-            return { x: 0, y: 0 }
+            console.warn("Error getting touch position:", error);
+            return { x: 0, y: 0 };
           }
-        }
+        };
 
         const startDraw = (e: any) => {
           try {
-            if (mode !== 'draw') return
-            const canvas = canvasRef.current
-            const ctx = canvas?.getContext('2d')
-            if (!canvas || !ctx) return
+            if (mode !== "draw") return;
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext("2d");
+            if (!canvas || !ctx) return;
 
             // Prevent default to avoid scrolling on mobile
-            if (e.preventDefault) e.preventDefault()
+            if (e.preventDefault) e.preventDefault();
 
-            drawingRef.current = true
-            lastRef.current = getPos(e.nativeEvent || e, canvas)
+            drawingRef.current = true;
+            lastRef.current = getPos(e.nativeEvent || e, canvas);
           } catch (error) {
-            console.warn('Error starting draw:', error)
+            console.warn("Error starting draw:", error);
           }
-        }
+        };
         const moveDraw = (e: any) => {
           try {
-            if (mode !== 'draw') return
-            const canvas = canvasRef.current
-            const ctx = canvas?.getContext('2d')
-            if (!canvas || !ctx || !drawingRef.current || !lastRef.current) return
+            if (mode !== "draw") return;
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext("2d");
+            if (!canvas || !ctx || !drawingRef.current || !lastRef.current)
+              return;
 
             // Prevent default to avoid scrolling on mobile
-            if (e.preventDefault) e.preventDefault()
+            if (e.preventDefault) e.preventDefault();
 
-            const now = getPos(e.nativeEvent || e, canvas)
-            ctx.beginPath()
-            ctx.moveTo(lastRef.current.x, lastRef.current.y)
-            ctx.lineTo(now.x, now.y)
-            ctx.stroke()
-            lastRef.current = now
+            const now = getPos(e.nativeEvent || e, canvas);
+            ctx.beginPath();
+            ctx.moveTo(lastRef.current.x, lastRef.current.y);
+            ctx.lineTo(now.x, now.y);
+            ctx.stroke();
+            lastRef.current = now;
           } catch (error) {
-            console.warn('Error during draw move:', error)
+            console.warn("Error during draw move:", error);
           }
-        }
+        };
         const endDraw = () => {
           try {
-            if (mode !== 'draw') return
-            const canvas = canvasRef.current
-            if (!canvas) return
+            if (mode !== "draw") return;
+            const canvas = canvasRef.current;
+            if (!canvas) return;
 
-            drawingRef.current = false
-            lastRef.current = null
+            drawingRef.current = false;
+            lastRef.current = null;
 
-            const data = canvas.toDataURL('image/png')
-            onChange?.(data)
+            const data = canvas.toDataURL("image/png");
+            onChange?.(data);
           } catch (error) {
-            console.warn('Error ending draw:', error)
+            console.warn("Error ending draw:", error);
           }
-        }
+        };
 
         const clearCanvas = () => {
           try {
-            const canvas = canvasRef.current
-            const ctx = canvas?.getContext('2d')
-            if (!canvas || !ctx) return
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext("2d");
+            if (!canvas || !ctx) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height)
-            onChange?.('')
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            onChange?.("");
           } catch (error) {
-            console.warn('Error clearing canvas:', error)
+            console.warn("Error clearing canvas:", error);
           }
-        }
+        };
 
-        const fileInputRef = useRef<HTMLInputElement>(null)
+        const fileInputRef = useRef<HTMLInputElement>(null);
         const handleFile = (file: File) => {
-          if (!file) return
-          if (!['image/png', 'image/jpeg'].includes(file.type)) return
-          if (file.size > 50 * 1024) return
-          const reader = new FileReader()
+          if (!file) return;
+          if (!["image/png", "image/jpeg"].includes(file.type)) return;
+          if (file.size > 50 * 1024) return;
+          const reader = new FileReader();
           reader.onload = () => {
-            onChange?.(reader.result as string)
-          }
-          reader.readAsDataURL(file)
-        }
+            onChange?.(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        };
 
         return (
           <div className="w-full">
@@ -2496,15 +3812,21 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <span className="text-gray-600">Mode:</span>
                 <span className="text-gray-800 capitalize">{mode}</span>
               </div>
-              {mode === 'draw' && (
+              {mode === "draw" && (
                 <div className="flex items-center gap-3">
                   <span className="text-gray-600">Pen: {penSize}px</span>
-                  <button type="button" className="text-blue-700 underline" onClick={clearCanvas}>Clear</button>
+                  <button
+                    type="button"
+                    className="text-blue-700 underline"
+                    onClick={clearCanvas}
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
             </div>
             <div className="relative border border-gray-300 rounded-lg bg-white p-2">
-              {mode === 'draw' && (
+              {mode === "draw" && (
                 <canvas
                   ref={canvasRef}
                   className="h-32 w-full rounded bg-white touch-none"
@@ -2517,34 +3839,56 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                   onTouchEnd={endDraw}
                 />
               )}
-              {mode === 'type' && (
+              {mode === "type" && (
                 <input
                   value={typed}
-                  onChange={(e) => { setTyped(e.target.value); onChange?.(e.target.value) }}
+                  onChange={(e) => {
+                    setTyped(e.target.value);
+                    onChange?.(e.target.value);
+                  }}
                   placeholder="Type your signature"
                   className="w-full h-10 text-xl italic tracking-wider border-none focus:outline-none"
                 />
               )}
-              {mode === 'upload' && (
+              {mode === "upload" && (
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <input ref={fileInputRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => e.target.files && handleFile(e.target.files[0])} />
-                  <button type="button" className="px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50" onClick={() => fileInputRef.current?.click()}>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    onChange={(e) =>
+                      e.target.files && handleFile(e.target.files[0])
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     Upload (PNG/JPG, &lt; 50KB)
                   </button>
-                  {typeof localValue === 'string' && localValue.startsWith('data:') && (
-                    <img src={localValue} alt="Signature" className="max-h-20 object-contain" />
-                  )}
+                  {typeof localValue === "string" &&
+                    localValue.startsWith("data:") && (
+                      <img
+                        src={localValue}
+                        alt="Signature"
+                        className="max-h-20 object-contain"
+                      />
+                    )}
                 </div>
               )}
-              {mode === 'draw' && (
-                <div className="absolute inset-x-0 bottom-1 text-center text-[10px] text-gray-400 select-none">Sign here</div>
+              {mode === "draw" && (
+                <div className="absolute inset-x-0 bottom-1 text-center text-[10px] text-gray-400 select-none">
+                  Sign here
+                </div>
               )}
             </div>
           </div>
-        )
+        );
       }
 
-      case 'payment': {
+      case "payment": {
         // In published mode, we'll mount Stripe Elements here.
         // In builder preview, render a neutral placeholder.
         if (isPreview) {
@@ -2566,55 +3910,81 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 256-bit SSL Encrypted
               </div>
             </div>
-          )
+          );
         }
 
         // Published/live mode: Stripe Elements will be mounted externally; just provide a container hook via onChange
         return (
           <div className="space-y-2">
-            <div id={`stripe-payment-container-${field.id}`} className="space-y-2">
+            <div
+              id={`stripe-payment-container-${field.id}`}
+              className="space-y-2"
+            >
               {/* The published page will mount Elements into a dedicated container for this field id. */}
             </div>
             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-              {(field.settings as any)?.amount && (field.settings as any)?.currency ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: String((field.settings as any)?.currency || 'usd').toUpperCase() }).format(Number((field.settings as any)?.amount) / 100)}` : ''}
+              {(field.settings as any)?.amount &&
+              (field.settings as any)?.currency
+                ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: String((field.settings as any)?.currency || "usd").toUpperCase() }).format(Number((field.settings as any)?.amount) / 100)}`
+                : ""}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <ShieldCheckIcon className="w-4 h-4 text-green-600" />
               <span>256-bit SSL encrypted</span>
             </div>
           </div>
-        )
+        );
       }
 
-      case 'statement': {
-        const buttonText = (field.settings as any)?.buttonText || 'Continue'
-        const hideMarks = !!(field.settings as any)?.hideMarks
+      case "statement": {
+        const buttonText = (field.settings as any)?.buttonText || "Continue";
+        const hideMarks = !!(field.settings as any)?.hideMarks;
         if (isPreview) {
           return (
             <div className="flex flex-col items-center text-center space-y-6 py-6">
-              {!hideMarks && <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />}
-              <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">{field.description || 'Your statement text here...'}</p>
-              <button type="button" disabled className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium">{buttonText}</button>
+              {!hideMarks && (
+                <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />
+              )}
+              <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">
+                {field.description || "Your statement text here..."}
+              </p>
+              <button
+                type="button"
+                disabled
+                className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium"
+              >
+                {buttonText}
+              </button>
             </div>
-          )
+          );
         }
         return (
           <div className="flex flex-col items-center text-center space-y-6 py-6">
-            {!hideMarks && <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />}
-            <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">{field.description || 'Your statement text here...'}</p>
-            <button type="button" onClick={() => handleChange('continue')} disabled={disabled}
-              className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium hover:bg-[#5A4BD1] transition-colors shadow-md hover:shadow-lg">
+            {!hideMarks && (
+              <div className="w-10 h-1 rounded-full bg-[#6C5CE7]/40" />
+            )}
+            <p className="text-lg text-gray-700 max-w-md leading-relaxed whitespace-pre-line">
+              {field.description || "Your statement text here..."}
+            </p>
+            <button
+              type="button"
+              onClick={() => handleChange("continue")}
+              disabled={disabled}
+              className="px-6 py-2.5 rounded-lg bg-[#6C5CE7] text-white text-sm font-medium hover:bg-[#5A4BD1] transition-colors shadow-md hover:shadow-lg"
+            >
               {buttonText}
             </button>
           </div>
-        )
+        );
       }
 
-      case 'legal': {
-        const acceptLabel = (field.settings as any)?.acceptLabel || 'I accept'
-        const rejectLabel = (field.settings as any)?.rejectLabel || "I don't accept"
-        const termsUrl = (field.settings as any)?.termsUrl || ''
-        const legalText = field.description || 'I agree to the Terms and Conditions'
+      case "legal": {
+        const acceptLabel = (field.settings as any)?.acceptLabel || "I accept";
+        const rejectLabel =
+          (field.settings as any)?.rejectLabel || "I don't accept";
+        const termsUrl = (field.settings as any)?.termsUrl || "";
+        const legalText =
+          field.description || "I agree to the Terms and Conditions";
         if (isPreview) {
           return (
             <div className="space-y-4">
@@ -2622,75 +3992,199 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
                 <span className="inline-block w-5 h-5 mt-0.5 rounded border-2 border-[#6C5CE7] bg-white flex-shrink-0" />
                 <span className="text-sm text-gray-700 leading-relaxed">
                   {legalText}
-                  {termsUrl && <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="text-[#6C5CE7] underline ml-1">Read terms</a>}
+                  {termsUrl && (
+                    <a
+                      href={termsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#6C5CE7] underline ml-1"
+                    >
+                      Read terms
+                    </a>
+                  )}
                 </span>
               </label>
               <div className="flex gap-2">
-                <button type="button" disabled className="px-4 py-2 text-sm rounded-lg bg-[#6C5CE7] text-white">{acceptLabel}</button>
-                <button type="button" disabled className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600">{rejectLabel}</button>
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 text-sm rounded-lg bg-[#6C5CE7] text-white"
+                >
+                  {acceptLabel}
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600"
+                >
+                  {rejectLabel}
+                </button>
               </div>
             </div>
-          )
+          );
         }
-        const accepted = localValue === 'accepted'
+        const accepted = localValue === "accepted";
         return (
           <div className="space-y-4">
-            <label className="flex items-start gap-3 cursor-pointer group" onClick={() => handleChange(accepted ? '' : 'accepted')}>
-              <span className={`inline-flex items-center justify-center w-5 h-5 mt-0.5 rounded border-2 flex-shrink-0 transition-colors ${accepted ? 'border-[#6C5CE7] bg-[#6C5CE7]' : 'border-gray-300 bg-white group-hover:border-[#6C5CE7]'}`}>
+            <label
+              className="flex items-start gap-3 cursor-pointer group"
+              onClick={() => handleChange(accepted ? "" : "accepted")}
+            >
+              <span
+                className={`inline-flex items-center justify-center w-5 h-5 mt-0.5 rounded border-2 flex-shrink-0 transition-colors ${accepted ? "border-[#6C5CE7] bg-[#6C5CE7]" : "border-gray-300 bg-white group-hover:border-[#6C5CE7]"}`}
+              >
                 {accepted && <CheckIcon className="w-3.5 h-3.5 text-white" />}
               </span>
               <span className="text-sm text-gray-700 leading-relaxed">
                 {legalText}
-                {termsUrl && <a href={termsUrl} target="_blank" rel="noopener noreferrer" className="text-[#6C5CE7] underline ml-1" onClick={e => e.stopPropagation()}>Read terms</a>}
+                {termsUrl && (
+                  <a
+                    href={termsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#6C5CE7] underline ml-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Read terms
+                  </a>
+                )}
               </span>
             </label>
             <div className="flex gap-2">
-              <button type="button" onClick={() => handleChange('accepted')} disabled={disabled}
-                className={`px-4 py-2 text-sm rounded-lg transition-colors ${accepted ? 'bg-[#6C5CE7] text-white' : 'bg-gray-100 text-gray-600 hover:bg-[#6C5CE7]/10'}`}>{acceptLabel}</button>
-              <button type="button" onClick={() => handleChange('rejected')} disabled={disabled}
-                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${localValue === 'rejected' ? 'border-red-400 bg-red-50 text-red-600' : 'border-gray-300 text-gray-600 hover:border-red-300'}`}>{rejectLabel}</button>
+              <button
+                type="button"
+                onClick={() => handleChange("accepted")}
+                disabled={disabled}
+                className={`px-4 py-2 text-sm rounded-lg transition-colors ${accepted ? "bg-[#6C5CE7] text-white" : "bg-gray-100 text-gray-600 hover:bg-[#6C5CE7]/10"}`}
+              >
+                {acceptLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChange("rejected")}
+                disabled={disabled}
+                className={`px-4 py-2 text-sm rounded-lg border transition-colors ${localValue === "rejected" ? "border-red-400 bg-red-50 text-red-600" : "border-gray-300 text-gray-600 hover:border-red-300"}`}
+              >
+                {rejectLabel}
+              </button>
             </div>
             {error && <div className="text-sm text-red-600">{error}</div>}
           </div>
-        )
+        );
       }
 
-      case 'contact_info': {
-        type ContactValue = { firstName?: string; lastName?: string; email?: string; phone?: string }
-        const v: ContactValue = (localValue && typeof localValue === 'object') ? localValue : {}
-        const set = (key: keyof ContactValue, val: string) => handleChange({ ...v, [key]: val })
-        const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] outline-none transition-colors'
+      case "contact_info": {
+        type ContactValue = {
+          firstName?: string;
+          lastName?: string;
+          email?: string;
+          phone?: string;
+        };
+        const v: ContactValue =
+          localValue && typeof localValue === "object" ? localValue : {};
+        const set = (key: keyof ContactValue, val: string) =>
+          handleChange({ ...v, [key]: val });
+        const inputCls =
+          "w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#6C5CE7]/20 focus:border-[#6C5CE7] outline-none transition-colors";
         if (isPreview) {
           return (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className="block text-xs text-gray-600 mb-1">First Name</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>Jane</div></div>
-              <div><label className="block text-xs text-gray-600 mb-1">Last Name</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>Doe</div></div>
-              <div><label className="block text-xs text-gray-600 mb-1">Email</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>jane@example.com</div></div>
-              <div><label className="block text-xs text-gray-600 mb-1">Phone</label><div className={`${inputCls} bg-gray-50 text-gray-400`}>+1 (555) 123-4567</div></div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  First Name
+                </label>
+                <div className={`${inputCls} bg-gray-50 text-gray-400`}>
+                  Jane
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Last Name
+                </label>
+                <div className={`${inputCls} bg-gray-50 text-gray-400`}>
+                  Doe
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Email
+                </label>
+                <div className={`${inputCls} bg-gray-50 text-gray-400`}>
+                  jane@example.com
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Phone
+                </label>
+                <div className={`${inputCls} bg-gray-50 text-gray-400`}>
+                  +1 (555) 123-4567
+                </div>
+              </div>
             </div>
-          )
+          );
         }
         return (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">First Name</label>
-              <input id={`${field.id}-firstName`} name={`${field.id}-firstName`} value={v.firstName || ''} onChange={e => set('firstName', e.target.value)} className={inputCls} placeholder="Jane" disabled={disabled} />
+              <label className="block text-xs text-gray-600 mb-1">
+                First Name
+              </label>
+              <input
+                id={`${field.id}-firstName`}
+                name={`${field.id}-firstName`}
+                value={v.firstName || ""}
+                onChange={(e) => set("firstName", e.target.value)}
+                className={inputCls}
+                placeholder="Jane"
+                disabled={disabled}
+              />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Last Name</label>
-              <input id={`${field.id}-lastName`} name={`${field.id}-lastName`} value={v.lastName || ''} onChange={e => set('lastName', e.target.value)} className={inputCls} placeholder="Doe" disabled={disabled} />
+              <label className="block text-xs text-gray-600 mb-1">
+                Last Name
+              </label>
+              <input
+                id={`${field.id}-lastName`}
+                name={`${field.id}-lastName`}
+                value={v.lastName || ""}
+                onChange={(e) => set("lastName", e.target.value)}
+                className={inputCls}
+                placeholder="Doe"
+                disabled={disabled}
+              />
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Email</label>
-              <input id={`${field.id}-email`} name={`${field.id}-email`} type="email" value={v.email || ''} onChange={e => set('email', e.target.value)} className={inputCls} placeholder="jane@example.com" disabled={disabled} />
+              <input
+                id={`${field.id}-email`}
+                name={`${field.id}-email`}
+                type="email"
+                value={v.email || ""}
+                onChange={(e) => set("email", e.target.value)}
+                className={inputCls}
+                placeholder="jane@example.com"
+                disabled={disabled}
+              />
             </div>
             <div>
               <label className="block text-xs text-gray-600 mb-1">Phone</label>
-              <input id={`${field.id}-phone`} name={`${field.id}-phone`} type="tel" value={v.phone || ''} onChange={e => set('phone', e.target.value)} className={inputCls} placeholder="+1 (555) 123-4567" disabled={disabled} />
+              <input
+                id={`${field.id}-phone`}
+                name={`${field.id}-phone`}
+                type="tel"
+                value={v.phone || ""}
+                onChange={(e) => set("phone", e.target.value)}
+                className={inputCls}
+                placeholder="+1 (555) 123-4567"
+                disabled={disabled}
+              />
             </div>
-            {error && <div className="col-span-2 text-sm text-red-600">{error}</div>}
+            {error && (
+              <div className="col-span-2 text-sm text-red-600">{error}</div>
+            )}
           </div>
-        )
+        );
       }
 
       default:
@@ -2700,9 +4194,9 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
               Field type "{field.type}" not implemented yet.
             </p>
           </div>
-        )
+        );
     }
-  }
+  };
 
   return (
     <div className="space-y-2">
@@ -2719,5 +4213,5 @@ export function FieldComponent({ field, value, onChange, onBlur, error, isPrevie
       )}
       {renderField()}
     </div>
-  )
-} 
+  );
+}

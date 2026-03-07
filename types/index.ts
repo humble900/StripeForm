@@ -420,7 +420,8 @@ export interface FormSettings {
   email_notifications: boolean
   notification_email?: string
   // Rendering preferences
-  display_mode?: 'single_page' | 'progressive'
+  display_mode?: 'single_page' | 'progressive' | 'grid'
+  grid_columns?: 1 | 2 | 3 | 4
   layout?: 'vertical' | 'horizontal' | 'grid'
   // Preview device toggle
   previewDevice?: 'desktop' | 'mobile'

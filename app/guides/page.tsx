@@ -7,10 +7,11 @@ export default function GuidesPage() {
             Guides
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Coming soon! We're working on comprehensive guides to help you create better forms.
+            Coming soon! We're working on comprehensive guides to help you
+            create better forms.
           </p>
-          <a 
-            href="/builder" 
+          <a
+            href="/builder"
             className="bg-[#6C5CE7] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-opacity-90 transition-all inline-flex items-center justify-center"
           >
             Start Building Forms
@@ -18,6 +19,5 @@ export default function GuidesPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

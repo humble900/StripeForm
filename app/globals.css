@@ -948,6 +948,16 @@ html:not(:hover)::-webkit-scrollbar, body:not(:hover)::-webkit-scrollbar {
   gap: 16px;
 }
 
+/* Grid form layout – collapse to single column on mobile */
+@media (max-width: 640px) {
+  .form-grid-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .form-grid-layout > * {
+    grid-column: span 1 !important;
+  }
+}
+
 .question-card {
   border-radius: 12px;
   border: 1px solid #e5e7eb; /* gray-200 */
