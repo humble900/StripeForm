@@ -135,60 +135,7 @@ const Dashboard = () => {
     const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
   }, [userType, firebaseUser, userId, isLoading])
 
-  // Authentication redirect logic for returning users
-  useEffect(() => {
-    const checkForReturningUser = async () => {
-      // Only check if we're not loading and not authenticated
-      if (isLoading || firebaseUser) return
 
-      try {
-        // Check if user has any published forms (indicating they're a returning user)
-        const userTrackingData = await getUserTrackingData()
-        const fingerprint = userTrackingData?.fingerprint
-
-        if (fingerprint) {
-          // Try to fetch forms for this fingerprint
-          const response = await fetch(`/api/user/forms`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${fingerprint}`,
-              'x-fingerprint': fingerprint
-            },
-            credentials: 'include'
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            const forms = data.data || []
-            const publishedForms = forms.filter((form: any) => form.status === 'published')
-
-            // If user has published forms but is not authenticated, redirect to login
-            if (publishedForms.length > 0) {
-
-              addNotification({
-                type: 'info',
-                title: 'Welcome Back!',
-                message: 'Please sign in to access your published forms.',
-                duration: 5000
-              })
-
-              // Redirect to login with return URL
-              const returnUrl = encodeURIComponent(window.location.pathname + window.location.search)
-              window.location.href = `/login?redirect=${returnUrl}`
-            }
-          }
-        }
-      } catch (error) {
-        console.warn('Could not check for returning user:', error)
-      }
-    }
-
-    // Only check after a short delay to avoid interfering with initial load
-    const timeoutId = setTimeout(checkForReturningUser, 2000)
-
-    return () => clearTimeout(timeoutId)
-  }, [isLoading, firebaseUser, getUserTrackingData, addNotification])
 
   // Stable fetch function to prevent memory leaks
   const fetchDashboardData = useCallback(async () => {

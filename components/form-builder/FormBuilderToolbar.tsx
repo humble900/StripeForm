@@ -445,7 +445,6 @@ export function FormBuilderToolbar({
       const shouldCheckLimits = isAnonymous || (isAuthenticated && user?.subscription_tier === 'free')
 
       if (shouldCheckLimits) {
-        const trackingData = await getUserTrackingData()
         let limitInfo
         if (isAnonymous) {
           limitInfo = await checkAnonymousFormLimit()
@@ -475,22 +474,6 @@ export function FormBuilderToolbar({
 
   const publishForm = async () => {
     try {
-      const shouldCheckLimits = isAnonymous || (isAuthenticated && user?.subscription_tier !== 'pro')
-
-      if (shouldCheckLimits) {
-        let limitInfo
-        if (isAnonymous) {
-          limitInfo = await checkAnonymousFormLimit()
-        } else {
-          limitInfo = await checkUserFormLimit()
-        }
-
-        if (!limitInfo.canCreate) {
-          setShowUpgradeModal(true)
-          return
-        }
-      }
-
       const saved = await saveForm()
 
       if (state.current_form) {
