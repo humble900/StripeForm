@@ -38,17 +38,17 @@ const ADMIN_PAGES = [
 
 export function ConditionalProviders({ children }: ConditionalProvidersProps) {
   const pathname = usePathname()
-  
+
   // Check if current page is public
   const isPublicPage = pathname ? PUBLIC_PAGES.includes(pathname) : false
-  
+
   // Check if current page is admin (uses custom auth, not Firebase)
   const isAdminPage = pathname ? ADMIN_PAGES.some(adminPath => pathname.startsWith(adminPath)) : false
-  
+
   // Pages that need authentication providers (login, register, pricing uses useAuth)
   const authPages = ['/login', '/register', '/pricing']
   const needsAuth = pathname ? authPages.includes(pathname) : false
-  
+
   if (isAdminPage) {
     // For admin pages, don't provide Firebase authentication
     return (
@@ -57,16 +57,20 @@ export function ConditionalProviders({ children }: ConditionalProvidersProps) {
       </NotificationProvider>
     )
   }
-  
+
   if (needsAuth) {
     // For login/register pages, provide authentication providers
+    // AuthProvider is required so that onAuthStateChanged fires after OAuth redirects
+    // and so useAuth() works for signIn/signUp/signInWithGoogle/signInWithGithub
     return (
       <NotificationProvider>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </NotificationProvider>
     )
   }
-  
+
   if (isPublicPage) {
     // For other public pages, only provide basic providers without authentication
     return (
@@ -75,7 +79,7 @@ export function ConditionalProviders({ children }: ConditionalProvidersProps) {
       </>
     )
   }
-  
+
   // For protected pages, provide full authentication
   return (
     <Providers>

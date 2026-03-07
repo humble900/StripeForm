@@ -37,15 +37,21 @@ function RegisterPageInner() {
   useEffect(() => {
     const checkRedirect = async () => {
       try {
+        console.log('🔄 Register: Checking for OAuth redirect result...')
         const result = await getRedirectResult(auth)
         if (result) {
+          console.log('✅ OAuth redirect result received:', result.user.email)
           setSuccess('Account created successfully! Redirecting...')
+          // Wait a moment for onAuthStateChanged to fire and establish the session
           setTimeout(() => {
+            console.log('➡️ Redirecting to:', redirectTo)
             router.push(redirectTo)
-          }, 500)
+          }, 1000)
+        } else {
+          console.log('ℹ️ No pending OAuth redirect result')
         }
       } catch (error: any) {
-        console.error('Redirect sign-in error:', error)
+        console.error('❌ Redirect sign-in error:', error)
         const mappedError = mapAuthError(error, 'global')
         setErrors({ [mappedError.field]: mappedError.message })
       }
