@@ -173,11 +173,9 @@ export async function PUT(
       // Generate published URL if form is published
       let publishedUrl = formWithFields.publishedUrl
       if (formWithFields.status === 'published' && !publishedUrl) {
-        // Use proper domain detection
-        const host = request.headers.get('host') || 'localhost:3000'
-        const protocol = request.headers.get('x-forwarded-proto') || 'http'
-        const baseUrl = host.includes('localhost') ? `${protocol}://${host}` : 'https://stripeform.com'
-        publishedUrl = `${baseUrl}/forms/${formWithFields.slug || formWithFields.id}`
+        // Use configured production URL, never derive from request host
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://stripeform.com'
+        publishedUrl = `${baseUrl.replace(/\/$/, '')}/forms/${formWithFields.slug || formWithFields.id}`
 
         // Update the form with the generated URL
         await dbService.updateForm(id, { publishedUrl })
