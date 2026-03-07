@@ -11,8 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PhoneInput } from '@/components/ui/PhoneInput'
 import { mapAuthError } from '@/lib/utils/auth-errors'
-import { getRedirectResult } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
 
 function RegisterPageInner() {
   const [showPassword, setShowPassword] = useState(false)
@@ -33,31 +31,6 @@ function RegisterPageInner() {
   const redirectTo = searchParams?.get('redirect') || '/dashboard'
   const { signUp, signInWithGoogle, signInWithGithub } = useAuth()
 
-  // Catch OAuth redirect results (like "account-exists-with-different-credential")
-  useEffect(() => {
-    const checkRedirect = async () => {
-      try {
-        console.log('🔄 Register: Checking for OAuth redirect result...')
-        const result = await getRedirectResult(auth)
-        if (result) {
-          console.log('✅ OAuth redirect result received:', result.user.email)
-          setSuccess('Account created successfully! Redirecting...')
-          // Wait a moment for onAuthStateChanged to fire and establish the session
-          setTimeout(() => {
-            console.log('➡️ Redirecting to:', redirectTo)
-            router.push(redirectTo)
-          }, 1000)
-        } else {
-          console.log('ℹ️ No pending OAuth redirect result')
-        }
-      } catch (error: any) {
-        console.error('❌ Redirect sign-in error:', error)
-        const mappedError = mapAuthError(error, 'global')
-        setErrors({ [mappedError.field]: mappedError.message })
-      }
-    }
-    checkRedirect()
-  }, [router, redirectTo])
 
   // Auto-detect country based on IP
   useEffect(() => {

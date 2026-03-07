@@ -202,8 +202,8 @@ interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<UserCredential>
   signUp: (email: string, password: string, name?: string, phoneNumber?: string, countryCode?: string) => Promise<UserCredential>
   signOut: () => Promise<void>
-  signInWithGoogle: () => Promise<void>
-  signInWithGithub: () => Promise<void>
+  signInWithGoogle: () => Promise<any>
+  signInWithGithub: () => Promise<any>
   updateUserProfile: (updates: Partial<User>) => Promise<void>
   getAnonymousUser: () => Promise<AnonymousUser | null>
   createAnonymousUser: () => Promise<AnonymousUser>
@@ -722,15 +722,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider()
-      await signInWithRedirect(auth, provider)
+      // Use signInWithPopup instead of signInWithRedirect
+      // signInWithRedirect fails in production when the app domain differs from
+      // Firebase's authDomain due to cross-origin storage restrictions
+      const result = await signInWithPopup(auth, provider)
+      console.log('✅ Google sign in successful:', result.user.email)
+      return result
     } catch (error: any) {
-      console.error('❌ Google sign in redirect error:', error)
-      addNotification({
-        type: 'error',
-        title: 'Google Sign In Failed',
-        message: 'Failed to initiate Google sign in. Please try again.',
-        duration: 5000
-      })
+      console.error('❌ Google sign in error:', error)
+      // Don't show notification for user-cancelled popups
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        addNotification({
+          type: 'error',
+          title: 'Google Sign In Failed',
+          message: 'Failed to sign in with Google. Please try again.',
+          duration: 5000
+        })
+      }
       throw error
     }
   }
@@ -738,15 +746,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGithub = async () => {
     try {
       const provider = new GithubAuthProvider()
-      await signInWithRedirect(auth, provider)
+      // Use signInWithPopup instead of signInWithRedirect
+      // signInWithRedirect fails in production when the app domain differs from
+      // Firebase's authDomain due to cross-origin storage restrictions
+      const result = await signInWithPopup(auth, provider)
+      console.log('✅ GitHub sign in successful:', result.user.email)
+      return result
     } catch (error: any) {
-      console.error('❌ GitHub sign in redirect error:', error)
-      addNotification({
-        type: 'error',
-        title: 'GitHub Sign In Failed',
-        message: 'Failed to initiate GitHub sign in. Please try again.',
-        duration: 5000
-      })
+      console.error('❌ GitHub sign in error:', error)
+      // Don't show notification for user-cancelled popups
+      if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+        addNotification({
+          type: 'error',
+          title: 'GitHub Sign In Failed',
+          message: 'Failed to sign in with GitHub. Please try again.',
+          duration: 5000
+        })
+      }
       throw error
     }
   }
