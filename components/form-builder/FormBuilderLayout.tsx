@@ -97,6 +97,7 @@ export function FormBuilderLayout() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [inspectorOpen, setInspectorOpen] = useState(true)
   const [dockOpen, setDockOpen] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   // Auto-open inspector when a field is selected (from canvas or sidebar)
   useEffect(() => {
@@ -173,11 +174,12 @@ export function FormBuilderLayout() {
   const prevFieldCount = useRef(state.current_form?.fields?.length ?? 0)
   useEffect(() => {
     const currentCount = state.current_form?.fields?.length ?? 0
-    if (currentCount > prevFieldCount.current && dockOpen) {
-      setDockOpen(false)
+    if (currentCount > prevFieldCount.current) {
+      if (dockOpen) setDockOpen(false)
+      if (mobileSidebarOpen) setMobileSidebarOpen(false)
     }
     prevFieldCount.current = currentCount
-  }, [state.current_form?.fields?.length, dockOpen])
+  }, [state.current_form?.fields?.length, dockOpen, mobileSidebarOpen])
 
   const handleCategoryClick = (categoryId: string) => {
     if (activeCategory === categoryId) {
@@ -224,7 +226,14 @@ export function FormBuilderLayout() {
         {/* ---- CANVAS (full bleed with dot grid) ---- */}
         <div className="flex-1 flex flex-col relative builder-canvas-bg overflow-hidden">
           {/* Mobile/tablet controls — visible below lg (1024px) */}
-          <div className="lg:hidden flex items-center justify-end px-3 py-2 border-b border-gray-200/60 bg-white/60">
+          <div className="lg:hidden flex items-center justify-between px-3 py-2 border-b border-gray-200/60 bg-white/60">
+            <button
+              className="builder-pill builder-pill-ghost"
+              onClick={() => setMobileSidebarOpen(true)}
+            >
+              <Bars3Icon className="w-4 h-4" />
+              Add field
+            </button>
             <button
               className="builder-pill builder-pill-ghost"
               onClick={() => setInspectorOpen(!inspectorOpen)}
@@ -233,6 +242,32 @@ export function FormBuilderLayout() {
               Settings
             </button>
           </div>
+
+          {/* ====== MOBILE SIDEBAR OVERLAY ====== */}
+          {mobileSidebarOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+                onClick={() => setMobileSidebarOpen(false)}
+              />
+              {/* Slide-out Panel */}
+              <div className="fixed inset-y-0 left-0 w-[280px] bg-white z-50 lg:hidden shadow-2xl flex flex-col transform transition-transform duration-300 ease-in-out">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-[#F4F3FA]/50">
+                  <h3 className="text-sm font-semibold text-gray-700">Add Content</h3>
+                  <button
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="p-1.5 rounded-lg hover:bg-gray-200/50 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-hidden relative">
+                  <FormBuilderSidebar activeCategory="all" />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="flex-1 flex flex-row overflow-hidden relative">
             {/* ---- VERTICAL QUESTION LIST (Typeform Classic Style) ---- */}

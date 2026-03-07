@@ -692,10 +692,11 @@ export function FormBuilderToolbar({
             <div className="relative">
               <button
                 onClick={() => setShowAddQuestion(!showAddQuestion)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors text-xs font-medium border border-[#6C5CE7]/10"
+                className="flex items-center justify-center gap-1.5 md:px-3 md:py-1.5 w-8 h-8 md:w-auto md:h-auto text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-full md:rounded-lg transition-colors text-xs font-medium border border-[#6C5CE7]/10"
+                title="Add Question"
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>Add question</span>
+                <PlusIcon className="w-4 h-4 md:w-3.5 md:h-3.5" strokeWidth={2.5} />
+                <span className="hidden md:inline">Add question</span>
               </button>
 
               {showAddQuestion && (
@@ -705,8 +706,8 @@ export function FormBuilderToolbar({
                     {[
                       {
                         cat: 'Structure', color: '#00B894', items: [
-                          { type: 'cover_slide', label: 'Welcome Screen' },
-                          { type: 'end_page', label: 'Ending Screen' },
+                          { type: 'cover_slide', label: 'Welcome Screen', isSpecial: true },
+                          { type: 'end_page', label: 'Ending Screen', isSpecial: true },
                         ]
                       },
                       {
@@ -781,10 +782,18 @@ export function FormBuilderToolbar({
                               selectField(newField as any)
                               setShowAddQuestion(false)
                             }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left hover:bg-[#6C5CE7]/5 transition-all group"
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${item.isSpecial ? 'bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100/50 mt-1 mb-1 shadow-sm' : 'hover:bg-[#6C5CE7]/5'
+                              }`}
                           >
-                            <div className="w-2 h-2 rounded-full flex-shrink-0 opacity-60" style={{ backgroundColor: group.color }} />
-                            <span className="text-[12px] text-gray-700 group-hover:text-[#6C5CE7] font-medium transition-colors">{item.label}</span>
+                            {item.isSpecial ? (
+                              <div className="w-5 h-5 rounded-md bg-white border border-indigo-100 shadow-sm flex items-center justify-center flex-shrink-0">
+                                <SparklesIcon className="w-3 h-3 text-indigo-600" />
+                              </div>
+                            ) : (
+                              <div className="w-2 h-2 rounded-full flex-shrink-0 opacity-60" style={{ backgroundColor: group.color }} />
+                            )}
+                            <span className={`text-[12px] font-medium transition-colors ${item.isSpecial ? 'text-indigo-900 group-hover:text-indigo-700' : 'text-gray-700 group-hover:text-[#6C5CE7]'
+                              }`}>{item.label}</span>
                           </button>
                         ))}
                       </div>
