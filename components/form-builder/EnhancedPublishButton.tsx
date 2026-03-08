@@ -383,19 +383,14 @@ export function EnhancedPublishButton({
         onClick={handlePublish}
         disabled={isPublishing}
         data-publish-button
-        className="flex items-center space-x-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium h-8"
+        className="flex items-center space-x-1.5 px-3 py-1.5 text-white bg-[#6C5CE7] hover:bg-opacity-90 rounded-lg transition-colors disabled:opacity-80 disabled:cursor-not-allowed text-xs font-medium h-8 whitespace-nowrap"
       >
         {isPublishing ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span>Publishing...</span>
-          </>
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
         ) : (
-          <>
-            <GlobeAltIcon className="w-4 h-4" />
-            <span>Publish</span>
-          </>
+          <GlobeAltIcon className="w-4 h-4 flex-shrink-0" />
         )}
+        <span>Publish</span>
       </button>
     );
   }

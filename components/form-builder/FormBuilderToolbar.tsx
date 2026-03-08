@@ -1443,7 +1443,7 @@ export function FormBuilderToolbar({
                     <span>Focus mode</span>
                   </>
                 ) : (state.current_form?.settings?.display_mode ||
-                    "single_page") === "grid" ? (
+                  "single_page") === "grid" ? (
                   <>
                     <svg
                       className="w-3.5 h-3.5 text-emerald-500"
@@ -1689,11 +1689,10 @@ export function FormBuilderToolbar({
                             }
                             setShowModeDropdown(false);
                           }}
-                          className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-                            active
+                          className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${active
                               ? "bg-[hsl(250,86%,66%)]/8 ring-1 ring-[hsl(250,86%,66%)]/20"
                               : "hover:bg-gray-50"
-                          }`}
+                            }`}
                         >
                           <div
                             className={`mt-0.5 flex-shrink-0 ${active ? "text-[hsl(250,86%,66%)]" : "text-gray-400"}`}
@@ -1862,11 +1861,10 @@ export function FormBuilderToolbar({
                               selectField(newField as any);
                               setShowAddQuestion(false);
                             }}
-                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${
-                              "isSpecial" in item && item.isSpecial
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all group ${"isSpecial" in item && item.isSpecial
                                 ? "bg-indigo-50/50 hover:bg-indigo-100/50 border border-indigo-100/50 mt-1 mb-1 shadow-sm"
                                 : "hover:bg-[#6C5CE7]/5"
-                            }`}
+                              }`}
                           >
                             {"isSpecial" in item && item.isSpecial ? (
                               <div className="w-5 h-5 rounded-md bg-white border border-indigo-100 shadow-sm flex items-center justify-center flex-shrink-0">
@@ -1879,11 +1877,10 @@ export function FormBuilderToolbar({
                               />
                             )}
                             <span
-                              className={`text-[12px] font-medium transition-colors ${
-                                "isSpecial" in item && item.isSpecial
+                              className={`text-[12px] font-medium transition-colors ${"isSpecial" in item && item.isSpecial
                                   ? "text-indigo-900 group-hover:text-indigo-700"
                                   : "text-gray-700 group-hover:text-[#6C5CE7]"
-                              }`}
+                                }`}
                             >
                               {item.label}
                             </span>
@@ -1898,7 +1895,7 @@ export function FormBuilderToolbar({
           </div>
 
           {/* Center - Grouped Icon Actions */}
-          <div className="flex items-center gap-1.5 bg-gray-100/60 rounded-full px-1 py-0.5">
+          <div className="flex items-center gap-1.5 bg-gray-100/60 rounded-full px-1 py-0.5 overflow-x-auto hide-scrollbar max-w-full md:max-w-none ml-auto mr-2 md:mx-0 flex-shrink shrink md:shrink-0">
             {/* Undo */}
             <button
               onClick={undo}
@@ -1991,19 +1988,19 @@ export function FormBuilderToolbar({
           </div>
 
           {/* Right - Design + Publish + Status */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-1.5 sm:gap-2 justify-end flex-shrink-0 shrink-0">
             {/* Save status indicator */}
             {state.has_unsaved_changes ? (
-              <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 shrink-0">
                 <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
-                <span className="hidden sm:inline">
+                <span className="hidden md:inline">
                   {state.is_saving ? "Saving..." : "Unsaved"}
                 </span>
               </div>
             ) : state.current_form?.updated_at ? (
-              <div className="flex items-center gap-1.5 text-xs text-green-500">
+              <div className="flex items-center gap-1.5 text-xs text-green-500 shrink-0">
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                <span className="hidden sm:inline">Saved</span>
+                <span className="hidden md:inline">Saved</span>
               </div>
             ) : null}
 

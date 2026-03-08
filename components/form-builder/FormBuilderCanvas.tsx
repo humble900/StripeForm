@@ -34,6 +34,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 interface FormBuilderCanvasProps {
   isThemeMode?: boolean;
+  onAddFieldClick?: () => void;
 }
 
 // ── Sortable Field Wrapper (Typeform @dnd-kit pattern) ──
@@ -75,6 +76,7 @@ function SortableFieldItem({
 
 export function FormBuilderCanvas({
   isThemeMode = false,
+  onAddFieldClick,
 }: FormBuilderCanvasProps) {
   const {
     state,
@@ -277,46 +279,46 @@ export function FormBuilderCanvas({
         style={
           isMobilePreview
             ? {
-                width: "min(375px, 100vw - 32px)",
-                minHeight: "667px",
-                maxHeight: "calc(100vh - 120px)",
-                overflowY: "auto" as const,
-                borderRadius: "32px",
-                border: "8px solid #1a1a2e",
-                boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 0 0 2px #333",
-                backgroundColor:
-                  (state.current_form?.theme?.background_color as any) ||
-                  "#f8fafc",
-              }
+              width: "min(375px, 100vw - 32px)",
+              minHeight: "667px",
+              maxHeight: "calc(100vh - 120px)",
+              overflowY: "auto" as const,
+              borderRadius: "32px",
+              border: "8px solid #1a1a2e",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 0 0 2px #333",
+              backgroundColor:
+                (state.current_form?.theme?.background_color as any) ||
+                "#f8fafc",
+            }
             : {
-                backgroundColor: (() => {
-                  // If we have a gallery theme, the SVG art provides the background
-                  if (state.current_form?.theme?.gallery_theme_id)
-                    return "transparent";
-                  return (
-                    (state.current_form?.theme?.background_color as any) ||
-                    (() => {
-                      const cover = state.current_form?.fields.find(
-                        (f) => (f as any).type === "cover_slide",
-                      ) as any;
-                      return cover?.settings?.coverBackgroundColor || "#f8fafc";
-                    })()
-                  );
-                })(),
-                backgroundImage: (state.current_form as any)?.brandKit
-                  ?.backgroundImageUrl
-                  ? `url(${(state.current_form as any).brandKit.backgroundImageUrl})`
-                  : undefined,
-                backgroundSize: (state.current_form as any)?.brandKit
-                  ?.backgroundImageUrl
-                  ? "cover"
-                  : undefined,
-                backgroundPosition: (state.current_form as any)?.brandKit
-                  ?.backgroundImageUrl
-                  ? "center"
-                  : undefined,
-                minHeight: "calc(100vh - 160px)",
-              }
+              backgroundColor: (() => {
+                // If we have a gallery theme, the SVG art provides the background
+                if (state.current_form?.theme?.gallery_theme_id)
+                  return "transparent";
+                return (
+                  (state.current_form?.theme?.background_color as any) ||
+                  (() => {
+                    const cover = state.current_form?.fields.find(
+                      (f) => (f as any).type === "cover_slide",
+                    ) as any;
+                    return cover?.settings?.coverBackgroundColor || "#f8fafc";
+                  })()
+                );
+              })(),
+              backgroundImage: (state.current_form as any)?.brandKit
+                ?.backgroundImageUrl
+                ? `url(${(state.current_form as any).brandKit.backgroundImageUrl})`
+                : undefined,
+              backgroundSize: (state.current_form as any)?.brandKit
+                ?.backgroundImageUrl
+                ? "cover"
+                : undefined,
+              backgroundPosition: (state.current_form as any)?.brandKit
+                ?.backgroundImageUrl
+                ? "center"
+                : undefined,
+              minHeight: "calc(100vh - 160px)",
+            }
         }
       >
         {/* Theme art SVG background */}
@@ -378,11 +380,11 @@ export function FormBuilderCanvas({
                 // Find active field index
                 const activeIdx = state.selected_field
                   ? sortedFields.findIndex(
-                      (f) => f.id === state.selected_field?.id,
-                    )
+                    (f) => f.id === state.selected_field?.id,
+                  )
                   : sortedFields.findIndex(
-                      (f) => (f as any).type !== "cover_slide",
-                    );
+                    (f) => (f as any).type !== "cover_slide",
+                  );
                 const idx = activeIdx >= 0 ? activeIdx : 0;
                 const activeField = sortedFields[idx];
                 const hasPrev = idx > 0;
@@ -561,17 +563,17 @@ export function FormBuilderCanvas({
                                       />
                                       {(field.settings as any)
                                         ?.endButtonText && (
-                                        <button
-                                          disabled
-                                          className="px-6 py-3 text-white rounded-md text-base font-bold"
-                                          style={{ backgroundColor: tfPrimary }}
-                                        >
-                                          {
-                                            (field.settings as any)
-                                              ?.endButtonText
-                                          }
-                                        </button>
-                                      )}
+                                          <button
+                                            disabled
+                                            className="px-6 py-3 text-white rounded-md text-base font-bold"
+                                            style={{ backgroundColor: tfPrimary }}
+                                          >
+                                            {
+                                              (field.settings as any)
+                                                ?.endButtonText
+                                            }
+                                          </button>
+                                        )}
                                     </div>
                                   ) : (
                                     <div className="flex flex-col w-full relative">
@@ -1180,19 +1182,19 @@ export function FormBuilderCanvas({
                                         />
                                         {(field.settings as any)
                                           ?.endButtonText && (
-                                          <button
-                                            disabled
-                                            className="px-6 py-3 text-white rounded-md text-base font-bold"
-                                            style={{
-                                              backgroundColor: tfPrimary,
-                                            }}
-                                          >
-                                            {
-                                              (field.settings as any)
-                                                ?.endButtonText
-                                            }
-                                          </button>
-                                        )}
+                                            <button
+                                              disabled
+                                              className="px-6 py-3 text-white rounded-md text-base font-bold"
+                                              style={{
+                                                backgroundColor: tfPrimary,
+                                              }}
+                                            >
+                                              {
+                                                (field.settings as any)
+                                                  ?.endButtonText
+                                              }
+                                            </button>
+                                          )}
                                       </div>
                                     );
                                   })()}
@@ -1220,15 +1222,26 @@ export function FormBuilderCanvas({
             {/* Enhanced Empty State */}
             {state.current_form?.fields?.length === 0 && (
               <div className="text-center py-16">
-                <div className="w-14 h-14 bg-gradient-to-br from-brand to-brand-dark rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-brand/20">
-                  <PlusIcon className="h-7 w-7 text-white" />
-                </div>
+                <button
+                  type="button"
+                  onClick={onAddFieldClick}
+                  className="group relative w-14 h-14 bg-gradient-to-br from-brand to-brand-dark rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-brand/20 animate-bounce-gentle empty-state-ring cursor-pointer hover:shadow-xl hover:shadow-brand/30 hover:scale-110 active:scale-95 transition-all duration-200 border-0 outline-none focus:ring-2 focus:ring-brand/40 focus:ring-offset-2"
+                >
+                  <PlusIcon className="h-7 w-7 text-white group-hover:rotate-90 transition-transform duration-300" />
+                </button>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
                   No Fields Added Yet
                 </h3>
                 <p className="text-sm text-gray-500 mb-5 max-w-sm mx-auto">
-                  Click the icons on the left sidebar or use Quick Add below to
-                  start building.
+                  Click the{" "}
+                  <button
+                    type="button"
+                    onClick={onAddFieldClick}
+                    className="text-brand font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 inline"
+                  >
+                    + button
+                  </button>{" "}
+                  above to start building your form.
                 </p>
                 <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
                   <span className="flex items-center gap-1.5">

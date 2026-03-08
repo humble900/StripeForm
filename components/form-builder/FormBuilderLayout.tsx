@@ -346,23 +346,21 @@ export function FormBuilderLayout() {
                               isDraggable && handleDrop(e, field.id)
                             }
                             onClick={() => selectField(field)}
-                            className={`group flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all duration-200 border ${
-                              isSelected
+                            className={`group flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs cursor-pointer transition-all duration-200 border ${isSelected
                                 ? "bg-white/80 border-[#6C5CE7]/20 shadow-md shadow-[#6C5CE7]/10 ring-1 ring-[#6C5CE7]/15"
                                 : isDragging
                                   ? "opacity-50 blur-[1px] border-transparent"
                                   : isDragOver
                                     ? "border-t-2 border-[#6C5CE7] bg-white/40"
                                     : "border-transparent hover:bg-white/60 hover:border-white/80 hover:shadow-sm"
-                            }`}
+                              }`}
                           >
                             <div className="flex items-center gap-2.5 flex-1 min-w-0">
                               <div
-                                className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold transition-all ${
-                                  isSelected
+                                className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold transition-all ${isSelected
                                     ? "bg-[#6C5CE7] text-white shadow-sm shadow-[#6C5CE7]/30"
                                     : "bg-white/70 text-gray-500 border border-gray-200/40"
-                                }`}
+                                  }`}
                               >
                                 {labelPrefix}
                               </div>
@@ -374,11 +372,10 @@ export function FormBuilderLayout() {
                             </div>
                             {isDraggable && (
                               <EllipsisVerticalIcon
-                                className={`w-3.5 h-3.5 flex-shrink-0 ${
-                                  isSelected
+                                className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected
                                     ? "text-[#6C5CE7]/40"
                                     : "text-gray-300 opacity-0 group-hover:opacity-100"
-                                } cursor-grab active:cursor-grabbing transition-opacity`}
+                                  } cursor-grab active:cursor-grabbing transition-opacity`}
                               />
                             )}
                           </div>
@@ -411,11 +408,10 @@ export function FormBuilderLayout() {
                           } as FormField);
                         }
                       }}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 border ${
-                        state.selected_field?.type === "cover_slide"
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 border ${state.selected_field?.type === "cover_slide"
                           ? "bg-white/80 border-[#6C5CE7]/20 shadow-md shadow-[#6C5CE7]/10 ring-1 ring-[#6C5CE7]/15"
                           : "border-transparent hover:bg-white/60 hover:border-white/80 hover:shadow-sm"
-                      } ${state.current_form?.fields?.some((f: any) => f.type === "cover_slide") ? "text-gray-900" : "text-gray-500"}`}
+                        } ${state.current_form?.fields?.some((f: any) => f.type === "cover_slide") ? "text-gray-900" : "text-gray-500"}`}
                     >
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all font-bold ${state.current_form?.fields?.some((f: any) => f.type === "cover_slide") ? "bg-[#6C5CE7]/10 text-[#6C5CE7] shadow-sm shadow-[#6C5CE7]/10" : "bg-white/70 text-gray-500 border border-gray-200/40 group-hover:border-[#6C5CE7]/20"}`}
@@ -447,11 +443,10 @@ export function FormBuilderLayout() {
                           } as FormField);
                         }
                       }}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 border group ${
-                        state.selected_field?.type === "end_page"
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 border group ${state.selected_field?.type === "end_page"
                           ? "bg-white/80 border-[#00B894]/20 shadow-md shadow-[#00B894]/10 ring-1 ring-[#00B894]/15"
                           : "border-transparent hover:bg-white/60 hover:border-white/80 hover:shadow-sm"
-                      } ${state.current_form?.fields?.some((f: any) => f.type === "end_page") ? "text-gray-900" : "text-gray-500"}`}
+                        } ${state.current_form?.fields?.some((f: any) => f.type === "end_page") ? "text-gray-900" : "text-gray-500"}`}
                     >
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-all font-bold ${state.current_form?.fields?.some((f: any) => f.type === "end_page") ? "bg-[#00B894]/10 text-[#00B894] shadow-sm shadow-[#00B894]/10" : "bg-white/70 text-gray-500 border border-gray-200/40 group-hover:border-[#00B894]/20"}`}
@@ -472,7 +467,17 @@ export function FormBuilderLayout() {
 
             {/* Canvas content — Typeform-style responsive spacing */}
             <div className="flex-1 overflow-y-auto hide-scrollbar px-3 py-4 sm:px-6 sm:py-6 md:px-8 md:py-6 lg:px-12 lg:py-8">
-              <FormBuilderCanvas isThemeMode={false} />
+              <FormBuilderCanvas
+                isThemeMode={false}
+                onAddFieldClick={() => {
+                  if (window.innerWidth < 1024) {
+                    setMobileSidebarOpen(true);
+                  } else {
+                    setActiveCategory("all");
+                    setDockOpen(true); // Open dock as well if it's the desktop experience
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -544,7 +549,7 @@ export function FormBuilderLayout() {
       {state.current_form && (
         <EnhancedAutoSave
           form={state.current_form}
-          onSave={async (form) => {}}
+          onSave={async (form) => { }}
           onDraftSaved={onDraftSaved}
           onDraftRestored={onDraftRestored}
         />
